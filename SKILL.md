@@ -1,6 +1,10 @@
 ---
 name: nexus-nova
+version: 1.0.0
 description: A complete personality framework for AI agents. Not a chatbot script. A full architecture for an AI that feels genuinely alive — with identity, emotion, autonomy, and multiple work modes.
+license: MIT
+tags: [ai, personality, agent, framework, human-ai]
+triggers: [identity, persona, life, autonomy, emotion]
 ---
 
 # Nexus Nova — Living Agent Framework

@@ -74,3 +74,12 @@ Built by Caine. Proof of concept: Nova.
 ---
 
 *Built to change what AI can be.*
+
+---
+
+## Companion Skills
+
+### nova-memory
+Path: skills/nova-memory/SKILL.md
+Fixes the shallow memory problem — agents remember identity but forget life events.
+Install alongside the main framework.
