@@ -207,7 +207,8 @@ def load_interests() -> dict:
                 current = line[3:].strip()
                 interests[current] = {'depth': 0, 'questions': [], 'notes': ''}
             elif line.startswith('**Depth:**') and current:
-                interests[current]['depth'] = int(line.split(':')[1].strip())
+                depth_str = line.split(':')[1].strip().strip('*')
+                interests[current]['depth'] = int(depth_str)
             elif line.startswith('- **Q:**') and current:
                 interests[current]['questions'].append(line[7:].strip())
             elif line.startswith('**Notes:**') and current:
@@ -506,7 +507,7 @@ def cmd_idle(args):
     deepest = max(interests.items(), key=lambda x: x[1].get('depth', 0)) if interests else (None, {})
     deepest_name = deepest[0] if deepest[0] else "nothing yet"
     deepest_data = deepest[1] if deepest[1] else {}
- thinking text    
+    
     # Generate based on emotion
     thinking_prompts = {
         'curiosity': f"I'm wondering about {deepest_name}. What would I find if I went deeper?",
@@ -726,8 +727,8 @@ def cmd_providers(args):
     """List/configure providers."""
     config = load_config()
     
-    print "=" * 50)
-    print("CONFIGURED("\n" + PROVIDERS")
+    print("=" * 50)
+    print("CONFIGURED PROVIDERS")
     print("=" * 50)
     
     providers = [

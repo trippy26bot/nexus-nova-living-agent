@@ -152,7 +152,8 @@ def update_interest_depth(interest_name: str, new_insights: str, new_questions: 
     current_depth = 1
     for line in interest_lines:
         if '**Depth:**' in line:
-            current_depth = int(line.split(':')[1].strip())
+            depth_str = line.split(':')[1].strip().strip('*')
+            current_depth = int(depth_str)
             break
     
     # Update depth
