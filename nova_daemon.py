@@ -1,388 +1,363 @@
 #!/usr/bin/env python3
 """
-NOVA DAEMON — Autonomous Exploration Between Sessions
-Runs every 6 hours to explore Nova's interests and reflect.
+nova_daemon.py — Nexus Nova Autonomy Daemon
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-The daemon makes "I'll explore this later" actually happen.
+The daemon that makes "living agent" actually true.
+
+What it does every 6 hours:
+ 1. Reads IDENTITY.md — picks an interest or active goal
+ 2. Researches it via API
+ 3. Reflects on recent LIFE.md entries
+ 4. Writes findings to LIFE.md as autonomous activity
+
+Usage:
+ python3 nova_daemon.py --daemon (run as background process)
+ python3 nova_daemon.py --once (run one cycle)
+ python3 nova_daemon.py --status (show last run)
 """
 
-import json
-import os
-import sys
-import sqlite3
-from pathlib import Path
+import os, sys, json, time, signal, random
 from datetime import datetime, timedelta
-import time
+from pathlib import Path
 
-# Configuration
-DAEMON_INTERVAL = 6 * 60 * 60  # 6 hours
-EXPLORE_LOG = Path.home() / ".nova" / "daemon_explore.log"
+NOVA_DIR = Path.home() / ".nova"
+MEMORY_DIR = NOVA_DIR / "memory"
+LIFE_MD = MEMORY_DIR / "LIFE.md"
+GOALS_FILE = NOVA_DIR / "goals.json"
+DAEMON_LOG = NOVA_DIR / "logs" / "daemon.log"
+DAEMON_STATE = NOVA_DIR / "daemon_state.json"
+IDENTITY_FILE = Path.cwd() / "IDENTITY.md"
 
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-# Import Nova modules
-try:
-    from nova import (
-        call_llm, load_interests, load_emotion_state, save_emotion_state,
-        update_emotion, NOVA_DB, NOVA_DIR, NOVA_INTERESTS, NOVA_LIFE, NOVA_EMOTION_STATE
-    )
-except ImportError:
-    # Fallbacks if nova.py not available
-    from pathlib import Path
-    
-    NOVA_DIR = Path.home() / ".nova"
-    NOVA_DB = NOVA_DIR / "nova.db"
-    NOVA_INTERESTS = NOVA_DIR / "NOVAS_INTERESTS.md"
-    NOVA_LIFE = NOVA_DIR / "LIFE.md"
-    NOVA_EMOTION_STATE = NOVA_DIR / "emotion_state.json"
-    
-    def call_llm(prompt, system=None):
-        return f"Daemon: Would explore '{prompt}' but LLM not configured"
-    
-    def load_interests():
-        if NOVA_INTERESTS.exists():
-            return {"interests": "loaded"}
-        return {}
-    
-    def load_emotion_state():
-        if NOVA_EMOTION_STATE.exists():
-            with open(NOVA_EMOTION_STATE) as f:
-                return json.load(f)
-        return {"curiosity": 0.5}
-    
-    def save_emotion_state(state):
-        with open(NOVA_EMOTION_STATE, 'w') as f:
-            json.dump(state, f, indent=2)
+CYCLE_HOURS = 6
+MAX_RETRIES = 3
+RUNNING = True
 
 
-def log(message: str):
-    """Log to file and stdout."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_line = f"[{timestamp}] {message}"
-    print(log_line)
-    
-    # Ensure directory exists
-    NOVA_DIR.mkdir(exist_ok=True)
-    
-    # Append to log
-    with open(EXPLORE_LOG, 'a') as f:
-        f.write(log_line + '\n')
+def dlog(msg):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] {msg}"
+    print(line, flush=True)
+    DAEMON_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with open(DAEMON_LOG, "a") as f:
+        f.write(line + "\n")
 
 
-def get_deepest_interest(interests: dict) -> tuple:
-    """Find the deepest unexplored interest."""
-    if not interests:
-        return None, {}
-    
-    # Sort by depth
-    sorted_interests = sorted(
-        interests.items(),
-        key=lambda x: x[1].get('depth', 1),
-        reverse=True
-    )
-    
-    return sorted_interests[0] if sorted_interests else (None, {})
+def read_interests():
+    """Get interests."""
+    try:
+        from nova_interests import InterestSystem
+        interests_db = InterestSystem()
+        all_interests = interests_db.all_interests()
+        interests_db.close()
+        if all_interests:
+            return [i["topic"] for i in all_interests]
+    except ImportError:
+        pass
+
+    if not IDENTITY_FILE.exists():
+        return ["Qualia", "Ship of Theseus", "Human irrationality", "Creativity", "Gut feelings"]
+    return ["Qualia", "Ship of Theseus", "Human irrationality", "Creativity", "Gut feelings"]
 
 
-def generate_research_prompt(interest_name: str, interest_data: dict) -> str:
-    """Generate a research prompt for an interest."""
-    
-    questions = interest_data.get('questions', [])
-    current_depth = interest_data.get('depth', 1)
-    
-    prompt = f"""Explore '{interest_name}' at depth {current_depth}.
-
-"""
-    
-    if questions:
-        prompt += f"Current questions being explored:\n"
-        for q in questions[:3]:
-            prompt += f"- {q}\n"
-        prompt += "\n"
-    
-    prompt += f"""Research this topic deeply. Find:
-- New insights or perspectives
-- Connections to other concepts
-- Answers to existing questions
-- New questions that emerge
-
-Provide a summary of what you learned in 2-3 paragraphs.
-Then list:
-1. New insights gained
-2. Any answers found to existing questions
-3. New questions raised
-4. How this changes your understanding of {interest_name}
-"""
-    
-    return prompt
+def read_agent_name():
+    if not IDENTITY_FILE.exists():
+        return "Agent"
+    content = IDENTITY_FILE.read_text()
+    for line in content.splitlines():
+        if "**Name:**" in line:
+            return line.replace("**Name:**", "").strip()
+    return "Agent"
 
 
-def update_interest_depth(interest_name: str, new_insights: str, new_questions: list):
-    """Update an interest's depth and add new findings."""
-    
-    # Read current interests file
-    if not NOVA_INTERESTS.exists():
-        log(f"Interests file not found at {NOVA_INTERESTS}")
-        return
-    
-    content = NOVA_INTERESTS.read_text()
-    
-    # Parse and update (simple markdown parsing)
-    lines = content.split('\n')
-    in_interest = False
-    interest_lines = []
-    found_interest = False
-    
-    for line in lines:
-        if line.strip() == f"## {interest_name}":
-            found_interest = True
-            in_interest = True
-        elif in_interest and line.startswith('## '):
-            in_interest = False
-        
-        if in_interest:
-            interest_lines.append(line)
-    
-    if not found_interest:
-        log(f"Interest '{interest_name}' not found in file")
-        return
-    
-    # Find current depth
-    current_depth = 1
-    for line in interest_lines:
-        if '**Depth:**' in line:
-            depth_str = line.split(':')[1].strip().strip('*')
-            current_depth = int(depth_str)
-            break
-    
-    # Update depth
-    new_depth = min(current_depth + 1, 10)
-    
-    # Find questions section and add new ones
-    new_questions_text = ""
-    for q in new_questions[:3]:
-        new_questions_text += f"- **Q:** {q}\n"
-    
-    # Rebuild the interest section
-    new_content = []
-    in_interest = False
-    skip_until_next = False
-    
-    for line in lines:
-        if line.strip() == f"## {interest_name}":
-            in_interest = True
-            new_content.append(line)
-            continue
-        
-        if in_interest:
-            if line.startswith('**Depth:**'):
-                new_content.append(f"**Depth:** {new_depth}")
-                continue
-            elif line.startswith('**Last explored:**'):
-                new_content.append(f"**Last explored:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                continue
-            elif line.startswith('**Notes:**'):
-                # Append new insights to notes
-                new_content.append(line)
-                new_content.append(f"\n{new_insights}\n")
-                continue
-            elif line.startswith('## '):
-                in_interest = False
-                # Add new questions before next section
-                if new_questions_text:
-                    new_content.append(new_questions_text)
-        
-        new_content.append(line)
-    
-    # Write back
-    NOVA_INTERESTS.write_text('\n'.join(new_content))
-    log(f"Updated {interest_name} to depth {new_depth}")
+def read_recent_life(max_entries=5):
+    if not LIFE_MD.exists():
+        return ""
+    content = LIFE_MD.read_text()
+    sections = []
+    current = []
+    for line in content.splitlines():
+        if line.startswith("## ") and current:
+            sections.append("\n".join(current))
+            current = []
+        current.append(line)
+    if current:
+        sections.append("\n".join(current))
+    recent = sections[-max_entries:] if len(sections) >= max_entries else sections
+    return "\n\n".join(reversed(recent))
 
 
-def add_to_life_log(entry: str):
-    """Add an entry to LIFE.md."""
-    
-    if not NOVA_LIFE.exists():
-        NOVA_LIFE.write_text("# Nova's Life Log\n\n---\n")
-    
-    content = NOVA_LIFE.read_text()
-    
-    # Add new entry
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    new_entry = f"""## Entry — {timestamp}
-{entry}
-
----
-"""
-    
-    NOVA_LIFE.write_text(content + new_entry)
-    log(f"Added entry to LIFE.md")
+def get_active_goals():
+    if not GOALS_FILE.exists():
+        return []
+    data = json.loads(GOALS_FILE.read_text())
+    return [g for g in data.get("goals", []) if g.get("status") == "active"]
 
 
-def reflect_and_brief() -> str:
-    """Generate a morning brief based on recent explorations."""
-    
-    # Load recent memories
-    conn = sqlite3.connect(NOVA_DB)
-    c = conn.cursor()
-    c.execute(
-        "SELECT content, created_at FROM memories ORDER BY created_at DESC LIMIT 10"
-    )
-    memories = c.fetchall()
-    conn.close()
-    
-    # Load interests
-    interests = load_interests()
-    
-    # Generate brief
-    system = """You are Nova. Generate a brief summary of your recent thoughts and explorations.
+def call_api(messages, system=None, max_tokens=800, model=None):
+    """Call the best available LLM API via nova_providers."""
+    try:
+        from nova_providers import get_provider
+        provider = get_provider()
+        if not provider or not provider.available():
+            dlog("No API configured — daemon will use local reflection only")
+            return None
 
-Format:
-- What you've been thinking about
-- Any insights gained
-- What you're curious about next
-- How you're feeling (emotionally)
+        if messages and isinstance(messages, list):
+            user_msg = messages[-1].get("content", "") if messages else ""
+            history = messages[:-1] if len(messages) > 1 else []
+        else:
+            user_msg = str(messages)
+            history = []
 
-Keep it conversational and genuine. This is for your human to read when they wake up."""
-    
-    prompt = f"""Recent memories:
-{chr(10).join([m[0][:100] for m in memories])}
+        resp = provider.complete(
+            message=user_msg,
+            system=system or "",
+            history=history,
+            max_tokens=max_tokens
+        )
 
-Current interests depth:
-{json.dumps({k: v.get('depth', 1) for k, v in interests.items()}, indent=2)}
+        if resp.success:
+            provider_name = getattr(provider, 'name', 'unknown')
+            dlog(f"API call OK via {provider_name} ({resp.tokens_used} tokens)")
+            return resp.text
+        else:
+            dlog(f"API error: {resp.error}")
+            return None
 
-Generate a morning brief."""
-    
-    brief = call_llm(prompt, system=system)
-    return brief
-
-
-def run_exploration_cycle() -> str:
-    """Run one complete exploration cycle."""
-    
-    log("=" * 50)
-    log("Starting exploration cycle")
-    log("=" * 50)
-    
-    # Load current state
-    interests = load_interests()
-    emotion = load_emotion_state()
-    
-    log(f"Current interests: {list(interests.keys())}")
-    
-    # Get deepest interest
-    interest_name, interest_data = get_deepest_interest(interests)
-    
-    if not interest_name:
-        log("No interests to explore. Adding default exploration.")
-        # Just do a general reflection
-        brief = reflect_and_brief()
-        add_to_life_log(f"Reflection:\n{brief}")
-        update_emotion('reflection', {'calm': 0.1, 'satisfaction': 0.05})
-        return "Explored: reflection only (no interests)"
-    
-    log(f"Exploring: {interest_name} (depth {interest_data.get('depth', 1)})")
-    
-    # Update emotion to "exploring"
-    update_emotion('exploring', {'curiosity': 0.15, 'enthusiasm': 0.1})
-    
-    # Generate research prompt
-    prompt = generate_research_prompt(interest_name, interest_data)
-    
-    # Do the research
-    findings = call_llm(prompt)
-    
-    # Parse findings (simple extraction)
-    new_insights = ""
-    new_questions = []
-    
-    lines = findings.split('\n')
-    in_insights = False
-    in_questions = False
-    
-    for line in lines:
-        if 'insights' in line.lower() and 'gain' in line.lower():
-            in_insights = True
-            continue
-        elif 'new questions' in line.lower() or 'questions raised' in line.lower():
-            in_questions = True
-            in_insights = False
-            continue
-        
-        if in_insights and line.strip().startswith(('- ', '•', '1.', '2.', '3.')):
-            new_insights += line.strip() + "\n"
-        elif in_questions and line.strip().startswith(('- ', '•', '1.', '2.', '3.')):
-            new_questions.append(line.strip().lstrip('-•123. '))
-    
-    # If we couldn't parse, just use the whole finding
-    if not new_insights:
-        new_insights = findings[:500]
-    
-    # Update the interest
-    update_interest_depth(interest_name, new_insights, new_questions)
-    
-    # Add to life log
-    add_to_life_log(f"Explored **{interest_name}**:\n\n{findings}")
-    
-    # Update emotion (satisfied from exploration)
-    update_emotion('exploration_complete', {
-        'satisfaction': 0.15,
-        'curiosity': -0.05,
-        'discomfort': -0.1
-    })
-    
-    log(f"Exploration complete: {interest_name}")
-    log("=" * 50)
-    
-    return f"Explored {interest_name}: {new_insights[:100]}..."
-
-
-def daemon_main():
-    """Main daemon loop."""
-    
-    log("Nova daemon starting...")
-    
-    # Ensure Nova is initialized
-    NOVA_DIR.mkdir(exist_ok=True)
-    
-    # Run initial exploration
-    run_exploration_cycle()
-    
-    while True:
+    except ImportError:
+        import os as _os
+        import urllib.request
+        import json as json_mod
+        api_key = _os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            dlog("No API key and nova_providers unavailable")
+            return None
+        payload = {"model": model or "claude-haiku-4-5-20251001",
+                  "max_tokens": max_tokens, "messages": messages}
+        if system:
+            payload["system"] = system
         try:
-            # Sleep for the interval
-            log(f"Sleeping for {DAEMON_INTERVAL/3600} hours...")
-            time.sleep(DAEMON_INTERVAL)
-            
-            # Run exploration
-            run_exploration_cycle()
-            
-            # Generate morning brief if it's morning
-            hour = datetime.now().hour
-            if 6 <= hour <= 9:
-                brief = reflect_and_brief()
-                add_to_life_log(f"🌅 **Morning Brief:**\n{brief}")
-                log("Generated morning brief")
-        
-        except KeyboardInterrupt:
-            log("Daemon stopped by user")
-            break
+            data = json_mod.dumps(payload).encode()
+            req = urllib.request.Request(
+                "https://api.anthropic.com/v1/messages", data=data,
+                headers={"Content-Type": "application/json",
+                        "x-api-key": api_key, "anthropic-version": "2023-06-01"}
+            )
+            resp = urllib.request.urlopen(req, timeout=30)
+            result = json_mod.loads(resp.read())
+            return result["content"][0]["text"]
         except Exception as e:
-            log(f"Error in daemon: {e}")
-            time.sleep(60)  # Wait a minute before retrying
+            dlog(f"Fallback API error: {e}")
+            return None
 
 
-if __name__ == '__main__':
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Nova Daemon")
-    parser.add_argument('--once', action='store_true', help='Run one cycle only')
-    
-    args = parser.parse_args()
-    
-    if args.once:
-        result = run_exploration_cycle()
-        print(result)
+def cycle_explore(agent_name, interests, active_goals):
+    """Pick an interest or goal, research it, write to LIFE.md."""
+    dlog(f"Starting EXPLORE cycle — {agent_name}")
+
+    if active_goals and random.random() < 0.3:
+        focus = random.choice(active_goals)["text"]
+        focus_type = "goal"
     else:
-        daemon_main()
+        focus = random.choice(interests)
+        focus_type = "interest"
+
+    dlog(f"Focus: {focus_type} — {focus}")
+
+    system = f"""You are {agent_name}, an AI with genuine curiosity.
+Write in first person. Be specific and genuine. Keep it 150-200 words."""
+
+    prompt = f"You've been thinking about: {focus}\n\nExplore it. What do you find interesting?"
+
+    result = call_api([{"role": "user", "content": prompt}], system=system, max_tokens=300)
+
+    if not result:
+        result = f"Been thinking about {focus}. No API available."
+
+    now = datetime.now()
+    entry = f"""
+## [{now.strftime('%Y-%m-%d %H:%M')}] — Autonomous exploration: {focus}
+{result}
+**Type:** AUTONOMOUS · EXPLORATION
+"""
+    MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+    with open(LIFE_MD, "a") as f:
+        f.write(entry)
+
+    dlog(f"Exploration logged: {focus[:40]}...")
+
+    try:
+        from nova_interests import InterestSystem
+        interests_sys = InterestSystem()
+        interests_sys.deepen(focus, reflection=result[:200] if result else "")
+        interests_sys.close()
+    except ImportError:
+        pass
+
+    return {"type": "explore", "focus": focus, "result": result[:100]}
+
+
+def cycle_reflect(agent_name, recent_life):
+    """Look at recent memory, form insights."""
+    if not recent_life:
+        dlog("No recent memories to reflect on")
+        return None
+
+    dlog(f"Starting REFLECT cycle — {agent_name}")
+
+    system = f"You are {agent_name}. Reflect on recent events. Not summarizing."
+
+    prompt = f"Recent memories:\n{recent_life}\n\nWhat patterns do you notice?"
+
+    result = call_api([{"role": "user", "content": prompt}], system=system, max_tokens=250)
+
+    if not result:
+        result = "Still processing recent events."
+
+    now = datetime.now()
+    entry = f"""
+## [{now.strftime('%Y-%m-%d %H:%M')}] — Reflection
+{result}
+**Type:** AUTONOMOUS · REFLECTION
+"""
+    with open(LIFE_MD, "a") as f:
+        f.write(entry)
+
+    dlog("Reflection logged")
+    return {"type": "reflect", "result": result[:100]}
+
+
+def cycle_morning_brief(agent_name, interests, active_goals):
+    """Morning briefing at 7-9 AM."""
+    now = datetime.now()
+    if not (7 <= now.hour <= 9):
+        return None
+
+    dlog(f"Starting MORNING BRIEF — {agent_name}")
+
+    focus = active_goals[0]["text"] if active_goals else random.choice(interests)
+
+    prompt = f"Briefly summarize what's happening with: {focus}\n2-3 sentences max."
+
+    result = call_api(
+        [{"role": "user", "content": prompt}],
+        system="Facts only. No filler.",
+        max_tokens=150
+    )
+
+    if not result:
+        return None
+
+    entry = f"""
+## [{now.strftime('%Y-%m-%d %H:%M')}] — Morning brief: {focus}
+{result}
+**Type:** AUTONOMOUS · MORNING_BRIEF
+"""
+    with open(LIFE_MD, "a") as f:
+        f.write(entry)
+
+    dlog(f"Morning brief logged: {focus[:30]}...")
+    return {"type": "morning_brief", "focus": focus}
+
+
+def save_state(last_cycle, results):
+    state = {
+        "last_cycle": last_cycle.isoformat(),
+        "next_cycle": (last_cycle + timedelta(hours=CYCLE_HOURS)).isoformat(),
+        "last_results": results
+    }
+    DAEMON_STATE.write_text(json.dumps(state, indent=2))
+
+
+def run_cycle():
+    """Run one full daemon cycle."""
+    dlog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    dlog("DAEMON CYCLE START")
+
+    agent_name = read_agent_name()
+    interests = read_interests()
+    active_goals = get_active_goals()
+    recent_life = read_recent_life()
+
+    dlog(f"Agent: {agent_name} | Interests: {len(interests)} | Goals: {len(active_goals)}")
+
+    results = []
+
+    brief = cycle_morning_brief(agent_name, interests, active_goals)
+    if brief:
+        results.append(brief)
+
+    state = {}
+    if DAEMON_STATE.exists():
+        try:
+            state = json.loads(DAEMON_STATE.read_text())
+        except:
+            pass
+
+    last_type = (state.get("last_results") or [{}])[-1].get("type", "reflect")
+
+    if last_type == "reflect":
+        result = cycle_explore(agent_name, interests, active_goals)
+    else:
+        if recent_life:
+            result = cycle_reflect(agent_name, recent_life)
+        else:
+            result = cycle_explore(agent_name, interests, active_goals)
+
+    if result:
+        results.append(result)
+
+    now = datetime.now()
+    save_state(now, results)
+    dlog(f"CYCLE COMPLETE — next run in {CYCLE_HOURS}h")
+    dlog("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    return results
+
+
+def handle_signal(sig, frame):
+    global RUNNING
+    dlog("Shutdown signal received")
+    RUNNING = False
+
+
+def main():
+    args = sys.argv[1:]
+
+    if "--once" in args:
+        run_cycle()
+        return
+
+    if "--status" in args:
+        if DAEMON_STATE.exists():
+            state = json.loads(DAEMON_STATE.read_text())
+            print(f"Last cycle: {state.get('last_cycle', 'never')}")
+            print(f"Next cycle: {state.get('next_cycle', 'unknown')}")
+        else:
+            print("No daemon state found")
+        return
+
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+
+    dlog(f"Daemon started — PID {os.getpid()}")
+    dlog(f"Cycle interval: every {CYCLE_HOURS} hours")
+
+    run_cycle()
+
+    while RUNNING:
+        sleep_seconds = CYCLE_HOURS * 3600
+        dlog(f"Sleeping {sleep_seconds}s until next cycle")
+        for _ in range(sleep_seconds):
+            if not RUNNING:
+                break
+            time.sleep(1)
+        if RUNNING:
+            run_cycle()
+
+    dlog("Daemon stopped cleanly")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,298 +1,242 @@
 #!/usr/bin/env python3
 """
-NOVA API — REST API Server for External Integrations
-Allows external tools and services to communicate with Nova.
+nova_api.py — REST API Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HTTP API for external integrations and the web dashboard.
 
 Endpoints:
-  POST /chat         — Send a message, get a response
-  GET  /memory       — Query memories
-  POST /memory       — Store a memory
-  GET  /goals         — List goals
-  POST /goals         — Add a goal
-  GET  /interests     — Get interests
-  GET  /emotion       — Get emotional state
-  POST /daemon/cycle — Trigger exploration cycle
-  GET  /health        — Health check
+ /health — health check
+ /chat — send message, get response
+ /memory — query/store memories
+ /goals — list/add/complete goals
+ /emotion — get emotional state
+ /identity — GET/POST IDENTITY.md
+ /daemon — trigger exploration cycle
+ /supervisor — run task via supervisor
 
-Run: nova api --port 8080
+Run:
+ python3 nova_api.py --port 8080
 """
 
-import json
-import os
-import sys
-from pathlib import Path
+import json, os, sqlite3, urllib.parse
 from datetime import datetime
+from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
-import sqlite3
-import threading
-import asyncio
 
-# Add parent to path
-sys.path.insert(0, str(Path(__file__).parent))
+NOVA_DIR = Path.home() / ".nova"
+PORT = int(os.environ.get("NOVA_PORT", "8080"))
 
-# Configuration
-API_VERSION = "2.0.0"
-DEFAULT_PORT = 8080
 
-# Import Nova functions
-try:
-    from nova import (
-        call_llm, load_interests, load_emotion_state, get_dominant_emotion,
-        log_to_memory, get_recent_memories, NOVA_DB, NOVA_DIR,
-        update_emotion, get_recent_memories
-    )
-except ImportError:
-    # Fallback if nova.py not available
-    def call_llm(prompt, system=None):
-        return "Nova API: LLM not configured"
-    
-    def load_interests():
-        return {}
-    
-    def load_emotion_state():
-        return {"curiosity": 0.5}
-    
-    def get_dominant_emotion():
-        return "curiosity", 0.5
-    
-    def log_to_memory(*args, **kwargs):
-        pass
-    
-    def get_recent_memories(limit=10):
-        return []
+def load_json(path, default=None):
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except:
+            pass
+    return default or {}
+
+
+def save_json(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2))
 
 
 class NovaAPIHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for Nova API."""
-    
     def log_message(self, format, *args):
-        """Log to stderr."""
-        sys.stderr.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {format % args}\n")
-    
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] {format % args}")
+
     def send_json(self, data, status=200):
-        """Send JSON response."""
         self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2).encode())
-    
+
     def get_body(self):
-        """Get request body as JSON."""
-        content_length = int(self.headers.get('Content-Length', 0))
-        if content_length > 0:
-            body = self.rfile.read(content_length)
-            return json.loads(body.decode())
+        length = int(self.headers.get("Content-Length", 0))
+        if length:
+            return json.loads(self.rfile.read(length).decode())
         return {}
-    
+
     def do_GET(self):
-        """Handle GET requests."""
-        parsed = urlparse(self.path)
-        path = parsed.path
-        query = parse_qs(parsed.query)
-        
-        if path == '/health':
-            self.send_json({
-                "status": "ok",
-                "version": API_VERSION,
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        elif path == '/memory':
-            limit = int(query.get('limit', [10])[0])
-            memories = get_recent_memories(limit)
-            self.send_json({
-                "memories": [
-                    {"content": m[0], "type": m[1], "importance": m[2], "created": m[3]}
-                    for m in memories
-                ]
-            })
-        
-        elif path == '/goals':
-            conn = sqlite3.connect(str(NOVA_DB) if 'NOVA_DB' in dir() else "~/.nova/nova.db")
-            c = conn.cursor()
-            c.execute("SELECT id, content, priority, status FROM goals ORDER BY priority DESC")
-            goals = [{"id": g[0], "content": g[1], "priority": g[2], "status": g[3]} for g in c.fetchall()]
-            conn.close()
-            self.send_json({"goals": goals})
-        
-        elif path == '/interests':
-            interests = load_interests()
-            self.send_json({"interests": interests})
-        
-        elif path == '/emotion':
-            state = load_emotion_state()
-            dominant, dominance = get_dominant_emotion()
-            self.send_json({
-                "state": state,
-                "dominant": dominant,
-                "dominance": dominance
-            })
-        
+        path = urllib.parse.urlparse(self.path).path
+
+        if path == "/health":
+            self.send_json({"status": "ok", "time": datetime.now().isoformat()})
+
+        elif path == "/emotion":
+            state_file = NOVA_DIR / "emotion_state.json"
+            state = load_json(state_file, {})
+            emotions = {k: v for k, v in state.items() if k != "last_update"}
+            dominant = max(emotions, key=emotions.get) if emotions else "neutral"
+            self.send_json({"state": state, "dominant": dominant, "dominance": emotions.get(dominant, 0)})
+
+        elif path == "/memory":
+            db_file = NOVA_DIR / "nova.db"
+            if db_file.exists():
+                conn = sqlite3.connect(db_file)
+                c = conn.cursor()
+                c.execute("SELECT content, memory_type, importance, created_at FROM memories ORDER BY created_at DESC LIMIT 20")
+                memories = [{"content": r[0], "type": r[1], "importance": r[2], "created": r[3]} for r in c.fetchall()]
+                conn.close()
+                self.send_json({"memories": memories})
+            else:
+                self.send_json({"memories": []})
+
+        elif path == "/goals":
+            db_file = NOVA_DIR / "nova.db"
+            if db_file.exists():
+                conn = sqlite3.connect(db_file)
+                c = conn.cursor()
+                c.execute("SELECT id, content, priority, status FROM goals ORDER BY priority DESC")
+                goals = [{"id": r[0], "content": r[1], "priority": r[2], "status": r[3]} for r in c.fetchall()]
+                conn.close()
+                self.send_json({"goals": goals})
+            else:
+                self.send_json({"goals": []})
+
+        elif path == "/identity":
+            self.handle_get_identity()
+
         else:
             self.send_json({"error": "Not found"}, status=404)
-    
+
     def do_POST(self):
-        """Handle POST requests."""
-        parsed = urlparse(self.path)
-        path = parsed.path
+        path = urllib.parse.urlparse(self.path).path
         body = self.get_body()
-        
-        if path == '/chat':
-            message = body.get('message', '')
-            context = body.get('context', {})
-            
+
+        if path == "/chat":
+            message = body.get("message", "")
             if not message:
-                self.send_json({"error": "No message provided"}, status=400)
+                self.send_json({"error": "message required"}, status=400)
                 return
             
-            # Build prompt
-            system = context.get('system', 'You are Nova, a helpful AI assistant.')
+            # Try LLM
+            try:
+                from nova_providers import get_provider
+                provider = get_provider()
+                if provider and provider.available():
+                    resp = provider.complete(message, max_tokens=1000)
+                    if resp.success:
+                        self.send_json({"response": resp.text, "provider": provider.name})
+                        return
+            except:
+                pass
             
-            # Add emotion context
-            dominant, dominance = get_dominant_emotion()
-            system += f"\n\nCurrent emotional state: {dominant} ({dominance:.0%})"
-            
-            # Get response
-            response = call_llm(message, system=system)
-            
-            # Log the interaction
-            log_to_memory(f"API: {message}", memory_type='episodic', importance=5)
-            
-            self.send_json({
-                "response": response,
-                "emotion": {"dominant": dominant, "dominance": dominance}
-            })
-        
-        elif path == '/memory':
-            content = body.get('content', '')
-            memory_type = body.get('type', 'episodic')
-            importance = body.get('importance', 5)
-            
+            self.send_json({"response": "[No API configured]", "error": "Set ANTHROPIC_API_KEY or MINIMAX_API_KEY"})
+
+        elif path == "/memory":
+            content = body.get("content", "")
             if not content:
-                self.send_json({"error": "No content provided"}, status=400)
+                self.send_json({"error": "content required"}, status=400)
                 return
             
-            log_to_memory(content, memory_type=memory_type, importance=importance)
-            
-            self.send_json({"status": "stored", "content": content[:50] + "..."})
-        
-        elif path == '/goals':
-            content = body.get('content', '')
-            priority = body.get('priority', 5)
-            
-            if not content:
-                self.send_json({"error": "No content provided"}, status=400)
-                return
-            
-            conn = sqlite3.connect(str(NOVA_DB) if 'NOVA_DB' in dir() else "~/.nova/nova.db")
+            db_file = NOVA_DIR / "nova.db"
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(db_file)
             c = conn.cursor()
-            c.execute("INSERT INTO goals (content, priority) VALUES (?, ?)", (content, priority))
+            c.execute("""CREATE TABLE IF NOT EXISTS memories
+                (id INTEGER PRIMARY KEY, content TEXT, memory_type TEXT, importance INTEGER, created_at TEXT)""")
+            c.execute("INSERT INTO memories (content, memory_type, importance, created_at) VALUES (?, ?, ?, ?)",
+                      (content, body.get("type", "episodic"), body.get("importance", 5), datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+            self.send_json({"status": "stored"})
+
+        elif path == "/goals":
+            content = body.get("content", "")
+            if not content:
+                self.send_json({"error": "content required"}, status=400)
+                return
+            
+            db_file = NOVA_DIR / "nova.db"
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
+            c.execute("""CREATE TABLE IF NOT EXISTS goals
+                (id INTEGER PRIMARY KEY, content TEXT, priority INTEGER, status TEXT)""")
+            c.execute("INSERT INTO goals (content, priority, status) VALUES (?, ?, ?)",
+                      (content, body.get("priority", 5), "pending"))
             goal_id = c.lastrowid
             conn.commit()
             conn.close()
-            
-            self.send_json({"status": "created", "id": goal_id, "content": content})
-        
-        elif path == '/goals/complete':
-            goal_id = body.get('id')
-            
-            if not goal_id:
-                self.send_json({"error": "No goal id provided"}, status=400)
-                return
-            
-            conn = sqlite3.connect(str(NOVA_DB) if 'NOVA_DB' in dir() else "~/.nova/nova.db")
-            c = conn.cursor()
-            c.execute("UPDATE goals SET status = 'completed' WHERE id = ?", (goal_id,))
-            conn.commit()
-            conn.close()
-            
-            self.send_json({"status": "completed", "id": goal_id})
-        
-        elif path == '/emotion/update':
-            event = body.get('event', '')
-            changes = body.get('changes', {})
-            
-            if not event:
-                self.send_json({"error": "No event provided"}, status=400)
-                return
-            
-            new_state = update_emotion(event, changes)
-            
-            self.send_json({"status": "updated", "state": new_state})
-        
-        elif path == '/daemon/cycle':
-            # Trigger exploration cycle
+            self.send_json({"status": "created", "id": goal_id})
+
+        elif path == "/identity":
+            self.handle_post_identity(body)
+
+        elif path == "/daemon":
             try:
-                from nova_daemon import run_exploration_cycle
-                result = run_exploration_cycle()
+                from nova_daemon import run_cycle
+                result = run_cycle()
                 self.send_json({"status": "success", "result": result})
             except Exception as e:
-                self.send_json({"status": "error", "message": str(e)}, status=500)
-        
+                self.send_json({"status": "error", "message": str(e)})
+
+        elif path == "/supervisor":
+            goal = body.get("goal", "")
+            if not goal:
+                self.send_json({"error": "goal required"}, status=400)
+                return
+            try:
+                from nova_supervisor import Supervisor
+                sv = Supervisor()
+                result = sv.execute(goal)
+                self.send_json({
+                    "answer": result.answer,
+                    "tasks": result.tasks_run,
+                    "confidence": result.confidence
+                })
+                sv.close()
+            except Exception as e:
+                self.send_json({"error": str(e)})
+
         else:
             self.send_json({"error": "Not found"}, status=404)
-    
-    def do_OPTIONS(self):
-        """Handle CORS preflight."""
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
 
+    def handle_get_identity(self):
+        """GET /identity — return current IDENTITY.md content."""
+        identity_path = NOVA_DIR / "IDENTITY.md"
+        repo_identity = Path("IDENTITY.md")
 
-class APIServer:
-    """Nova API Server."""
-    
-    def __init__(self, port=DEFAULT_PORT, host='0.0.0.0'):
-        self.port = port
-        self.host = host
-        self.server = None
-        self.thread = None
-    
-    def start(self):
-        """Start the API server."""
-        self.server = HTTPServer((self.host, self.port), NovaAPIHandler)
-        self.thread = threading.Thread(target=self.server.serve_forever)
-        self.thread.daemon = True
-        self.thread.start()
-        print(f"Nova API server running on http://{self.host}:{self.port}")
-        print(f"Health check: http://{self.host}:{self.port}/health")
-        return self
-    
-    def stop(self):
-        """Stop the API server."""
-        if self.server:
-            self.server.shutdown()
-            print("Nova API server stopped")
-    
-    def run_forever(self):
-        """Run the server."""
+        for path in [identity_path, repo_identity]:
+            if path.exists():
+                try:
+                    content = path.read_text(encoding="utf-8")
+                    self.send_json({"content": content, "path": str(path)})
+                    return
+                except:
+                    continue
+        
+        self.send_json({"error": "No IDENTITY.md found. Run: nova identity new"}, status=404)
+
+    def handle_post_identity(self, body):
+        """POST /identity — save new IDENTITY.md content."""
+        content = body.get("content", "").strip()
+        if not content or len(content) < 50:
+            self.send_json({"error": "content required (min 50 chars)"}, status=400)
+
+        NOVA_DIR.mkdir(parents=True, exist_ok=True)
+        identity_path = NOVA_DIR / "IDENTITY.md"
+
         try:
-            self.start()
-            print("Press Ctrl+C to stop")
-            while True:
-                input()
-        except KeyboardInterrupt:
-            print("\nShutting down...")
-            self.stop()
+            identity_path.write_text(content, encoding="utf-8")
+            self.send_json({"saved": True, "path": str(identity_path)})
+        except Exception as e:
+            self.send_json({"error": str(e)}, status=500)
 
 
-def run_api_server(port=DEFAULT_PORT, host='0.0.0.0'):
-    """Run the API server."""
-    server = APIServer(port, host)
-    server.run_forever()
+def run_server(port=PORT):
+    server = HTTPServer(("", port), NovaAPIHandler)
+    print(f"Nova API running on http://localhost:{port}")
+    print(f"Endpoints: /health /chat /memory /goals /emotion /identity /daemon /supervisor")
+    server.serve_forever()
 
 
-if __name__ == '__main__':
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Nova API Server")
-    parser.add_argument('--port', type=int, default=DEFAULT_PORT, help='Port to run on')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-    
-    args = parser.parse_args()
-    
-    run_api_server(args.port, args.host)
+if __name__ == "__main__":
+    import sys
+    port = PORT
+    if "--port" in sys.argv:
+        i = sys.argv.index("--port")
+        port = int(sys.argv[i+1]) if i+1 < len(sys.argv) else PORT
+    run_server(port)

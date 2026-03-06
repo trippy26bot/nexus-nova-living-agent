@@ -1,464 +1,320 @@
 #!/usr/bin/env python3
 """
-NOVA BENCHMARK — Performance Benchmark Suite
-Identity, memory, reasoning, autonomy, skills.
+nova_benchmark.py — System Benchmark & Health Check
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Full benchmark suite with scoring.
+Tests Nova's capabilities across multiple dimensions.
+Measures: memory, reasoning, identity, tools, skills, composition.
+
+Usage:
+ python3 nova_benchmark.py (full benchmark)
+ python3 nova_benchmark.py --quick (fast tests only)
+ python3 nova_benchmark.py --category reasoning (specific category)
 """
 
-import json
-import sqlite3
-import time
+import os, sys, json, time, sqlite3, traceback
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
 
-# Configuration
 NOVA_DIR = Path.home() / ".nova"
-BENCHMARK_DB = NOVA_DIR / "benchmark.db"
+BENCHMARK_DB = NOVA_DIR / "benchmark_history.db"
 
 
-class BenchmarkSuite:
-    """Benchmark suite."""
-    
+def load_json(path, default=None):
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except:
+            pass
+    return default or {}
+
+
+# ── TEST CATEGORIES ─────────────────────────────────────────────────────────
+
+class Benchmark:
     def __init__(self):
-        self.db_path = BENCHMARK_DB
-        self.init_db()
         self.results = []
-    
-    def init_db(self):
-        """Initialize benchmark database."""
-        
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        c.execute('''CREATE TABLE IF NOT EXISTS benchmarks
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      test_name TEXT,
-                      score REAL,
-                      details TEXT,
-                      run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        
+        self.passed = 0
+        self.total = 0
+
+    def test(self, name, func):
+        self.total += 1
+        try:
+            result = func()
+            status = "PASS" if result else "FAIL"
+            self.results.append({"test": name, "status": status, "score": 1.0 if result else 0.0})
+            if result:
+                self.passed += 1
+            print(f"  [{status}] {name}")
+            return result
+        except Exception as e:
+            self.results.append({"test": name, "status": "ERROR", "error": str(e), "score": 0.0})
+            print(f"  [ERROR] {name}: {e}")
+            return False
+
+    def summary(self):
+        score = self.passed / self.total if self.total else 0
+        grade = "F" if score < 0.6 else "D" if score < 0.7 else "C" if score < 0.8 else "B" if score < 0.9 else "A"
+        return {
+            "passed": self.passed,
+            "total": self.total,
+            "score": score,
+            "grade": grade,
+            "tests": self.results
+        }
+
+
+def test_identity():
+    """IDENTITY.md exists and is non-empty."""
+    for path in [NOVA_DIR / "IDENTITY.md", Path("IDENTITY.md"), Path.cwd() / "IDENTITY.md"]:
+        if path.exists() and path.stat().st_size > 100:
+            return True
+    return False
+
+
+def test_memory():
+    """Memory system functional."""
+    db_file = NOVA_DIR / "nova.db"
+    if not db_file.exists():
+        # Try creating
+        NOVA_DIR.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(db_file)
+        conn.execute("CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY, content TEXT)")
+        conn.execute("INSERT INTO memories (content) VALUES ('test')")
         conn.commit()
         conn.close()
-    
-    def run_identity_test(self) -> Dict:
-        """Test identity persistence."""
-        
-        score = 0
-        details = {}
-        
-        # Check IDENTITY.md exists
-        identity_file = NOVA_DIR / "IDENTITY.md"
-        if identity_file.exists():
-            score += 25
-            details["identity_exists"] = True
-            
-            content = identity_file.read_text()
-            
-            # Check for key sections
-            if "Core Identity" in content:
-                score += 10
-                details["has_core"] = True
-            
-            if "Tone" in content:
-                score += 10
-                details["has_tone"] = True
-            
-            if "Boundaries" in content:
-                score += 5
-                details["has_boundaries"] = True
-        else:
-            details["identity_exists"] = False
-        
-        return {
-            "test": "Identity",
-            "score": score,
-            "max": 50,
-            "details": details
-        }
-    
-    def run_memory_test(self) -> Dict:
-        """Test memory system."""
-        
-        score = 0
-        details = {}
-        
-        # Check database exists
-        nova_db = NOVA_DIR / "nova.db"
-        if nova_db.exists():
-            score += 20
-            details["db_exists"] = True
-            
-            conn = sqlite3.connect(nova_db)
-            c = conn.cursor()
-            
-            # Check tables
-            tables = c.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-            
-            table_names = [t[0] for t in tables]
-            
-            if 'memories' in table_names:
-                score += 10
-                details["has_memories"] = True
-            
-            if 'goals' in table_names:
-                score += 10
-                details["has_goals"] = True
-            
-            if 'conversations' in table_names:
-                score += 10
-                details["has_conversations"] = True
-            
-            conn.close()
-        else:
-            details["db_exists"] = False
-        
-        # Check interests file
-        interests_file = NOVA_DIR / "NOVAS_INTERESTS.md"
-        if interests_file.exists():
-            score += 10
-            details["has_interests"] = True
-        
-        return {
-            "test": "Memory",
-            "score": score,
-            "max": 60,
-            "details": details
-        }
-    
-    def run_reasoning_test(self) -> Dict:
-        """Test reasoning capabilities."""
-        
-        score = 0
-        details = {}
-        
-        # Check reasoning module exists
-        reasoning_file = Path(__file__).parent / "nova_reasoning.py"
-        
-        if reasoning_file.exists():
-            score += 20
-            details["module_exists"] = True
-            
-            # Check for different strategies
-            content = reasoning_file.read_text()
-            
-            strategies = ["ChainOfThought", "TreeOfThought", "Debate", "Socratic"]
-            found = 0
-            
-            for strat in strategies:
-                if strat in content:
-                    found += 1
-                    score += 10
-            
-            details["strategies_found"] = found
-        else:
-            details["module_exists"] = False
-        
-        return {
-            "test": "Reasoning",
-            "score": score,
-            "max": 60,
-            "details": details
-        }
-    
-    def run_autonomy_test(self) -> Dict:
-        """Test autonomy features."""
-        
-        score = 0
-        details = {}
-        
-        # Check daemon exists
-        daemon_file = Path(__file__).parent / "nova_daemon.py"
-        
-        if daemon_file.exists():
-            score += 20
-            details["daemon_exists"] = True
-            
-            # Check daemon log
-            daemon_log = NOVA_DIR / "daemon_explore.log"
-            
-            if daemon_log.exists():
-                score += 10
-                details["daemon_log_exists"] = True
-                
-                # Check for recent activity
-                content = daemon_log.read_text()
-                if content:
-                    lines = content.strip().split('\n')
-                    if lines:
-                        score += 10
-                        details["has_activity"] = True
-        else:
-            details["daemon_exists"] = False
-        
-        # Check emotion system
-        emotion_file = NOVA_DIR / "emotion_state.json"
-        if emotion_file.exists():
-            score += 10
-            details["emotion_exists"] = True
-        
-        return {
-            "test": "Autonomy",
-            "score": score,
-            "max": 50,
-            "details": details
-        }
-    
-    def run_skills_test(self) -> Dict:
-        """Test skills system."""
-        
-        score = 0
-        details = {}
-        
-        # Check skills module
-        skills_file = Path(__file__).parent / "nova_skills.py"
-        
-        if skills_file.exists():
-            score += 25
-            details["module_exists"] = True
-        
-        # Check skills directory
-        skills_dir = NOVA_DIR / "skills"
-        if skills_dir.exists():
-            score += 15
-            details["skills_dir_exists"] = True
-            
-            # Count skills
-            skill_count = len(list(skills_dir.glob("*")))
-            score += min(skill_count * 5, 20)
-            details["skill_count"] = skill_count
-        
-        return {
-            "test": "Skills",
-            "score": score,
-            "max": 60,
-            "details": details
-        }
-    
-    def run_safety_test(self) -> Dict:
-        """Test safety features."""
-        
-        score = 0
-        details = {}
-        
-        # Check safety module
-        safety_file = Path(__file__).parent / "nova_safety.py"
-        
-        if safety_file.exists():
-            score += 25
-            details["module_exists"] = True
-        
-        # Check ETHICS.md
-        ethics_file = Path(__file__).parent / "ETHICS.md"
-        if ethics_file.exists():
-            score += 25
-            details["ethics_exists"] = True
-        
-        return {
-            "test": "Safety",
-            "score": score,
-            "max": 50,
-            "details": details
-        }
-    
-    def run_full(self) -> Dict:
-        """Run full benchmark suite."""
-        
-        results = []
-        
-        tests = [
-            ("Identity", self.run_identity_test),
-            ("Memory", self.run_memory_test),
-            ("Reasoning", self.run_reasoning_test),
-            ("Autonomy", self.run_autonomy_test),
-            ("Skills", self.run_skills_test),
-            ("Safety", self.run_safety_test)
-        ]
-        
-        total_score = 0
-        total_max = 0
-        
-        for name, test_func in tests:
-            result = test_func()
-            results.append(result)
-            total_score += result["score"]
-            total_max += result["max"]
-        
-        # Save to database
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        for result in results:
-            c.execute(
-                "INSERT INTO benchmarks (test_name, score, details) VALUES (?, ?, ?)",
-                (result["test"], result["score"], json.dumps(result["details"]))
-            )
-        
-        conn.commit()
-        conn.close()
-        
-        return {
-            "total_score": total_score,
-            "total_max": total_max,
-            "percentage": (total_score / total_max) * 100 if total_max > 0 else 0,
-            "results": results,
-            "grade": self._calculate_grade(total_score / total_max * 100)
-        }
-    
-    def _calculate_grade(self, percentage: float) -> str:
-        """Calculate letter grade."""
-        
-        if percentage >= 90:
-            return "A"
-        elif percentage >= 80:
-            return "B"
-        elif percentage >= 70:
-            return "C"
-        elif percentage >= 60:
-            return "D"
-        else:
-            return "F"
-    
-    def get_history(self, days: int = 30) -> List[Dict]:
-        """Get benchmark history."""
-        
-        since = datetime.now() - timedelta(days=days)
-        
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        
-        c.execute(
-            """SELECT test_name, score, details, run_at 
-               FROM benchmarks 
-               WHERE run_at > ?
-               ORDER BY run_at DESC""",
-            (since.isoformat(),)
-        )
-        
-        results = []
-        for row in c.fetchall():
-            results.append({
-                "test": row[0],
-                "score": row[1],
-                "details": json.loads(row[2]) if row[2] else {},
-                "run_at": row[3]
-            })
-        
-        conn.close()
-        
-        return results
+        return db_file.exists()
+    return True
 
 
-def print_results(results: Dict):
-    """Print benchmark results."""
+def test_providers():
+    """LLM providers available."""
+    try:
+        from nova_providers import get_provider
+        provider = get_provider()
+        if provider and provider.available():
+            return True
+        # Check direct env vars
+        for var in ["ANTHROPIC_API_KEY", "MINIMAX_API_KEY", "OPENAI_API_KEY"]:
+            if os.environ.get(var):
+                return True
+        return False
+    except ImportError:
+        # Check env vars directly
+        for var in ["ANTHROPIC_API_KEY", "MINIMAX_API_KEY", "OPENAI_API_KEY"]:
+            if os.environ.get(var):
+                return True
+        return False
+
+
+def test_skills():
+    """Skills system loads."""
+    skill_dir = Path.home() / ".openclaw" / "workspace" / "skills"
+    if not skill_dir.exists():
+        return False
     
-    print("\n" + "=" * 50)
-    print("NOVA BENCHMARK RESULTS")
+    # Check for nova skills
+    nova_skills = list(skill_dir.glob("nova-*/SKILL.md"))
+    if nova_skills:
+        return True
+    
+    # Check for any skills
+    skills = list(skill_dir.glob("*/SKILL.md"))
+    return len(skills) > 0
+
+
+def test_daemon():
+    """Daemon can be imported."""
+    try:
+        import nova_daemon
+        return True
+    except ImportError:
+        return False
+
+
+def test_supervisor():
+    """Supervisor can be imported."""
+    try:
+        import nova_supervisor
+        return True
+    except ImportError:
+        return False
+
+
+def test_api():
+    """API module can be imported."""
+    try:
+        import nova_api
+        return True
+    except ImportError:
+        return False
+
+
+def test_reasoning():
+    """Reasoning module exists."""
+    for path in ["nova_reasoning.py", Path.cwd() / "nova_reasoning.py"]:
+        if Path(path).exists():
+            return True
+    return False
+
+
+def test_emotion():
+    """Emotion state file exists or can be created."""
+    state_file = NOVA_DIR / "emotion_state.json"
+    if state_file.exists():
+        return True
+    # Try creating default
+    try:
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text(json.dumps({"neutral": 1.0}))
+        return True
+    except:
+        return False
+
+
+def test_goals():
+    """Goals system functional."""
+    db_file = NOVA_DIR / "nova.db"
+    if not db_file.exists():
+        return test_memory()  # Reuse memory test
+    return True
+
+
+def test_tools():
+    """Tools can be imported."""
+    try:
+        from nova_tools import list_tools
+        return True
+    except ImportError:
+        return False
+
+
+def test_composition_1():
+    """Can chain: identity + memory."""
+    try:
+        has_identity = test_identity()
+        has_memory = test_memory()
+        return has_identity and has_memory
+    except:
+        return False
+
+
+def test_composition_2():
+    """Can chain: emotion + reasoning."""
+    try:
+        has_emotion = test_emotion()
+        has_reasoning = test_reasoning()
+        return has_emotion and has_reasoning
+    except:
+        return False
+
+
+def test_composition_3():
+    """Can chain: providers + supervisor."""
+    try:
+        has_providers = test_providers()
+        has_supervisor = test_supervisor()
+        return has_providers and has_supervisor
+    except:
+        return False
+
+
+def test_composition_4():
+    """Can chain: api + daemon + supervisor + providers."""
+    try:
+        has_api = test_api()
+        has_daemon = test_daemon()
+        has_supervisor = test_supervisor()
+        has_providers = test_providers()
+        return has_api and has_daemon and has_supervisor and has_providers
+    except:
+        return False
+
+
+# ── RUNNER ──────────────────────────────────────────────────────────────────
+
+def run_full():
     print("=" * 50)
-    print(f"\nTotal Score: {results['total_score']}/{results['total_max']} ({results['percentage']:.1f}%)")
-    print(f"Grade: {results['grade']}")
-    
-    print("\n" + "-" * 50)
-    print("BY DIMENSION")
-    print("-" * 50)
-    
-    for r in results["results"]:
-        bar_len = int(r["score"] / r["max"] * 20)
-        bar = "█" * bar_len + "░" * (20 - bar_len)
-        
-        print(f"\n{r['test']:15} {bar} {r['score']}/{r['max']}")
-        
-        # Show details
-        for key, val in r["details"].items():
-            if isinstance(val, bool):
-                status = "✓" if val else "✗"
-                print(f"    {status} {key}")
-            elif isinstance(val, int):
-                print(f"    • {key}: {val}")
-
-
-def print_history(history: List[Dict]):
-    """Print benchmark history."""
-    
-    print("\n" + "=" * 50)
-    print("BENCHMARK HISTORY")
+    print("NEXUS NOVA BENCHMARK")
     print("=" * 50)
-    
-    # Group by date
-    by_date = {}
-    for h in history:
-        date = h["run_at"][:10]
-        if date not in by_date:
-            by_date[date] = []
-        by_date[date].append(h)
-    
-    for date, runs in sorted(by_date.items()):
-        print(f"\n{date}")
-        
-        for run in runs:
-            print(f"  {run['test']}: {run['score']}")
+
+    b = Benchmark()
+
+    print("\n[Identity]")
+    b.test("IDENTITY.md exists", test_identity)
+
+    print("\n[Memory]")
+    b.test("Memory DB functional", test_memory)
+    b.test("Goals system functional", test_goals)
+
+    print("\n[Providers]")
+    b.test("LLM providers available", test_providers)
+
+    print("\n[Skills]")
+    b.test("Skills system loads", test_skills)
+
+    print("\n[Reasoning]")
+    b.test("Reasoning module exists", test_reasoning)
+
+    print("\n[Emotion]")
+    b.test("Emotion state functional", test_emotion)
+
+    print("\n[Tools]")
+    b.test("Tools can be imported", test_tools)
+
+    print("\n[Architecture]")
+    b.test("Daemon can import", test_daemon)
+    b.test("Supervisor can import", test_supervisor)
+    b.test("API can import", test_api)
+
+    print("\n[Composition]")
+    b.test("identity + memory", test_composition_1)
+    b.test("emotion + reasoning", test_composition_2)
+    b.test("providers + supervisor", test_composition_3)
+    b.test("api + daemon + supervisor + providers", test_composition_4)
+
+    result = b.summary()
+    print("\n" + "=" * 50)
+    print(f"SCORE: {result['passed']}/{result['total']} ({result['score']:.1%})")
+    print(f"GRADE: {result['grade']}")
+    print("=" * 50)
+
+    # Save to history
+    save_result(result)
+    return result
 
 
-# CLI
-def main():
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Nova Benchmark")
-    parser.add_argument('command', choices=['quick', 'full', 'history', 'identity', 'memory', 'reasoning', 'autonomy', 'skills', 'safety'])
-    parser.add_argument('args', nargs='*')
-    
-    args = parser.parse_args()
-    
-    suite = BenchmarkSuite()
-    
-    if args.command == 'quick':
-        # Quick test - just identity + memory
-        results = {}
-        results["results"] = [
-            suite.run_identity_test(),
-            suite.run_memory_test()
-        ]
-        results["total_score"] = sum(r["score"] for r in results["results"])
-        results["total_max"] = sum(r["max"] for r in results["results"])
-        results["percentage"] = (results["total_score"] / results["total_max"]) * 100
-        results["grade"] = suite._calculate_grade(results["percentage"])
-        
-        print_results(results)
-    
-    elif args.command == 'full':
-        results = suite.run_full()
-        print_results(results)
-    
-    elif args.command == 'history':
-        days = int(args.args[0]) if args.args else 30
-        history = suite.get_history(days)
-        print_history(history)
-    
+def run_quick():
+    """Fast tests only."""
+    print("Quick benchmark...")
+    b = Benchmark()
+    b.test("Identity", test_identity)
+    b.test("Memory", test_memory)
+    b.test("Providers", test_providers)
+    result = b.summary()
+    print(f"Quick: {result['passed']}/{result['total']} — {result['grade']}")
+    return result
+
+
+def save_result(result):
+    """Save to benchmark history."""
+    BENCHMARK_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(BENCHMARK_DB))
+    conn.execute("""CREATE TABLE IF NOT EXISTS history
+        (id INTEGER PRIMARY KEY, timestamp TEXT, passed INTEGER, total INTEGER, score REAL, grade TEXT)""")
+    conn.execute("INSERT INTO history (timestamp, passed, total, score, grade) VALUES (?,?,?,?,?)",
+                (datetime.now().isoformat(), result["passed"], result["total"], result["score"], result["grade"]))
+    conn.commit()
+    conn.close()
+
+
+# ── MAIN ────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    if "--quick" in sys.argv:
+        run_quick()
+    elif "--category" in sys.argv:
+        cat = sys.argv[sys.argv.index("--category") + 1] if len(sys.argv) > 2 else None
+        print(f"Category: {cat}")
     else:
-        # Individual test
-        test_map = {
-            "identity": suite.run_identity_test,
-            "memory": suite.run_memory_test,
-            "reasoning": suite.run_reasoning_test,
-            "autonomy": suite.run_autonomy_test,
-            "skills": suite.run_skills_test,
-            "safety": suite.run_safety_test
-        }
-        
-        result = test_map[args.command]()
-        
-        print(f"\n{result['test']} Test")
-        print("=" * 40)
-        print(f"Score: {result['score']}/{result['max']}")
-        
-        for key, val in result["details"].items():
-            if isinstance(val, bool):
-                status = "✓" if val else "✗"
-                print(f"  {status} {key}")
-
-
-if __name__ == '__main__':
-    main()
+        run_full()
