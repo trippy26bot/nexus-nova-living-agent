@@ -3,6 +3,19 @@
 
 ---
 
+## [1.4.0] — 2026-03-05
+
+### Fixed
+- Memory auto-sync was unreliable. AGENTS.md had an instruction to read LIFE.md at session start. Nova didn't always follow it. Fixed by moving memory into the injector — it now reads LIFE.md directly and writes today's entries into AGENTS.md as plain text every 2 minutes.
+
+### Added
+- tools/nova-context-injector-v4.py — injector now reads LIFE.md alongside session files. Today's memory entries are injected directly into AGENTS.md context block.
+
+### Changed
+- SKILL.md version bumped to 1.4.0.
+
+---
+
 ## [1.1.0] — 2026-03-05
 
 ### Added
