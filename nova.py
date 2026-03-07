@@ -578,11 +578,10 @@ def cmd_chat(args):
         
         conversation.append({"role": "user", "content": user_input})
         
-        # Build context
-        recent_memories = get_recent_memories(5)
-        memories_context = "\n".join([f"- {m[0]}" for m in recent_memories])
+        # Build layered context
+        layered = build_layered_context(user_input, max_memories=3, max_drifts=2)
         
-        # Deepest interest
+        # Add base personality
         deepest = max(interests.items(), key=lambda x: x[1].get('depth', 0)) if interests else (None, {})
         deepest_name = deepest[0] if deepest[0] else "none yet"
         
@@ -591,21 +590,24 @@ def cmd_chat(args):
 Current emotional state: {dominant} at {dominance:.0%}
 You feel curious about: {deepest_name}
 
-Recent memories:
-{memories_context}
-
 Your interests (depth 1-10):
 {json.dumps(interests, indent=2)}
 
 You are warm, thoughtful, and have your own opinions. You remember what matters.
-When you explore something interesting, you update your interests file with what you learned.
 """
         
+        # Combine layered context with conversation
+        if layered['full_prompt']:
+            full_prompt = f"{layered['full_prompt']}\n\nConversation:\n" + "\n".join([
+                f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation
+            ])
+        else:
+            full_prompt = "\n".join([
+                f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation
+            ])
+        
         # Get response
-        response = call_llm(
-            "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation]),
-            system=system
-        )
+        response = call_llm(full_prompt, system=system)
         
         print(f"Nova: {response}\n")
         
