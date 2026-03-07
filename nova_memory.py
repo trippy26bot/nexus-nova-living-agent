@@ -69,6 +69,11 @@ class EpisodicMemory:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
+        # Check if old schema exists
+        c.execute("PRAGMA table_info(episodic_memory)")
+        columns = [row[1] for row in c.fetchall()]
+        
+        # Create table with full schema
         c.execute('''CREATE TABLE IF NOT EXISTS episodic_memory
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       event TEXT NOT NULL,
@@ -76,32 +81,74 @@ class EpisodicMemory:
                       emotion TEXT,
                       importance INTEGER DEFAULT 5,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                      tags TEXT)''')
+                      tags TEXT,
+                      focus TEXT,
+                      scores TEXT,
+                      state TEXT,
+                      source_event_id INTEGER,
+                      priority_score REAL DEFAULT 0.0)''')
+        
+        # Add priority_score column if not exists (migration)
+        if 'priority_score' not in columns:
+            try:
+                c.execute("ALTER TABLE episodic_memory ADD COLUMN priority_score REAL DEFAULT 0.0")
+            except:
+                pass
         
         conn.commit()
         conn.close()
     
     def store(self, event: str, context: str = None, emotion: str = None, 
-              importance: int = 5, tags: List[str] = None):
-        """Store an episodic memory."""
+              importance: int = 5, tags: List[str] = None, focus: str = None,
+              scores: Dict = None, state: str = "stored", source_event_id: int = None):
+        """Store an episodic memory with full metadata."""
         
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
         tags_json = json.dumps(tags or [])
+        scores_json = json.dumps(scores) if scores else None
+        
+        # Calculate priority score
+        priority = self._calculate_priority(importance, scores, state)
         
         c.execute(
-            """INSERT INTO episodic_memory (event, context, emotion, importance, tags)
-               VALUES (?, ?, ?, ?, ?)""",
-            (event, context, emotion, importance, tags_json)
+            """INSERT INTO episodic_memory 
+               (event, context, emotion, importance, tags, focus, scores, state, source_event_id, priority_score)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (event, context, emotion, importance, tags_json, focus, scores_json, state, source_event_id, priority)
         )
         
         conn.commit()
         conn.close()
     
+    def _calculate_priority(self, importance: int, scores: Dict = None, state: str = "stored") -> float:
+        """Calculate priority score based on importance, scores, and state."""
+        # Base from importance (1-10 -> 0-1)
+        importance_score = importance / 10.0
+        
+        # State priority
+        state_weights = {"accepted": 1.0, "stored_only": 0.6, "rejected": 0.2}
+        state_score = state_weights.get(state, 0.5)
+        
+        # Composite score from evaluation
+        composite_score = scores.get("composite", 0.5) if scores else 0.5
+        
+        # Weighted priority
+        priority = (importance_score * 0.3) + (state_score * 0.4) + (composite_score * 0.3)
+        
+        return round(priority, 3)
+    
     def retrieve(self, query: str = None, since: datetime = None, 
-                 limit: int = 10) -> List[Dict]:
-        """Retrieve episodic memories."""
+                 limit: int = 10, focus: str = None, min_priority: float = 0.0) -> List[Dict]:
+        """Retrieve episodic memories with priority scoring.
+        
+        Prioritizes by:
+        - Higher composite scores
+        - Higher importance
+        - Similar focus topics
+        - Accepted state > stored_only > rejected
+        """
         
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -117,19 +164,29 @@ class EpisodicMemory:
             conditions.append("created_at >= ?")
             params.append(since.isoformat())
         
+        if focus:
+            conditions.append("focus LIKE ?")
+            params.append(f"%{focus}%")
+        
+        if min_priority > 0:
+            conditions.append("priority_score >= ?")
+            params.append(min_priority)
+        
         where = " AND ".join(conditions) if conditions else "1=1"
         
         c.execute(
-            f"""SELECT id, event, context, emotion, importance, created_at, tags
+            f"""SELECT id, event, context, emotion, importance, created_at, tags, 
+                       focus, scores, state, priority_score
                 FROM episodic_memory
                 WHERE {where}
-                ORDER BY importance DESC, created_at DESC
+                ORDER BY priority_score DESC, created_at DESC
                 LIMIT ?""",
             params + [limit]
         )
         
         results = []
         for row in c.fetchall():
+            scores = json.loads(row[8]) if row[8] else {}
             results.append({
                 'id': row[0],
                 'event': row[1],
@@ -137,7 +194,11 @@ class EpisodicMemory:
                 'emotion': row[3],
                 'importance': row[4],
                 'created': row[5],
-                'tags': json.loads(row[6] or '[]')
+                'tags': json.loads(row[6] or '[]'),
+                'focus': row[7],
+                'scores': scores,
+                'state': row[9],
+                'priority_score': row[10]
             })
         
         conn.close()

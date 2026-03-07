@@ -332,6 +332,24 @@ def cycle_daydream(agent_name, interests, recent_life):
     surfaced = False
     if state == "accepted" and random.random() <= DAYDREAM_SURFACE_CHANCE:
         surfaced = True
+    
+    # Also store in database with full metadata
+    try:
+        from nova_memory import EpisodicMemory
+        memory = EpisodicMemory()
+        memory.store(
+            event=drift,
+            context=f"Daydream about {focus}",
+            emotion=None,
+            importance=7 if state == "accepted" else 5,
+            tags=["drift", "daydream", focus],
+            focus=focus,
+            scores=scores,
+            state=state,
+            source_event_id=None
+        )
+    except Exception as e:
+        dlog(f"Warning: failed to store drift in DB: {e}")
 
     dlog(f"Daydream logged ({state})")
     return {
