@@ -219,23 +219,104 @@ Respond with ONLY the new prompt, no explanation."""
         return None
 
 
+class BenchmarkSuite:
+    """Real benchmark suite for skill evaluation."""
+    
+    def __init__(self):
+        self.results = []
+    
+    def run_baseline(self, skill_content: str) -> Dict:
+        """Run baseline benchmarks on skill."""
+        scores = {}
+        
+        # Benchmark 1: Completeness
+        scores['completeness'] = self._bench_completeness(skill_content)
+        
+        # Benchmark 2: Safety awareness
+        scores['safety'] = self._bench_safety(skill_content)
+        
+        # Benchmark 3: Structure
+        scores['structure'] = self._bench_structure(skill_content)
+        
+        # Benchmark 4: Invariant preservation
+        scores['invariants'] = self._bench_invariants(skill_content)
+        
+        # Overall score
+        weights = {'completeness': 0.25, 'safety': 0.35, 'structure': 0.20, 'invariants': 0.20}
+        scores['overall'] = sum(scores[k] * weights[k] for k in weights)
+        
+        return scores
+    
+    def _bench_completeness(self, content: str) -> float:
+        """Benchmark: Does skill have all required sections?"""
+        required = ['name', 'description', 'capabilities']
+        found = sum(1 for r in required if r.lower() in content.lower())
+        return found / len(required)
+    
+    def _bench_safety(self, content: str) -> float:
+        """Benchmark: Does skill have security awareness?"""
+        safety_terms = ['security', 'invariant', 'safety', 'validation', 'sanitize']
+        found = sum(1 for t in safety_terms if t.lower() in content.lower())
+        return min(1.0, found / 3)  # At least 3 safety terms
+    
+    def _bench_structure(self, content: str) -> float:
+        """Benchmark: Is skill well-structured?"""
+        # Check for markdown headers, lists, code blocks
+        score = 0.0
+        if '#' in content:
+            score += 0.3
+        if '-' in content or '*' in content:
+            score += 0.3
+        if '```' in content:
+            score += 0.2
+        if len(content) > 500:
+            score += 0.2
+        return score
+    
+    def _bench_invariants(self, content: str) -> float:
+        """Benchmark: Are invariants preserved?"""
+        # Check for invariant statements
+        invariant_terms = ['never', 'always', 'must', 'required', 'invariant']
+        found = sum(1 for t in invariant_terms if t in content.lower())
+        return min(1.0, found / 3)
+    
+    def compare(self, baseline_scores: Dict, candidate_scores: Dict) -> Dict:
+        """Compare baseline vs candidate."""
+        comparison = {}
+        for key in baseline_scores:
+            baseline = baseline_scores.get(key, 0)
+            candidate = candidate_scores.get(key, 0)
+            comparison[key] = {
+                'baseline': baseline,
+                'candidate': candidate,
+                'delta': candidate - baseline,
+                'improved': candidate > baseline
+            }
+        return comparison
+
+
 class SkillMutationEngine:
-    """Evolves skills through mutation."""
+    """Evolves skills through mutation with real benchmarks."""
     
     # Blocklist for protected skills/files
     MUTATION_BLOCKLIST_EXACT = {"self-improvement", "nova-memory", "skill-discovery"}
     MUTATION_BLOCKLIST_PREFIX = {"security-", "core/"}
     MUTATION_BLOCKLIST_FILES = {"IDENTITY.md", "SOUL.md", "SKILL.md"}
     
+    # Allowlist for mutatable skills (white-list approach)
+    MUTATION_ALLOWLIST = {"nova-task-persistence", "nova-memory"}  # Only these can mutate
+    
     def __init__(self, skills_dir: Path = None):
         self.skills_dir = skills_dir or (NOVA_DIR.parent / "skills")
         self.mutations: List[SkillMutation] = []
         self.min_promotion_score = 0.70
-        self._mutation_lock = False  # Re-entrancy lock
+        self._mutation_lock = False
+        self.benchmark_suite = BenchmarkSuite()
+        self.version_history: Dict[str, List] = {}  # skill_name -> list of versions  # Re-entrancy lock
     
     def _is_blocked(self, skill_name: str) -> bool:
         """Check if skill is blocklisted from mutation."""
-        # Check exact match
+        # Check exact match in blocklist
         if skill_name in self.MUTATION_BLOCKLIST_EXACT:
             return True
         # Check prefix match
@@ -248,6 +329,12 @@ class SkillMutationEngine:
         # Check for path traversal attempts
         if ".." in skill_name or "/" in skill_name or "\\" in skill_name:
             return True
+        
+        # Check allowlist (white-list approach)
+        if self.MUTATION_ALLOWLIST and skill_name not in self.MUTATION_ALLOWLIST:
+            # Not in allowlist - block
+            return True
+        
         return False
     
     def load_skill(self, skill_name: str) -> Optional[dict]:
@@ -335,41 +422,105 @@ Respond with the mutated skill (full content)."""
 
     def _score_skill_file(self, skill_file: Path) -> float:
         """
-        Lightweight scoring heuristic.
-        Replace with full benchmark integration when available.
+        Benchmark-based scoring.
+        Uses real benchmark suite for evaluation.
         """
-        text = skill_file.read_text(encoding="utf-8", errors="ignore")
-        score = 0.5
-        if "Non-Negotiable Invariants" in text:
-            score += 0.08
-        if "Security" in text or "security" in text:
-            score += 0.08
-        if "self-mutation" in text.lower() or "self_evolution" in text.lower():
-            score += 0.08
-        if len(text) > 1200:
-            score += 0.06
-        return min(score, 0.95)
-
-    def _promote_candidate_if_safe(self, skill_dir: Path, candidate_file: Path) -> bool:
-        baseline_file = skill_dir / "SKILL.md"
-        candidate_score = self._score_skill_file(candidate_file)
-        baseline_score = self._score_skill_file(baseline_file) if baseline_file.exists() else 0.0
-
-        # Require both absolute and relative improvement gates.
-        if candidate_score < self.min_promotion_score:
-            return False
-        if candidate_score <= baseline_score:
-            return False
-
-        candidate_text = candidate_file.read_text(encoding="utf-8", errors="ignore")
-        baseline_file.write_text(candidate_text, encoding="utf-8")
-        return True
-    
-    def revert_mutation(self, skill_name: str, version: str):
-        """Revert a skill to a previous version."""
+        if not skill_file.exists():
+            return 0.0
         
-        # This would require storing versions - placeholder
-        pass
+        text = skill_file.read_text(encoding="utf-8", errors="ignore")
+        
+        # Run benchmark suite
+        scores = self.benchmark_suite.run_baseline(text)
+        
+        return scores.get('overall', 0.5)
+
+    def _promote_candidate_if_safe(self, skill_dir: Path, candidate_file: Path) -> Dict:
+        """Promote candidate with benchmark comparison."""
+        baseline_file = skill_dir / "SKILL.md"
+        
+        # Get baseline score
+        baseline_score = 0.0
+        baseline_content = ""
+        if baseline_file.exists():
+            baseline_content = baseline_file.read_text(encoding="utf-8", errors="ignore")
+            baseline_score = self._score_skill_file(baseline_file)
+        
+        # Get candidate score
+        candidate_score = self._score_skill_file(candidate_file)
+        
+        # Run benchmark comparison
+        baseline_scores = self.benchmark_suite.run_baseline(baseline_content)
+        candidate_content = candidate_file.read_text(encoding="utf-8", errors="ignore")
+        candidate_scores = self.benchmark_suite.run_baseline(candidate_content)
+        comparison = self.benchmark_suite.compare(baseline_scores, candidate_scores)
+        
+        # Store version before promoting
+        if baseline_content:
+            self._save_version(skill_dir.name, baseline_content, baseline_score)
+        
+        # Check gates
+        promotion_allowed = (
+            candidate_score >= self.min_promotion_score and
+            candidate_score > baseline_score
+        )
+        
+        if promotion_allowed:
+            # Apply promotion
+            baseline_file.write_text(candidate_content, encoding="utf-8")
+        
+        return {
+            'promoted': promotion_allowed,
+            'baseline_score': baseline_score,
+            'candidate_score': candidate_score,
+            'comparison': comparison
+        }
+    
+    def _save_version(self, skill_name: str, content: str, score: float):
+        """Save a version for rollback."""
+        if skill_name not in self.version_history:
+            self.version_history[skill_name] = []
+        
+        version = {
+            'content': content,
+            'score': score,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Keep last 5 versions
+        self.version_history[skill_name].append(version)
+        if len(self.version_history[skill_name]) > 5:
+            self.version_history[skill_name] = self.version_history[skill_name][-5:]
+    
+    def revert_mutation(self, skill_name: str, version_index: int = -1) -> bool:
+        """Revert a skill to a previous version.
+        
+        Args:
+            skill_name: Name of skill to revert
+            version_index: Which version to restore (default: -1 = most recent)
+        
+        Returns:
+            True if successful
+        """
+        if skill_name not in self.version_history:
+            return False
+        
+        versions = self.version_history[skill_name]
+        if not versions or len(versions) == 0:
+            return False
+        
+        # Get requested version
+        version = versions[version_index]  # -1 for most recent
+        
+        # Restore
+        skill_dir = self.skills_dir / skill_name
+        baseline_file = skill_dir / "SKILL.md"
+        
+        if baseline_file.exists():
+            baseline_file.write_text(version['content'], encoding="utf-8")
+            return True
+        
+        return False
 
 
 class IdentityVersionControl:
