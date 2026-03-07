@@ -595,6 +595,223 @@ class MemoryManager:
         return profile
 
 
+        return profile
+
+
+class EmbeddingProvider:
+    """Abstract embedding provider interface."""
+    
+    def __init__(self, provider: str = "openai"):
+        self.provider = provider
+    
+    def embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding vector for text."""
+        if self.provider == "openai":
+            return self._openai_embed(text)
+        elif self.provider == "anthropic":
+            return self._anthropic_embed(text)
+        elif self.provider == "local":
+            return self._local_embed(text)
+        else:
+            return None
+    
+    def _openai_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using OpenAI."""
+        try:
+            import os
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            response = client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception:
+            return None
+    
+    def _anthropic_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using Anthropic (via API)."""
+        # Anthropic doesn't have native embeddings yet, fallback
+        return None
+    
+    def _local_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using local model."""
+        # Placeholder for local embedding (e.g., sentence-transformers)
+        return None
+
+
+class VectorStore:
+    """Vector storage for semantic search."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.ensure_table()
+        self.embedding_provider = EmbeddingProvider()
+    
+    def ensure_table(self):
+        """Ensure vector table exists."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Memory vectors (linked to episodic_memory)
+        c.execute('''CREATE TABLE IF NOT EXISTS memory_vectors
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      memory_id INTEGER NOT NULL,
+                      memory_type TEXT NOT NULL,
+                      vector BLOB NOT NULL,
+                      text_preview TEXT,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      FOREIGN KEY(memory_id) REFERENCES episodic_memory(id))''')
+        
+        conn.commit()
+        conn.close()
+    
+    def store_vector(self, memory_id: int, memory_type: str, text: str) -> bool:
+        """Generate and store vector for a memory."""
+        vector = self.embedding_provider.embed(text)
+        if not vector:
+            return False
+        
+        import pickle
+        vector_blob = pickle.dumps(vector)
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Check if exists
+        c.execute("SELECT id FROM memory_vectors WHERE memory_id = ? AND memory_type = ?", 
+                  (memory_id, memory_type))
+        exists = c.fetchone()
+        
+        if exists:
+            c.execute("""
+                UPDATE memory_vectors 
+                SET vector = ?, text_preview = ?, created_at = CURRENT_TIMESTAMP
+                WHERE memory_id = ? AND memory_type = ?
+            """, (vector_blob, text[:200], memory_id, memory_type))
+        else:
+            c.execute("""
+                INSERT INTO memory_vectors (memory_id, memory_type, vector, text_preview)
+                VALUES (?, ?, ?, ?)
+            """, (memory_id, memory_type, vector_blob, text[:200]))
+        
+        conn.commit()
+        conn.close()
+        return True
+    
+    def search_similar(self, query: str, memory_type: str = None, limit: int = 5) -> List[Dict]:
+        """Search for similar memories using vector similarity."""
+        import pickle
+        
+        query_vector = self.embedding_provider.embed(query)
+        if not query_vector:
+            return []  # Fallback to keyword
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Get all vectors
+        if memory_type:
+            c.execute("""
+                SELECT id, memory_id, memory_type, vector, text_preview 
+                FROM memory_vectors 
+                WHERE memory_type = ?
+            """, (memory_type,))
+        else:
+            c.execute("""
+                SELECT id, memory_id, memory_type, vector, text_preview 
+                FROM memory_vectors
+            """)
+        
+        results = []
+        for row in c.fetchall():
+            try:
+                stored_vector = pickle.loads(row[3])
+                similarity = self._cosine_similarity(query_vector, stored_vector)
+                results.append({
+                    'id': row[0],
+                    'memory_id': row[1],
+                    'memory_type': row[2],
+                    'text_preview': row[4],
+                    'similarity': similarity
+                })
+            except Exception:
+                continue
+        
+        conn.close()
+        
+        # Sort by similarity and return top results
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        return results[:limit]
+    
+    def _cosine_similarity(self, a: List[float], b: List[float]) -> float:
+        """Calculate cosine similarity between two vectors."""
+        import math
+        
+        dot = sum(x * y for x, y in zip(a, b))
+        mag_a = math.sqrt(sum(x * x for x in a))
+        mag_b = math.sqrt(sum(x * x for x in b))
+        
+        if mag_a == 0 or mag_b == 0:
+            return 0.0
+        
+        return dot / (mag_a * mag_b)
+    
+    def is_available(self) -> bool:
+        """Check if embedding provider is available."""
+        test = self.embedding_provider.embed("test")
+        return test is not None
+
+
+class SemanticRetrieval:
+    """Combined semantic + keyword retrieval."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.vector_store = VectorStore(db_path)
+        self.episodic = EpisodicMemory(db_path)
+    
+    def retrieve(self, query: str, limit: int = 5) -> Dict:
+        """Retrieve memories using semantic search with keyword fallback.
+        
+        Returns:
+            {
+                'method': 'semantic' | 'keyword',
+                'results': [...],
+                'fallback': True if keyword was used
+            }
+        """
+        # Try semantic first
+        if self.vector_store.is_available():
+            results = self.vector_store.search_similar(query, memory_type='episodic', limit=limit)
+            
+            if results:
+                # Enrich with full memory data
+                enriched = []
+                for r in results:
+                    mem = self.episodic.retrieve(limit=100)
+                    for m in mem:
+                        if m['id'] == r['memory_id']:
+                            m['similarity'] = r['similarity']
+                            enriched.append(m)
+                            break
+                
+                return {
+                    'method': 'semantic',
+                    'results': enriched,
+                    'fallback': False
+                }
+        
+        # Fallback to keyword search
+        keyword_results = self.episodic.retrieve(query=query, limit=limit)
+        
+        return {
+            'method': 'keyword',
+            'results': keyword_results,
+            'fallback': True
+        }
+
+
 # Singleton
 _memory_manager = None
 
