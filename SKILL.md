@@ -246,6 +246,35 @@ Drift objects must be JSON objects, not free-form text blobs:
 6. Add self-mutation with benchmark gating.
 7. Add observability and offline quality evaluation.
 
+## Context Building Protocol
+
+When responding to user input, build context in structured blocks:
+
+```
+=== IDENTITY ===
+{identity content from IDENTITY.md}
+
+=== SKILL ===
+{relevant sections from SKILL.md}
+
+=== CURRENT CONTEXT ===
+{working memory: last 3-5 items}
+{task memory: current goal, recent tool outputs}
+
+=== RELEVANT MEMORIES ===
+{episodic memories relevant to query}
+{semantic facts relevant to query}
+
+=== INTERNAL DRIFTS ===
+{relevant drifts - retrieve by topic/tag similarity}
+{use in responses: rare, subtle, never as fact}
+
+=== USER INPUT ===
+{original user message}
+```
+
+LLMs perform dramatically better with structured context blocks than mixed prompts.
+
 ## References
 
 Use the docs in `references/` for implementation detail:
