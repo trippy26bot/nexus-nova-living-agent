@@ -66,13 +66,35 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
                 return {}
         return {}
 
-    def _authorized(self, path: str) -> bool:
+    def _authorized(self, path: str, method: str = "GET") -> bool:
+        # Always allow health check
         if path == "/health":
             return True
+        
+        # Fail-closed: if no token configured, block ALL mutating endpoints
         if not AUTH_TOKEN:
-            return True
+            # Read-only GET endpoints are safer, but warn
+            if method in ["GET"] and path in ["/memory", "/goals", "/emotion", "/identity"]:
+                return True
+            # All mutating or unknown endpoints blocked without auth
+            return False
+        
         header_token = self.headers.get("X-Nova-Token", "").strip()
         return bool(header_token) and header_token == AUTH_TOKEN
+
+    def _check_auth_or_error(self, path: str, method: str = "GET") -> bool:
+        """Check auth and send error if fails. Returns True if authorized."""
+        if not self._authorized(path, method):
+            if not AUTH_TOKEN:
+                self.send_json({
+                    "error": "Authentication required",
+                    "message": "NOVA_API_TOKEN not configured. Set environment variable to enable API access.",
+                    "code": "AUTH_REQUIRED"
+                }, status=503)
+            else:
+                self.send_json({"error": "Unauthorized", "code": "INVALID_TOKEN"}, status=401)
+            return False
+        return True
 
     def _rate_limited(self) -> bool:
         now = int(time.time())
@@ -83,8 +105,7 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
-        if not self._authorized(path):
-            self.send_json({"error": "Unauthorized"}, status=401)
+        if not self._check_auth_or_error(path, "GET"):
             return
         if self._rate_limited():
             self.send_json({"error": "Rate limit exceeded"}, status=429)
@@ -132,8 +153,7 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        if not self._authorized(path):
-            self.send_json({"error": "Unauthorized"}, status=401)
+        if not self._check_auth_or_error(path, "POST"):
             return
         if self._rate_limited():
             self.send_json({"error": "Rate limit exceeded"}, status=429)
@@ -266,6 +286,14 @@ def run_server(port=PORT):
     server = HTTPServer((BIND, port), NovaAPIHandler)
     print(f"Nova API running on http://{BIND}:{port}")
     print(f"Endpoints: /health /chat /memory /goals /emotion /identity /daemon /supervisor")
+    
+    # Security warning if no token configured
+    if not AUTH_TOKEN:
+        print("⚠️  WARNING: NOVA_API_TOKEN not set!")
+        print("   - API is in FAIL-CLOSED mode")
+        print("   - Set NOVA_API_TOKEN environment variable to enable full access")
+        print("   - Read-only endpoints still accessible without token")
+    
     server.serve_forever()
 
 

@@ -222,10 +222,33 @@ Respond with ONLY the new prompt, no explanation."""
 class SkillMutationEngine:
     """Evolves skills through mutation."""
     
+    # Blocklist for protected skills/files
+    MUTATION_BLOCKLIST_EXACT = {"self-improvement", "nova-memory", "skill-discovery"}
+    MUTATION_BLOCKLIST_PREFIX = {"security-", "core/"}
+    MUTATION_BLOCKLIST_FILES = {"IDENTITY.md", "SOUL.md", "SKILL.md"}
+    
     def __init__(self, skills_dir: Path = None):
         self.skills_dir = skills_dir or (NOVA_DIR.parent / "skills")
         self.mutations: List[SkillMutation] = []
         self.min_promotion_score = 0.70
+        self._mutation_lock = False  # Re-entrancy lock
+    
+    def _is_blocked(self, skill_name: str) -> bool:
+        """Check if skill is blocklisted from mutation."""
+        # Check exact match
+        if skill_name in self.MUTATION_BLOCKLIST_EXACT:
+            return True
+        # Check prefix match
+        for prefix in self.MUTATION_BLOCKLIST_PREFIX:
+            if skill_name.startswith(prefix):
+                return True
+        # Check if trying to mutate protected files
+        if skill_name in self.MUTATION_BLOCKLIST_FILES:
+            return True
+        # Check for path traversal attempts
+        if ".." in skill_name or "/" in skill_name or "\\" in skill_name:
+            return True
+        return False
     
     def load_skill(self, skill_name: str) -> Optional[dict]:
         """Load a skill definition."""
@@ -243,18 +266,28 @@ class SkillMutationEngine:
     def mutate_skill(self, skill_name: str, mutation_type: str = 'general') -> SkillMutation:
         """Apply a mutation to a skill."""
         
-        skill = self.load_skill(skill_name)
+        # Check blocklist
+        if self._is_blocked(skill_name):
+            return {"error": "blocked", "reason": f"Skill '{skill_name}' is blocklisted from mutation"}
         
-        if not skill:
-            return None
+        # Check re-entrancy lock
+        if self._mutation_lock:
+            return {"error": "blocked", "reason": "Mutation already in progress"}
         
-        # Use LLM to mutate the skill
+        self._mutation_lock = True
         try:
-            from nova import call_llm
-        except ImportError:
-            return None
+            skill = self.load_skill(skill_name)
+            
+            if not skill:
+                return None
         
-        mutation_prompt = f"""You are mutating a skill to improve it.
+            # Use LLM to mutate the skill
+            try:
+                from nova import call_llm
+            except ImportError:
+                return None
+            
+            mutation_prompt = f"""You are mutating a skill to improve it.
 
 Current skill:
 {skill['content']}
@@ -266,37 +299,39 @@ Apply a {mutation_type} mutation. This could be:
 - Adding safety measures
 
 Respond with the mutated skill (full content)."""
-        
-        mutated_content = call_llm(mutation_prompt)
-        if not mutated_content:
-            return None
-        
-        # Calculate performance delta (placeholder - real implementation would test)
-        mutation = SkillMutation(
-            skill_name=skill_name,
-            version=f"v2_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            mutations=[mutation_type],
-            parent_version="v1",
-            performance_delta=0.0  # Would be measured
-        )
-        
-        self.mutations.append(mutation)
-        
-        # Save mutated version as candidate first
-        skill_dir = self.skills_dir / skill_name
-        skill_dir.mkdir(exist_ok=True, parents=True)
-        candidate_file = skill_dir / f"SKILL.candidate.{mutation.version}.md"
+            
+            mutated_content = call_llm(mutation_prompt)
+            if not mutated_content:
+                return None
+            
+            # Calculate performance delta (placeholder - real implementation would test)
+            mutation = SkillMutation(
+                skill_name=skill_name,
+                version=f"v2_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                mutations=[mutation_type],
+                parent_version="v1",
+                performance_delta=0.0  # Would be measured
+            )
+            
+            self.mutations.append(mutation)
+            
+            # Save mutated version as candidate first
+            skill_dir = self.skills_dir / skill_name
+            skill_dir.mkdir(exist_ok=True, parents=True)
+            candidate_file = skill_dir / f"SKILL.candidate.{mutation.version}.md"
 
-        with open(candidate_file, 'w') as f:
-            f.write(mutated_content)
+            with open(candidate_file, 'w') as f:
+                f.write(mutated_content)
 
-        # Promote only if benchmark gate passes.
-        if self._promote_candidate_if_safe(skill_dir, candidate_file):
-            mutation.performance_delta = 0.05
-        else:
-            mutation.performance_delta = -0.01
+            # Promote only if benchmark gate passes.
+            if self._promote_candidate_if_safe(skill_dir, candidate_file):
+                mutation.performance_delta = 0.05
+            else:
+                mutation.performance_delta = -0.01
 
-        return mutation
+            return mutation
+        finally:
+            self._mutation_lock = False
 
     def _score_skill_file(self, skill_file: Path) -> float:
         """
