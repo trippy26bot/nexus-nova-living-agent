@@ -22,6 +22,8 @@ import hashlib
 NOVA_DIR = Path.home() / ".nova"
 SKILLS_DIR = NOVA_DIR / "skills"
 SKILLS_DB = NOVA_DIR / "skills.db"
+ENABLE_PY_SKILLS = os.environ.get("NOVA_ENABLE_PY_SKILLS", "0").strip() in {"1", "true", "TRUE", "yes"}
+REQUIRE_SCAN = os.environ.get("NOVA_REQUIRE_SKILL_SCAN", "1").strip() in {"1", "true", "TRUE", "yes"}
 
 
 class SkillCategory(Enum):
@@ -52,7 +54,7 @@ class SkillRegistry:
     
     def __init__(self, db_path: str = None):
         self.db_path = db_path or SKILLS_DB
-        self.skills_dir = SKILLS_DIR or Path.cwd() / "skills"
+        self.skills_dir = SKILLS_DIR if SKILLS_DIR.exists() else (Path.cwd() / "skills")
         self.skills: Dict[str, Skill] = {}
         self.init_db()
         self._discover_skills()
@@ -104,14 +106,32 @@ class SkillRegistry:
                 print(f"Error loading skill from {skill_file}: {e}")
         
         # Look for Python skill modules
-        for skill_dir in self.skills_dir.iterdir():
-            if skill_dir.is_dir():
-                skill_py = skill_dir / "skill.py"
-                if skill_py.exists():
-                    try:
-                        self._load_skill_from_python(skill_dir.name, skill_py)
-                    except Exception as e:
-                        print(f"Error loading skill from {skill_py}: {e}")
+        if ENABLE_PY_SKILLS:
+            for skill_dir in self.skills_dir.iterdir():
+                if skill_dir.is_dir():
+                    skill_py = skill_dir / "skill.py"
+                    if skill_py.exists():
+                        try:
+                            if self._is_skill_dir_safe(skill_dir):
+                                self._load_skill_from_python(skill_dir.name, skill_py)
+                            else:
+                                print(f"Blocked untrusted Python skill: {skill_dir.name}")
+                        except Exception as e:
+                            print(f"Error loading skill from {skill_py}: {e}")
+        else:
+            print("Python skill loading disabled (set NOVA_ENABLE_PY_SKILLS=1 to enable)")
+
+    def _is_skill_dir_safe(self, skill_dir: Path) -> bool:
+        """Use scanner result to gate dynamic Python skill loading."""
+        if not REQUIRE_SCAN:
+            return True
+        try:
+            from scanner.skill_scanner import scan_skill
+            result = scan_skill(str(skill_dir))
+            return bool(result.get("safe"))
+        except Exception:
+            # Fail closed when scan is required.
+            return False
     
     def _load_skill_from_file(self, skill_file: Path):
         """Load skill from SKILL.md file."""

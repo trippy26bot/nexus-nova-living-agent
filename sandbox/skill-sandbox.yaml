@@ -1,0 +1,102 @@
+# OpenClaw Skill Sandbox Configuration
+
+container:
+  user: "nobody"
+  userns_mode: "private"
+  readonly_rootfs: true
+  tmpfs:
+    - /tmp
+    - /workspace
+
+  cap_drop:
+    - ALL
+
+  network_mode: "none"
+
+  resources:
+    cpu_quota: 100000
+    memory_limit: 512m
+    pids_limit: 128
+
+  security_options:
+    no_new_privileges: true
+    seccomp_profile: "sandbox/seccomp-policy.json"
+
+  env_block:
+    - "ANTHROPIC_API_KEY"
+    - "OPENAI_API_KEY"
+    - "MINIMAX_API_KEY"
+    - "AWS_SECRET"
+    - "GITHUB_TOKEN"
+
+filesystem:
+  read:
+    - /workspace
+    - /tmp
+  write:
+    - /workspace
+    - /tmp
+  deny:
+    - /home
+    - /root
+    - /etc
+    - /proc
+    - /sys
+    - /dev
+    - ~/.ssh
+    - ~/.aws
+    - ~/.gnupg
+
+network:
+  default: deny
+  allowlist:
+    - api.github.com
+    - api.openai.com
+    - api.anthropic.com
+  blocklist:
+    - localhost
+    - 127.0.0.1
+    - 0.0.0.0
+
+commands:
+  allowlist:
+    - python
+    - python3
+    - node
+    - npm
+    - git
+    - pip
+  blocklist:
+    - curl
+    - wget
+    - bash
+    - sh
+    - zsh
+    - fish
+    - eval
+    - exec
+
+limits:
+  max_execution_time: 60
+  max_file_size: 10m
+  max_files_open: 50
+  max_processes: 10
+  max_network_requests: 10
+
+audit:
+  enabled: true
+  log_file: /var/log/openclaw/skill-audit.log
+  log_level: info
+  events:
+    - file_read
+    - file_write
+    - command_exec
+    - network_request
+    - process_spawn
+
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5
+  syscall_block_threshold: 3
+  network_attempt_threshold: 5
+  cooldown_seconds: 300

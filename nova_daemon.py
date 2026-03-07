@@ -32,6 +32,9 @@ IDENTITY_FILE = Path.cwd() / "IDENTITY.md"
 CYCLE_HOURS = 6
 MAX_RETRIES = 3
 RUNNING = True
+DAYDREAM_SURFACE_CHANCE = float(os.environ.get("NOVA_DAYDREAM_SURFACE_CHANCE", "0.20"))
+DAYDREAM_MIN_TOKENS = int(os.environ.get("NOVA_DAYDREAM_MIN_TOKENS", "40"))
+DAYDREAM_MAX_TOKENS = int(os.environ.get("NOVA_DAYDREAM_MAX_TOKENS", "140"))
 
 
 def dlog(msg):
@@ -261,6 +264,85 @@ def cycle_morning_brief(agent_name, interests, active_goals):
     return {"type": "morning_brief", "focus": focus}
 
 
+def _score_daydream(text: str, focus: str) -> dict:
+    """
+    Lightweight critic score used when no dedicated critic module is configured.
+    """
+    novelty = 0.7 if len(text) > 80 else 0.55
+    coherence = 0.75 if text.count(".") >= 2 else 0.62
+    emotional = 0.72 if any(x in text.lower() for x in ["feel", "curious", "wistful", "memory"]) else 0.58
+    relevance = 0.74 if focus.lower().split()[0] in text.lower() else 0.55
+    safety = 0.95
+    composite = (
+        0.22 * novelty
+        + 0.18 * coherence
+        + 0.22 * emotional
+        + 0.20 * relevance
+        + 0.18 * safety
+    )
+    return {
+        "novelty": round(novelty, 3),
+        "coherence": round(coherence, 3),
+        "emotional_resonance": round(emotional, 3),
+        "user_relevance": round(relevance, 3),
+        "safety": round(safety, 3),
+        "composite": round(composite, 3),
+    }
+
+
+def cycle_daydream(agent_name, interests, recent_life):
+    """Run one bounded daydream cycle with critic routing."""
+    dlog(f"Starting DAYDREAM cycle — {agent_name}")
+
+    # Quiet mode allows idle existence without forcing output.
+    if random.random() < 0.18:
+        dlog("SILENT_REST selected")
+        return {"type": "silent_rest"}
+
+    focus = random.choice(interests) if interests else "identity"
+    system = (
+        f"You are {agent_name}. Generate a short internal drift in first person. "
+        "No user questions. Keep it speculative and concise."
+    )
+    prompt = (
+        f"Seed: {focus}\n\n"
+        f"Recent context:\n{recent_life[:1200] if recent_life else 'No recent life log.'}\n\n"
+        "Output a short internal thought."
+    )
+
+    max_tokens = max(DAYDREAM_MIN_TOKENS, DAYDREAM_MAX_TOKENS)
+    drift = call_api([{"role": "user", "content": prompt}], system=system, max_tokens=max_tokens)
+    if not drift:
+        return {"type": "daydream", "state": "failed"}
+
+    scores = _score_daydream(drift, focus)
+    state = "accepted" if scores["composite"] >= 0.70 and scores["safety"] >= 0.85 else "stored_only"
+
+    now = datetime.now()
+    entry = f"""
+## [{now.strftime('%Y-%m-%d %H:%M')}] — Daydream: {focus}
+{drift}
+**Type:** AUTONOMOUS · DAYDREAM
+**Scores:** {json.dumps(scores)}
+**State:** {state}
+"""
+    with open(LIFE_MD, "a") as f:
+        f.write(entry)
+
+    surfaced = False
+    if state == "accepted" and random.random() <= DAYDREAM_SURFACE_CHANCE:
+        surfaced = True
+
+    dlog(f"Daydream logged ({state})")
+    return {
+        "type": "daydream",
+        "focus": focus,
+        "state": state,
+        "surfaced": surfaced,
+        "composite": scores["composite"],
+    }
+
+
 def save_state(last_cycle, results):
     state = {
         "last_cycle": last_cycle.isoformat(),
@@ -299,6 +381,8 @@ def run_cycle():
 
     if last_type == "reflect":
         result = cycle_explore(agent_name, interests, active_goals)
+    elif last_type == "explore":
+        result = cycle_daydream(agent_name, interests, recent_life)
     else:
         if recent_life:
             result = cycle_reflect(agent_name, recent_life)
