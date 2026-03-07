@@ -67,6 +67,43 @@ Implement these components:
 - Evaluate against benchmark set.
 - Promote only if quality improves and no regression in safety/task metrics.
 
+## Layered Architecture Contract
+
+The implementation should remain explicitly layered:
+
+1. `interface_layer`
+- User/API/session entry points.
+
+2. `planner_router_layer`
+- Request routing, planning, and orchestration decisions.
+
+3. `agent_skill_layer`
+- Specialized agents and modular skills.
+
+4. `tool_layer`
+- Registered tools with trust tiers.
+
+5. `memory_knowledge_layer`
+- Episodic, semantic, procedural memory + long-term state.
+
+Never collapse these into one monolith.
+
+## Lifecycle Contract
+
+A living agent must run this loop (event-driven or scheduled):
+
+1. `observe`
+2. `plan`
+3. `act`
+4. `reflect`
+5. `learn`
+
+Implementation references:
+- `nova_lifecycle.py`
+- `core/world_model.py`
+- `nova_agents.py`
+- `nova_tool_registry.py`
+
 ## Drift Scoring Policy
 
 Use weighted composite score:
@@ -215,4 +252,3 @@ Use the docs in `references/` for implementation detail:
 - `references/12-daydream-architecture-v2.md`
 - `references/13-security-hardening-v2.md`
 - `references/14-self-evolution-v2.md`
-

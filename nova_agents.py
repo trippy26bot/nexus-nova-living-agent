@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 import sqlite3
+from pathlib import Path
 
 # Agent types
 class AgentType(Enum):
@@ -293,6 +294,7 @@ class AgentOrchestrator:
     def __init__(self, llm_callable, db_path: str, tools: List = None):
         self.llm = llm_callable
         self.db_path = db_path
+        self.base_dir = Path.home() / ".nova"
         
         # Initialize agents
         self.router = RouterAgent(llm_callable)
@@ -310,13 +312,39 @@ class AgentOrchestrator:
             AgentType.CRITIC: self.critic,
             AgentType.MEMORY: self.memory,
         }
+        try:
+            from core.world_model import WorldModel
+            self.world_model = WorldModel()
+        except Exception:
+            self.world_model = None
+        try:
+            from nova_goal_engine import GoalEngine
+            self.goal_engine = GoalEngine(self.base_dir / "goals_state.json")
+        except Exception:
+            self.goal_engine = None
     
-    async def process(self, user_input: str) -> Dict[str, Any]:
-        """Process user input through the agent pipeline."""
-        
-        # Step 1: Route
+    def _observe(self, user_input: str) -> Dict[str, Any]:
+        perception = {
+            "timestamp": datetime.now().isoformat(),
+            "user_input": user_input,
+            "has_user_message": bool(user_input.strip()),
+        }
+        if self.world_model:
+            try:
+                self.world_model.record_turn("user", user_input, sentiment=0.0, topics=[])
+                perception["world_context"] = self.world_model.get_context_summary()
+            except Exception:
+                pass
+        return perception
+
+    def _plan(self, user_input: str, perception: Dict[str, Any], goals: Dict[str, Any]) -> Dict[str, Any]:
+        # Current planner is router-based; this wraps it in lifecycle semantics.
+        return {"routing_input": user_input, "perception": perception, "goals": goals}
+
+    async def _act(self, plan: Dict[str, Any]) -> Dict[str, Any]:
+        user_input = plan["routing_input"]
         routing = await self.router.process(user_input)
-        
+
         result = {
             "input": user_input,
             "routing": routing,
@@ -324,69 +352,105 @@ class AgentOrchestrator:
             "steps_executed": [],
             "success": False
         }
-        
-        # Simple case - just respond
+
         if routing["complexity"] == "simple" or not routing.get("agents_needed"):
             response = self.llm(user_input)
             result["output"] = response
             result["success"] = True
             return result
-        
-        # Complex case - use agents
+
         if "planner" in routing["agents_needed"]:
-            # Create task
             task = Task(
                 id=f"task_{datetime.now().timestamp()}",
                 description=user_input,
                 priority=routing.get("priority", 5)
             )
-            
-            # Plan
             task = await self.planner.process(task)
             result["steps_executed"].append({"agent": "planner", "steps": len(task.steps)})
-            
-            # Execute each step
+
             for step in task.steps:
                 agent_name = step.get("agent", "executor")
-                
+
                 if agent_name == "researcher":
                     output = await self.researcher.research(step["description"])
                 elif agent_name == "executor":
                     output = await self.executor.execute(step)
                 else:
                     output = self.llm(step["description"])
-                
+
                 step["output"] = output
                 result["steps_executed"].append({
                     "agent": agent_name,
                     "description": step["description"],
                     "output": output[:100] + "..." if len(str(output)) > 100 else output
                 })
-            
-            # Combine outputs
+
             final_output = "\n\n".join([
                 f"Step {s.get('step', i+1)}: {s.get('output', '')}"
                 for i, s in enumerate(task.steps)
             ])
-            
-            # Critique
+
             critique = await self.critic.critique(final_output)
             result["critique"] = critique
-            
             if critique.get("passed", True):
                 result["output"] = final_output
                 result["success"] = True
             else:
-                # Try to improve based on feedback
                 result["output"] = final_output + "\n\nCritique: " + critique.get("feedback", "")
-                result["success"] = True  # Still success, but with caveats
-        
-        # Store in memory
+                result["success"] = True
+
         await self.memory.store(
             f"User: {user_input}\nResponse: {result.get('output', '')}",
             importance=5
         )
-        
+        return result
+
+    def _reflect(self, plan: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
+        lessons = []
+        if result.get("success"):
+            lessons.append("keep task reliability high")
+        if result.get("routing", {}).get("complexity") == "complex":
+            lessons.append("improve planning and decomposition quality")
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "success": result.get("success", False),
+            "lessons": lessons,
+            "steps_count": len(result.get("steps_executed", [])),
+        }
+
+    def _learn(self, reflection: Dict[str, Any]):
+        if self.goal_engine:
+            try:
+                goals = self.goal_engine.load()
+                goals = self.goal_engine.evolve_from_reflection(goals, reflection)
+                self.goal_engine.save(goals)
+            except Exception:
+                pass
+        if self.world_model:
+            try:
+                self.world_model.record_turn("assistant", json.dumps(reflection)[:200], sentiment=0.0, topics=["reflection"])
+            except Exception:
+                pass
+    
+    async def process(self, user_input: str) -> Dict[str, Any]:
+        """Process user input through lifecycle: observe -> plan -> act -> reflect -> learn."""
+        perception = self._observe(user_input)
+        goals = {}
+        if self.goal_engine:
+            try:
+                gs = self.goal_engine.load()
+                goals = {"short_term": gs.short_term, "long_term": gs.long_term, "emergent": gs.emergent}
+            except Exception:
+                goals = {}
+        plan = self._plan(user_input, perception, goals)
+        result = await self._act(plan)
+        reflection = self._reflect(plan, result)
+        self._learn(reflection)
+        result["lifecycle"] = {
+            "observe": perception,
+            "plan": {"goal_focus": goals.get("short_term", ["maintain_task_reliability"])[0] if goals else "maintain_task_reliability"},
+            "reflect": reflection,
+        }
         return result
 
 
