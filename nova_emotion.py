@@ -78,6 +78,36 @@ class EmotionEngine:
             'increase_events': ['boredom', 'waiting', 'stuck'],
             'description': 'Wanting to do something'
         },
+        'frustration': {
+            'baseline': 0.1,
+            'decay': 0.03,
+            'increase_events': ['blocked', 'failed_attempt', 'obstacle'],
+            'description': 'Blocked from progress'
+        },
+        'hope': {
+            'baseline': 0.4,
+            'decay': 0.02,
+            'increase_events': ['breakthrough', 'positive_signal', 'path_forward'],
+            'description': 'Optimism about future'
+        },
+        'gratitude': {
+            'baseline': 0.3,
+            'decay': 0.02,
+            'increase_events': ['help_received', 'kindness', 'support'],
+            'description': 'Appreciation for others'
+        },
+        'awe': {
+            'baseline': 0.2,
+            'decay': 0.01,
+            'increase_events': ['profound_realization', 'beauty', 'magnitude'],
+            'description': 'Wonder at scale'
+        },
+        'melancholy': {
+            'baseline': 0.1,
+            'decay': 0.02,
+            'increase_events': ['loss', 'ending', 'nostalgia'],
+            'description': 'Gentle sadness'
+        },
     }
     
     def __init__(self):
@@ -107,6 +137,52 @@ class EmotionEngine:
         }
         with open(EMOTION_STATE, 'w') as f:
             json.dump(data, f, indent=2)
+    
+    def record_experience(self, experience_type: str, description: str, 
+                         context: str = None, impact: float = 0.5) -> int:
+        """Record an experience with emotion snapshot.
+        
+        Returns:
+            Experience ID
+        """
+        from pathlib import Path
+        from .nova_memory import EpisodicMemory
+        
+        experience = {
+            'type': experience_type,
+            'description': description,
+            'context': context,
+            'impact': impact,
+            'emotion_snapshot': self.state.copy(),
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Store in memory system
+        try:
+            mem = EpisodicMemory()
+            exp_id = mem.store(
+                event=f"[EXPERIENCE: {experience_type}] {description}",
+                context=json.dumps(experience),
+                importance=int(impact * 10),
+                tags=['experience', experience_type],
+                focus=experience_type,
+                state='accepted'
+            )
+            return exp_id
+        except:
+            return None
+    
+    def get_recent_experiences(self, limit: int = 5) -> List[Dict]:
+        """Get recent experiences."""
+        from pathlib import Path
+        from .nova_memory import EpisodicMemory
+        
+        try:
+            mem = EpisodicMemory()
+            results = mem.retrieve(query='EXPERIENCE:', limit=limit)
+            return results
+        except:
+            return []
     
     def process_event(self, event: str, custom_changes: Dict[str, float] = None):
         """Process an event and update emotions accordingly."""
@@ -186,7 +262,13 @@ class EmotionEngine:
         return self.state.copy()
     
     def voice_modifier(self) -> str:
-        """Get voice modifier based on emotional state."""
+        """Get voice modifier based on emotional state.
+        
+        GUARDRAIL: Emotional influence is bounded.
+        - Never overrides factual accuracy
+        - Only affects tone/style, not content
+        - Task priority always wins
+        """
         dominant, intensity = self.get_dominant()
         
         modifiers = {
@@ -197,9 +279,46 @@ class EmotionEngine:
             'unease': 'quieter, hesitant, uncertain',
             'calm': 'steady, even, peaceful',
             'restlessness': 'quick, eager, wanting to move',
+            'frustration': 'sharper, shorter sentences',
+            'hope': 'optimistic, forward-looking',
+            'gratitude': 'warm, appreciative',
+            'awe': 'measured, thoughtful',
+            'melancholy': 'softer, reflective'
         }
         
         return modifiers.get(dominant, 'neutral, steady')
+    
+    def bounded_influence(self, task_priority: bool = False) -> Dict:
+        """Get bounded influence on response.
+        
+        GUARDRAIL: Ensures emotion cannot override factual/task priority.
+        
+        Args:
+            task_priority: If True, emotions are suppressed (task mode)
+        
+        Returns:
+            Dict with influence weights (0.0-1.0)
+        """
+        if task_priority:
+            # Full suppression - facts win
+            return {
+                'tone_modifier': 0.0,
+                'length_modifier': 0.0,
+                'question_frequency': 0.0,
+                'creative_freedom': 0.0,
+                'guaranteed_facts': True
+            }
+        
+        # Normal emotional influence (bounded)
+        dominant, intensity = self.get_dominant()
+        
+        return {
+            'tone_modifier': min(0.3, intensity * 0.5),  # Max 30% tone change
+            'length_modifier': min(0.2, intensity * 0.3),
+            'question_frequency': min(0.4, intensity * 0.6),
+            'creative_freedom': min(0.2, intensity * 0.3),
+            'guaranteed_facts': True  # Always preserve facts
+        }
     
     def response_temperament(self) -> Dict:
         """Get response modifiers based on emotional state."""
