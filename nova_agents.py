@@ -100,19 +100,51 @@ Respond in JSON format:
         
         result = self.llm(user_input, system=system_prompt)
         
-        try:
-            # Try to parse as JSON
-            routing = json.loads(result)
-        except:
-            # Fallback
+        # Try to extract JSON from the response
+        routing = self._parse_json_response(result)
+        
+        # Apply intelligent defaults if parsing failed or returned bad data
+        if not routing or not isinstance(routing, dict):
             routing = {
-                "intent": "conversation",
-                "complexity": "simple",
+                "intent": "task",
+                "complexity": "moderate",
                 "agents_needed": [],
-                "reasoning": "Could not parse, defaulting to conversation"
+                "reasoning": "Heuristic fallback - could not parse LLM response"
             }
+        else:
+            # Validate and sanitize
+            routing["intent"] = routing.get("intent", "task")
+            routing["complexity"] = routing.get("complexity", "moderate")
+            routing["agents_needed"] = routing.get("agents_needed", [])
+            routing["reasoning"] = routing.get("reasoning", "Parsed from LLM response")
         
         return routing
+    
+    def _parse_json_response(self, response: str) -> Optional[Dict]:
+        """Extract JSON from LLM response, handling various formats."""
+        if not response:
+            return None
+        
+        # Try direct parse first
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            pass
+        
+        # Try to find JSON in response (handles markdown code blocks, etc.)
+        import re
+        json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        matches = re.findall(json_pattern, response, re.DOTALL)
+        
+        for match in matches:
+            try:
+                parsed = json.loads(match)
+                if isinstance(parsed, dict) and "intent" in parsed:
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+        
+        return None
 
 
 class PlannerAgent(BaseAgent):
