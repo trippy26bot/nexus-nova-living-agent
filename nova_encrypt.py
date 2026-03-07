@@ -11,6 +11,8 @@ import sys
 import base64
 import hashlib
 import sqlite3
+import json
+import secrets
 from pathlib import Path
 from datetime import datetime
 
@@ -32,39 +34,51 @@ VAULT_CONFIG = NOVA_DIR / "vault.json"
 
 
 def derive_key(passphrase: str) -> bytes:
-    """Derive an encryption key from passphrase."""
-    if CRYPTO_AVAILABLE:
-        salt = b'nova_vault_salt_v1'  # Fixed salt for simplicity
-        kdf = PBKDF2(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-        return base64.urlsafe_b64encode(kdf.derive(passphrase.encode()))
+    """Derive an encryption key from passphrase using vault config salt."""
+    if not CRYPTO_AVAILABLE:
+        raise RuntimeError("cryptography package is required for vault encryption")
+
+    config = get_vault_config()
+    salt_b64 = config.get("salt")
+    if not salt_b64:
+        salt = secrets.token_bytes(16)
+        config["salt"] = base64.b64encode(salt).decode()
+        config.setdefault("kdf_iterations", 200000)
+        save_vault_config(config)
     else:
-        # Fallback: simple hash (NOT SECURE - for testing only)
-        return hashlib.sha256(passphrase.encode()).digest()
+        salt = base64.b64decode(salt_b64.encode())
+
+    kdf = PBKDF2(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=int(config.get("kdf_iterations", 200000)),
+    )
+    return base64.urlsafe_b64encode(kdf.derive(passphrase.encode()))
 
 
 def encrypt_data(data: str, key: bytes) -> str:
     """Encrypt string data."""
-    if CRYPTO_AVAILABLE:
-        f = Fernet(key)
-        return f.encrypt(data.encode()).decode()
-    else:
-        # Fallback encoding (NOT SECURE)
-        return base64.b64encode(data.encode()).decode()
+    f = Fernet(key)
+    return f.encrypt(data.encode()).decode()
 
 
 def decrypt_data(encrypted: str, key: bytes) -> str:
     """Decrypt string data."""
-    if CRYPTO_AVAILABLE:
-        f = Fernet(key)
-        return f.decrypt(encrypted.encode()).decode()
-    else:
-        # Fallback decoding
-        return base64.b64decode(encrypted.encode()).decode()
+    f = Fernet(key)
+    return f.decrypt(encrypted.encode()).decode()
+
+
+def encrypt_bytes(data: bytes, key: bytes) -> bytes:
+    """Encrypt bytes data."""
+    f = Fernet(key)
+    return f.encrypt(data)
+
+
+def decrypt_bytes(encrypted: bytes, key: bytes) -> bytes:
+    """Decrypt bytes data."""
+    f = Fernet(key)
+    return f.decrypt(encrypted)
 
 
 def get_vault_config() -> dict:
@@ -77,6 +91,7 @@ def get_vault_config() -> dict:
 
 def save_vault_config(config: dict):
     """Save vault configuration."""
+    VAULT_CONFIG.parent.mkdir(parents=True, exist_ok=True)
     with open(VAULT_CONFIG, 'w') as f:
         json.dump(config, f, indent=2)
 
@@ -90,9 +105,10 @@ def encrypt_file(file_path: Path, key: bytes) -> Path:
         content = f.read()
     
     encrypted = encrypt_data(content, key)
-    
+
     # Save to encrypted directory
-    encrypted_path = ENCRYPTED_DIR / f"{file_path.name}.enc"
+    relative = file_path.relative_to(NOVA_DIR).as_posix().replace("/", "__")
+    encrypted_path = ENCRYPTED_DIR / f"{relative}.enc"
     with open(encrypted_path, 'w') as f:
         f.write(encrypted)
     
@@ -131,7 +147,7 @@ def encrypt_vault(passphrase: str = None):
     if IDENTITY_FILE.exists():
         encrypted_path = encrypt_file(IDENTITY_FILE, key)
         if encrypted_path:
-            files_encrypted.append(str(IDENTITY_FILE))
+            files_encrypted.append(str(IDENTITY_FILE.relative_to(NOVA_DIR)))
             # Remove original
             IDENTITY_FILE.unlink()
             print(f"✓ Encrypted: {IDENTITY_FILE}")
@@ -141,7 +157,7 @@ def encrypt_vault(passphrase: str = None):
         for mem_file in MEMORY_DIR.glob("*.md"):
             encrypted_path = encrypt_file(mem_file, key)
             if encrypted_path:
-                files_encrypted.append(str(mem_file))
+                files_encrypted.append(str(mem_file.relative_to(NOVA_DIR)))
                 # Remove original
                 mem_file.unlink()
                 print(f"✓ Encrypted: {mem_file}")
@@ -151,22 +167,24 @@ def encrypt_vault(passphrase: str = None):
     if nova_db.exists():
         with open(nova_db, 'rb') as f:
             content = f.read()
-        
-        encrypted = encrypt_data(content.decode('utf-8', errors='ignore'), key)
+
+        encrypted = encrypt_bytes(content, key)
         encrypted_path = ENCRYPTED_DIR / "nova.db.enc"
-        with open(encrypted_path, 'w') as f:
+        with open(encrypted_path, 'wb') as f:
             f.write(encrypted)
-        
-        files_encrypted.append(str(nova_db))
+
+        files_encrypted.append(str(nova_db.relative_to(NOVA_DIR)))
         nova_db.unlink()
         print(f"✓ Encrypted: {nova_db}")
     
     # Save vault config
-    config = {
+    config = get_vault_config()
+    config.update({
         'encrypted': True,
         'files': files_encrypted,
-        'encrypted_at': datetime.now().isoformat()
-    }
+        'encrypted_at': datetime.now().isoformat(),
+        'version': 2
+    })
     save_vault_config(config)
     
     print(f"\n✓ Vault locked. {len(files_encrypted)} files encrypted.")
@@ -206,20 +224,20 @@ def decrypt_vault(passphrase: str = None):
     
     # Decrypt all encrypted files
     for enc_file in ENCRYPTED_DIR.glob("*.enc"):
-        decrypted_content = decrypt_file(enc_file, key)
-        
-        # Determine original path
-        original_name = enc_file.stem  # Remove .enc
+        original_name = enc_file.stem
         if original_name == "nova.db":
+            with open(enc_file, 'rb') as f:
+                encrypted = f.read()
+            decrypted_content = decrypt_bytes(encrypted, key)
             original_path = NOVA_DIR / "nova.db"
-        else:
-            original_path = NOVA_DIR / original_name
-        
-        # Write decrypted content
-        if original_name == "nova.db":
+            original_path.parent.mkdir(parents=True, exist_ok=True)
             with open(original_path, 'wb') as f:
-                f.write(decrypted_content.encode('utf-8'))
+                f.write(decrypted_content)
         else:
+            decrypted_content = decrypt_file(enc_file, key)
+            original_rel = original_name.replace("__", "/")
+            original_path = NOVA_DIR / original_rel
+            original_path.parent.mkdir(parents=True, exist_ok=True)
             with open(original_path, 'w') as f:
                 f.write(decrypted_content)
         
@@ -244,7 +262,6 @@ def is_vault_locked() -> bool:
 # CLI
 if __name__ == '__main__':
     import argparse
-    import json
     
     parser = argparse.ArgumentParser(description="Nova Vault Encryption")
     subparsers = parser.add_subparsers(dest='command')

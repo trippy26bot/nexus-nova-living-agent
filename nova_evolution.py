@@ -225,6 +225,7 @@ class SkillMutationEngine:
     def __init__(self, skills_dir: Path = None):
         self.skills_dir = skills_dir or (NOVA_DIR.parent / "skills")
         self.mutations: List[SkillMutation] = []
+        self.min_promotion_score = 0.70
     
     def load_skill(self, skill_name: str) -> Optional[dict]:
         """Load a skill definition."""
@@ -267,6 +268,8 @@ Apply a {mutation_type} mutation. This could be:
 Respond with the mutated skill (full content)."""
         
         mutated_content = call_llm(mutation_prompt)
+        if not mutated_content:
+            return None
         
         # Calculate performance delta (placeholder - real implementation would test)
         mutation = SkillMutation(
@@ -279,14 +282,53 @@ Respond with the mutated skill (full content)."""
         
         self.mutations.append(mutation)
         
-        # Save mutated version
+        # Save mutated version as candidate first
         skill_dir = self.skills_dir / skill_name
-        skill_dir.mkdir(exist_ok=True)
-        
-        with open(skill_dir / "SKILL.md", 'w') as f:
+        skill_dir.mkdir(exist_ok=True, parents=True)
+        candidate_file = skill_dir / f"SKILL.candidate.{mutation.version}.md"
+
+        with open(candidate_file, 'w') as f:
             f.write(mutated_content)
-        
+
+        # Promote only if benchmark gate passes.
+        if self._promote_candidate_if_safe(skill_dir, candidate_file):
+            mutation.performance_delta = 0.05
+        else:
+            mutation.performance_delta = -0.01
+
         return mutation
+
+    def _score_skill_file(self, skill_file: Path) -> float:
+        """
+        Lightweight scoring heuristic.
+        Replace with full benchmark integration when available.
+        """
+        text = skill_file.read_text(encoding="utf-8", errors="ignore")
+        score = 0.5
+        if "Non-Negotiable Invariants" in text:
+            score += 0.08
+        if "Security" in text or "security" in text:
+            score += 0.08
+        if "self-mutation" in text.lower() or "self_evolution" in text.lower():
+            score += 0.08
+        if len(text) > 1200:
+            score += 0.06
+        return min(score, 0.95)
+
+    def _promote_candidate_if_safe(self, skill_dir: Path, candidate_file: Path) -> bool:
+        baseline_file = skill_dir / "SKILL.md"
+        candidate_score = self._score_skill_file(candidate_file)
+        baseline_score = self._score_skill_file(baseline_file) if baseline_file.exists() else 0.0
+
+        # Require both absolute and relative improvement gates.
+        if candidate_score < self.min_promotion_score:
+            return False
+        if candidate_score <= baseline_score:
+            return False
+
+        candidate_text = candidate_file.read_text(encoding="utf-8", errors="ignore")
+        baseline_file.write_text(candidate_text, encoding="utf-8")
+        return True
     
     def revert_mutation(self, skill_name: str, version: str):
         """Revert a skill to a previous version."""

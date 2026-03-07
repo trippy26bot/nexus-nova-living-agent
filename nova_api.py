@@ -19,13 +19,18 @@ Run:
  python3 nova_api.py --port 8080
 """
 
-import json, os, sqlite3, urllib.parse
+import json, os, sqlite3, urllib.parse, time
 from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 NOVA_DIR = Path.home() / ".nova"
 PORT = int(os.environ.get("NOVA_PORT", "8080"))
+BIND = os.environ.get("NOVA_API_BIND", "127.0.0.1")
+AUTH_TOKEN = os.environ.get("NOVA_API_TOKEN", "").strip()
+RATE_LIMIT_PER_MIN = int(os.environ.get("NOVA_API_RATE_LIMIT", "120"))
+RATE_LIMIT_WINDOW_SEC = 60
+RATE_BUCKETS = {}
 
 
 def load_json(path, default=None):
@@ -55,11 +60,35 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
     def get_body(self):
         length = int(self.headers.get("Content-Length", 0))
         if length:
-            return json.loads(self.rfile.read(length).decode())
+            try:
+                return json.loads(self.rfile.read(length).decode())
+            except json.JSONDecodeError:
+                return {}
         return {}
+
+    def _authorized(self, path: str) -> bool:
+        if path == "/health":
+            return True
+        if not AUTH_TOKEN:
+            return True
+        header_token = self.headers.get("X-Nova-Token", "").strip()
+        return bool(header_token) and header_token == AUTH_TOKEN
+
+    def _rate_limited(self) -> bool:
+        now = int(time.time())
+        bucket_key = (self.client_address[0], now // RATE_LIMIT_WINDOW_SEC)
+        count = RATE_BUCKETS.get(bucket_key, 0) + 1
+        RATE_BUCKETS[bucket_key] = count
+        return count > RATE_LIMIT_PER_MIN
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        if not self._authorized(path):
+            self.send_json({"error": "Unauthorized"}, status=401)
+            return
+        if self._rate_limited():
+            self.send_json({"error": "Rate limit exceeded"}, status=429)
+            return
 
         if path == "/health":
             self.send_json({"status": "ok", "time": datetime.now().isoformat()})
@@ -103,6 +132,12 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
+        if not self._authorized(path):
+            self.send_json({"error": "Unauthorized"}, status=401)
+            return
+        if self._rate_limited():
+            self.send_json({"error": "Rate limit exceeded"}, status=429)
+            return
         body = self.get_body()
 
         if path == "/chat":
@@ -215,6 +250,7 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
         content = body.get("content", "").strip()
         if not content or len(content) < 50:
             self.send_json({"error": "content required (min 50 chars)"}, status=400)
+            return
 
         NOVA_DIR.mkdir(parents=True, exist_ok=True)
         identity_path = NOVA_DIR / "IDENTITY.md"
@@ -227,8 +263,8 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port=PORT):
-    server = HTTPServer(("", port), NovaAPIHandler)
-    print(f"Nova API running on http://localhost:{port}")
+    server = HTTPServer((BIND, port), NovaAPIHandler)
+    print(f"Nova API running on http://{BIND}:{port}")
     print(f"Endpoints: /health /chat /memory /goals /emotion /identity /daemon /supervisor")
     server.serve_forever()
 
