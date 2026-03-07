@@ -177,14 +177,16 @@ class WorldModel:
         """Mark prediction as resolved."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+        cursor.execute("SELECT prediction FROM predictions WHERE id = ?", (prediction_id,))
+        row = cursor.fetchone()
+        predicted = row[0] if row else ""
+        is_correct = int(str(predicted).strip().lower() == str(actual).strip().lower())
+
         cursor.execute("""
             UPDATE predictions 
-            SET actual = ?, correct = (
-                SELECT LOWER(actual) = LOWER(?)
-            ), resolved_at = CURRENT_TIMESTAMP
+            SET actual = ?, correct = ?, resolved_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (actual, actual, prediction_id))
+        """, (actual, is_correct, prediction_id))
         
         conn.commit()
         conn.close()

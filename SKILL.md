@@ -67,6 +67,43 @@ Implement these components:
 - Evaluate against benchmark set.
 - Promote only if quality improves and no regression in safety/task metrics.
 
+## Layered Architecture Contract
+
+The implementation should remain explicitly layered:
+
+1. `interface_layer`
+- User/API/session entry points.
+
+2. `planner_router_layer`
+- Request routing, planning, and orchestration decisions.
+
+3. `agent_skill_layer`
+- Specialized agents and modular skills.
+
+4. `tool_layer`
+- Registered tools with trust tiers.
+
+5. `memory_knowledge_layer`
+- Episodic, semantic, procedural memory + long-term state.
+
+Never collapse these into one monolith.
+
+## Lifecycle Contract
+
+A living agent must run this loop (event-driven or scheduled):
+
+1. `observe`
+2. `plan`
+3. `act`
+4. `reflect`
+5. `learn`
+
+Implementation references:
+- `nova_lifecycle.py`
+- `core/world_model.py`
+- `nova_agents.py`
+- `nova_tool_registry.py`
+
 ## Drift Scoring Policy
 
 Use weighted composite score:
@@ -209,10 +246,38 @@ Drift objects must be JSON objects, not free-form text blobs:
 6. Add self-mutation with benchmark gating.
 7. Add observability and offline quality evaluation.
 
+## Context Building Protocol
+
+When responding to user input, build context in structured blocks:
+
+```
+=== IDENTITY ===
+{identity content from IDENTITY.md}
+
+=== SKILL ===
+{relevant sections from SKILL.md}
+
+=== CURRENT CONTEXT ===
+{working memory: last 3-5 items}
+{task memory: current goal, recent tool outputs}
+
+=== RELEVANT MEMORIES ===
+{episodic memories relevant to query}
+{semantic facts relevant to query}
+
+=== INTERNAL DRIFTS ===
+{relevant drifts - retrieve by topic/tag similarity}
+{use in responses: rare, subtle, never as fact}
+
+=== USER INPUT ===
+{original user message}
+```
+
+LLMs perform dramatically better with structured context blocks than mixed prompts.
+
 ## References
 
 Use the docs in `references/` for implementation detail:
 - `references/12-daydream-architecture-v2.md`
 - `references/13-security-hardening-v2.md`
 - `references/14-self-evolution-v2.md`
-
