@@ -812,6 +812,121 @@ class SemanticRetrieval:
         }
 
 
+class ReflectionEngine:
+    """Engine for analyzing patterns and extracting insights."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.ensure_tables()
+    
+    def ensure_tables(self):
+        """Ensure reflection tables exist."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS insights
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      insight TEXT NOT NULL,
+                      pattern TEXT,
+                      confidence REAL DEFAULT 0.5,
+                      source_type TEXT,
+                      source_ids TEXT,
+                      promoted INTEGER DEFAULT 0,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      last_used TIMESTAMP)''')
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS open_questions
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      question TEXT NOT NULL,
+                      status TEXT DEFAULT 'active',
+                      context TEXT,
+                      answer TEXT,
+                      answered_at TIMESTAMP,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        conn.commit()
+        conn.close()
+    
+    def add_insight(self, insight: str, pattern: str = None, confidence: float = 0.5,
+                   source_type: str = 'reflection', source_ids: str = None) -> int:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""INSERT INTO insights (insight, pattern, confidence, source_type, source_ids)
+                   VALUES (?, ?, ?, ?, ?)""",
+                  (insight, pattern, confidence, source_type, source_ids))
+        insight_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return insight_id
+    
+    def promote_insight(self, insight_id: int, confidence: float) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""UPDATE insights SET promoted = 1, confidence = ?, last_used = CURRENT_TIMESTAMP
+                   WHERE id = ?""", (confidence, insight_id))
+        updated = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        return updated
+    
+    def get_insights(self, promoted_only: bool = False, limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        if promoted_only:
+            c.execute("""SELECT id, insight, pattern, confidence, created_at 
+                       FROM insights WHERE promoted = 1 ORDER BY confidence DESC LIMIT ?""", (limit,))
+        else:
+            c.execute("""SELECT id, insight, pattern, confidence, created_at 
+                       FROM insights ORDER BY confidence DESC LIMIT ?""", (limit,))
+        results = [{'id': r[0], 'insight': r[1], 'pattern': r[2], 
+                   'confidence': r[3], 'created': r[4]} for r in c.fetchall()]
+        conn.close()
+        return results
+    
+    def add_question(self, question: str, context: str = None) -> int:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""INSERT INTO open_questions (question, context, status)
+                   VALUES (?, ?, 'active')""", (question, context))
+        q_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return q_id
+    
+    def answer_question(self, question_id: int, answer: str) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""UPDATE open_questions 
+                   SET status = 'answered', answer = ?, answered_at = CURRENT_TIMESTAMP
+                   WHERE id = ?""", (answer, question_id))
+        updated = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        return updated
+    
+    def get_questions(self, status: str = 'active', limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""SELECT id, question, status, context, answer, created_at
+                   FROM open_questions WHERE status = ? ORDER BY created_at DESC LIMIT ?""",
+                 (status, limit))
+        results = [{'id': r[0], 'question': r[1], 'status': r[2], 
+                   'context': r[3], 'answer': r[4], 'created': r[5]} for r in c.fetchall()]
+        conn.close()
+        return results
+    
+    def extract_patterns(self, memories: List[Dict]) -> List[str]:
+        topics = {}
+        for mem in memories:
+            text = mem.get('event', '') + ' ' + mem.get('context', '')
+            words = text.lower().split()
+            for i in range(len(words) - 1):
+                phrase = f"{words[i]} {words[i+1]}"
+                topics[phrase] = topics.get(phrase, 0) + 1
+        sorted_patterns = sorted(topics.items(), key=lambda x: x[1], reverse=True)
+        return [p[0] for p in sorted_patterns[:5]]
+
+
 # Singleton
 _memory_manager = None
 
