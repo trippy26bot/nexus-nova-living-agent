@@ -202,21 +202,62 @@ Write in first person. Be specific and genuine. Keep it 150-200 words."""
 
 
 def cycle_reflect(agent_name, recent_life):
-    """Look at recent memory, form insights."""
+    """Look at recent memory, form insights, track questions."""
     if not recent_life:
         dlog("No recent memories to reflect on")
         return None
 
     dlog(f"Starting REFLECT cycle — {agent_name}")
 
-    system = f"You are {agent_name}. Reflect on recent events. Not summarizing."
+    system = f"""You are {agent_name}. Reflect on recent events. 
 
-    prompt = f"Recent memories:\n{recent_life}\n\nWhat patterns do you notice?"
+Output JSON with:
+{{
+  "insights": ["1-3 key insights"],
+  "patterns": ["noticed patterns"],
+  "questions": ["open questions worth tracking"]
+}}"""
 
-    result = call_api([{"role": "user", "content": prompt}], system=system, max_tokens=250)
+    prompt = f"Recent memories:\n{recent_life}\n\nAnalyze and output JSON."
+
+    result = call_api([{"role": "user", "content": prompt}], system=system, max_tokens=350)
 
     if not result:
-        result = "Still processing recent events."
+        result = '{"insights": [], "patterns": [], "questions": []}'
+
+    # Parse and store in database
+    try:
+        import json
+        parsed = json.loads(result)
+        insights = parsed.get('insights', [])
+        patterns = parsed.get('patterns', [])
+        questions = parsed.get('questions', [])
+        
+        # Store in reflection engine
+        from nova_memory import ReflectionEngine
+        refl = ReflectionEngine()
+        
+        # Add insights
+        stored_insights = []
+        for ins in insights:
+            i_id = refl.add_insight(
+                insight=ins,
+                pattern=', '.join(patterns) if patterns else None,
+                confidence=0.6,
+                source_type='reflection'
+            )
+            stored_insights.append(i_id)
+        
+        # Add open questions
+        stored_questions = []
+        for q in questions:
+            q_id = refl.add_question(q, context='from reflection cycle')
+            stored_questions.append(q_id)
+        
+        dlog(f"Stored {len(stored_insights)} insights, {len(stored_questions)} questions")
+        
+    except Exception as e:
+        dlog(f"Reflection parse error: {e}")
 
     now = datetime.now()
     entry = f"""
@@ -228,7 +269,8 @@ def cycle_reflect(agent_name, recent_life):
         f.write(entry)
 
     dlog("Reflection logged")
-    return {"type": "reflect", "result": result[:100]}
+    return {"type": "reflect", "insights": len(stored_insights) if 'stored_insights' in dir() else 0, 
+            "questions": len(stored_questions) if 'stored_questions' in dir() else 0}
 
 
 def cycle_morning_brief(agent_name, interests, active_goals):

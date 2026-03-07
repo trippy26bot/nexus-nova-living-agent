@@ -358,9 +358,11 @@ def build_layered_context(user_input: str, max_memories: int = 5, max_drifts: in
     
     Context layers (in order):
     1. Identity (from IDENTITY.md)
-    2. Conversation (recent memories)
+    2. Recent memories
     3. Relevant accepted drifts
-    4. User input
+    4. Promoted insights
+    5. Open questions
+    6. User input
     
     Args:
         user_input: The user's message
@@ -374,13 +376,15 @@ def build_layered_context(user_input: str, max_memories: int = 5, max_drifts: in
         'identity': '',
         'memories': [],
         'drifts': [],
+        'insights': [],
+        'questions': [],
         'user_input': user_input,
         'blocks': []
     }
     
     # Layer 1: Identity
     if IDENTITY_FILE.exists():
-        context['identity'] = IDENTITY_FILE.read_text().split('#')[0].strip()[:500]  # First 500 chars
+        context['identity'] = IDENTITY_FILE.read_text().split('#')[0].strip()[:500]
         context['blocks'].append(f"=== IDENTITY ===\n{context['identity']}")
     
     # Layer 2: Recent memories
@@ -404,7 +408,30 @@ def build_layered_context(user_input: str, max_memories: int = 5, max_drifts: in
             drift_block += f"- {d['text'][:80]}... (focus: {d['focus']})\n"
         context['blocks'].append(drift_block)
     
-    # Layer 4: User input
+    # Layer 4: Promoted insights (from reflection engine)
+    try:
+        from nova_memory import ReflectionEngine
+        refl = ReflectionEngine()
+        insights = refl.get_insights(promoted_only=True, limit=3)
+        context['insights'] = insights
+        if insights:
+            insight_block = "=== LONG-TERM INSIGHTS ===\n"
+            for ins in insights:
+                insight_block += f"- {ins['insight'][:100]}... (confidence: {ins['confidence']:.1f})\n"
+            context['blocks'].append(insight_block)
+        
+        # Layer 5: Open questions
+        questions = refl.get_questions(status='active', limit=3)
+        context['questions'] = questions
+        if questions:
+            q_block = "=== OPEN QUESTIONS ===\n"
+            for q in questions:
+                q_block += f"- {q['question'][:80]}...\n"
+            context['blocks'].append(q_block)
+    except Exception as e:
+        pass  # Silently skip if reflection engine not available
+    
+    # Layer 6: User input
     context['blocks'].append(f"=== USER INPUT ===\n{user_input}")
     
     # Combined prompt

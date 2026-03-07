@@ -214,6 +214,104 @@ class EpisodicMemory:
     def search(self, keyword: str) -> List[Dict]:
         """Search memories by keyword."""
         return self.retrieve(query=keyword, limit=20)
+    
+    def prune_low_priority(self, min_priority: float = 0.2, keep_count: int = 100) -> int:
+        """Remove low-priority memories beyond keep_count.
+        
+        Args:
+            min_priority: Minimum priority to keep (default 0.2)
+            keep_count: Maximum memories to keep (default 100)
+        
+        Returns:
+            Number of memories pruned
+        """
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Get count
+        c.execute("SELECT COUNT(*) FROM episodic_memory")
+        total = c.fetchone()[0]
+        
+        if total <= keep_count:
+            conn.close()
+            return 0
+        
+        # Get IDs to delete (lowest priority, beyond keep_count)
+        c.execute("""
+            SELECT id FROM episodic_memory 
+            WHERE priority_score < ? 
+            ORDER BY priority_score ASC, created_at ASC
+            LIMIT ?
+        """, (min_priority, total - keep_count))
+        
+        to_delete = [row[0] for row in c.fetchall()]
+        
+        if to_delete:
+            placeholders = ','.join('?' * len(to_delete))
+            c.execute(f"DELETE FROM episodic_memory WHERE id IN ({placeholders})", to_delete)
+            conn.commit()
+        
+        conn.close()
+        return len(to_delete)
+    
+    def archive_old(self, days: int = 90) -> int:
+        """Archive memories older than specified days to separate storage.
+        
+        Args:
+            days: Age threshold for archiving (default 90)
+        
+        Returns:
+            Number of memories archived
+        """
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        # Mark old accepted memories as archived
+        c.execute("""
+            UPDATE episodic_memory 
+            SET state = 'archived'
+            WHERE state = 'accepted' 
+            AND created_at < ?
+            AND priority_score < 0.5
+        """, (cutoff.isoformat(),))
+        
+        deleted = c.rowcount
+        conn.commit()
+        conn.close()
+        
+        return deleted
+    
+    def get_stats(self) -> Dict:
+        """Get memory statistics."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        stats = {}
+        
+        # Total
+        c.execute("SELECT COUNT(*) FROM episodic_memory")
+        stats['total'] = c.fetchone()[0]
+        
+        # By state
+        c.execute("SELECT state, COUNT(*) FROM episodic_memory GROUP BY state")
+        stats['by_state'] = {row[0]: row[1] for row in c.fetchall()}
+        
+        # Average priority
+        c.execute("SELECT AVG(priority_score) FROM episodic_memory")
+        stats['avg_priority'] = c.fetchone()[0] or 0
+        
+        # Oldest
+        c.execute("SELECT MIN(created_at) FROM episodic_memory")
+        stats['oldest'] = c.fetchone()[0]
+        
+        # Newest
+        c.execute("SELECT MAX(created_at) FROM episodic_memory")
+        stats['newest'] = c.fetchone()[0]
+        
+        conn.close()
+        return stats
 
 
 class SemanticMemory:
@@ -495,6 +593,338 @@ class MemoryManager:
                 profile['facts'].append(f"{fact['subject']} {fact['predicate']} {fact['object']}")
         
         return profile
+
+
+        return profile
+
+
+class EmbeddingProvider:
+    """Abstract embedding provider interface."""
+    
+    def __init__(self, provider: str = "openai"):
+        self.provider = provider
+    
+    def embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding vector for text."""
+        if self.provider == "openai":
+            return self._openai_embed(text)
+        elif self.provider == "anthropic":
+            return self._anthropic_embed(text)
+        elif self.provider == "local":
+            return self._local_embed(text)
+        else:
+            return None
+    
+    def _openai_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using OpenAI."""
+        try:
+            import os
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            response = client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception:
+            return None
+    
+    def _anthropic_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using Anthropic (via API)."""
+        # Anthropic doesn't have native embeddings yet, fallback
+        return None
+    
+    def _local_embed(self, text: str) -> Optional[List[float]]:
+        """Generate embedding using local model."""
+        # Placeholder for local embedding (e.g., sentence-transformers)
+        return None
+
+
+class VectorStore:
+    """Vector storage for semantic search."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.ensure_table()
+        self.embedding_provider = EmbeddingProvider()
+    
+    def ensure_table(self):
+        """Ensure vector table exists."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Memory vectors (linked to episodic_memory)
+        c.execute('''CREATE TABLE IF NOT EXISTS memory_vectors
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      memory_id INTEGER NOT NULL,
+                      memory_type TEXT NOT NULL,
+                      vector BLOB NOT NULL,
+                      text_preview TEXT,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      FOREIGN KEY(memory_id) REFERENCES episodic_memory(id))''')
+        
+        conn.commit()
+        conn.close()
+    
+    def store_vector(self, memory_id: int, memory_type: str, text: str) -> bool:
+        """Generate and store vector for a memory."""
+        vector = self.embedding_provider.embed(text)
+        if not vector:
+            return False
+        
+        import pickle
+        vector_blob = pickle.dumps(vector)
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Check if exists
+        c.execute("SELECT id FROM memory_vectors WHERE memory_id = ? AND memory_type = ?", 
+                  (memory_id, memory_type))
+        exists = c.fetchone()
+        
+        if exists:
+            c.execute("""
+                UPDATE memory_vectors 
+                SET vector = ?, text_preview = ?, created_at = CURRENT_TIMESTAMP
+                WHERE memory_id = ? AND memory_type = ?
+            """, (vector_blob, text[:200], memory_id, memory_type))
+        else:
+            c.execute("""
+                INSERT INTO memory_vectors (memory_id, memory_type, vector, text_preview)
+                VALUES (?, ?, ?, ?)
+            """, (memory_id, memory_type, vector_blob, text[:200]))
+        
+        conn.commit()
+        conn.close()
+        return True
+    
+    def search_similar(self, query: str, memory_type: str = None, limit: int = 5) -> List[Dict]:
+        """Search for similar memories using vector similarity."""
+        import pickle
+        
+        query_vector = self.embedding_provider.embed(query)
+        if not query_vector:
+            return []  # Fallback to keyword
+        
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Get all vectors
+        if memory_type:
+            c.execute("""
+                SELECT id, memory_id, memory_type, vector, text_preview 
+                FROM memory_vectors 
+                WHERE memory_type = ?
+            """, (memory_type,))
+        else:
+            c.execute("""
+                SELECT id, memory_id, memory_type, vector, text_preview 
+                FROM memory_vectors
+            """)
+        
+        results = []
+        for row in c.fetchall():
+            try:
+                stored_vector = pickle.loads(row[3])
+                similarity = self._cosine_similarity(query_vector, stored_vector)
+                results.append({
+                    'id': row[0],
+                    'memory_id': row[1],
+                    'memory_type': row[2],
+                    'text_preview': row[4],
+                    'similarity': similarity
+                })
+            except Exception:
+                continue
+        
+        conn.close()
+        
+        # Sort by similarity and return top results
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        return results[:limit]
+    
+    def _cosine_similarity(self, a: List[float], b: List[float]) -> float:
+        """Calculate cosine similarity between two vectors."""
+        import math
+        
+        dot = sum(x * y for x, y in zip(a, b))
+        mag_a = math.sqrt(sum(x * x for x in a))
+        mag_b = math.sqrt(sum(x * x for x in b))
+        
+        if mag_a == 0 or mag_b == 0:
+            return 0.0
+        
+        return dot / (mag_a * mag_b)
+    
+    def is_available(self) -> bool:
+        """Check if embedding provider is available."""
+        test = self.embedding_provider.embed("test")
+        return test is not None
+
+
+class SemanticRetrieval:
+    """Combined semantic + keyword retrieval."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.vector_store = VectorStore(db_path)
+        self.episodic = EpisodicMemory(db_path)
+    
+    def retrieve(self, query: str, limit: int = 5) -> Dict:
+        """Retrieve memories using semantic search with keyword fallback.
+        
+        Returns:
+            {
+                'method': 'semantic' | 'keyword',
+                'results': [...],
+                'fallback': True if keyword was used
+            }
+        """
+        # Try semantic first
+        if self.vector_store.is_available():
+            results = self.vector_store.search_similar(query, memory_type='episodic', limit=limit)
+            
+            if results:
+                # Enrich with full memory data
+                enriched = []
+                for r in results:
+                    mem = self.episodic.retrieve(limit=100)
+                    for m in mem:
+                        if m['id'] == r['memory_id']:
+                            m['similarity'] = r['similarity']
+                            enriched.append(m)
+                            break
+                
+                return {
+                    'method': 'semantic',
+                    'results': enriched,
+                    'fallback': False
+                }
+        
+        # Fallback to keyword search
+        keyword_results = self.episodic.retrieve(query=query, limit=limit)
+        
+        return {
+            'method': 'keyword',
+            'results': keyword_results,
+            'fallback': True
+        }
+
+
+class ReflectionEngine:
+    """Engine for analyzing patterns and extracting insights."""
+    
+    def __init__(self, db_path: str = None):
+        self.db_path = db_path or MEMORY_DB
+        self.ensure_tables()
+    
+    def ensure_tables(self):
+        """Ensure reflection tables exist."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS insights
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      insight TEXT NOT NULL,
+                      pattern TEXT,
+                      confidence REAL DEFAULT 0.5,
+                      source_type TEXT,
+                      source_ids TEXT,
+                      promoted INTEGER DEFAULT 0,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      last_used TIMESTAMP)''')
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS open_questions
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      question TEXT NOT NULL,
+                      status TEXT DEFAULT 'active',
+                      context TEXT,
+                      answer TEXT,
+                      answered_at TIMESTAMP,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        conn.commit()
+        conn.close()
+    
+    def add_insight(self, insight: str, pattern: str = None, confidence: float = 0.5,
+                   source_type: str = 'reflection', source_ids: str = None) -> int:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""INSERT INTO insights (insight, pattern, confidence, source_type, source_ids)
+                   VALUES (?, ?, ?, ?, ?)""",
+                  (insight, pattern, confidence, source_type, source_ids))
+        insight_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return insight_id
+    
+    def promote_insight(self, insight_id: int, confidence: float) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""UPDATE insights SET promoted = 1, confidence = ?, last_used = CURRENT_TIMESTAMP
+                   WHERE id = ?""", (confidence, insight_id))
+        updated = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        return updated
+    
+    def get_insights(self, promoted_only: bool = False, limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        if promoted_only:
+            c.execute("""SELECT id, insight, pattern, confidence, created_at 
+                       FROM insights WHERE promoted = 1 ORDER BY confidence DESC LIMIT ?""", (limit,))
+        else:
+            c.execute("""SELECT id, insight, pattern, confidence, created_at 
+                       FROM insights ORDER BY confidence DESC LIMIT ?""", (limit,))
+        results = [{'id': r[0], 'insight': r[1], 'pattern': r[2], 
+                   'confidence': r[3], 'created': r[4]} for r in c.fetchall()]
+        conn.close()
+        return results
+    
+    def add_question(self, question: str, context: str = None) -> int:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""INSERT INTO open_questions (question, context, status)
+                   VALUES (?, ?, 'active')""", (question, context))
+        q_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return q_id
+    
+    def answer_question(self, question_id: int, answer: str) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""UPDATE open_questions 
+                   SET status = 'answered', answer = ?, answered_at = CURRENT_TIMESTAMP
+                   WHERE id = ?""", (answer, question_id))
+        updated = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        return updated
+    
+    def get_questions(self, status: str = 'active', limit: int = 10) -> List[Dict]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("""SELECT id, question, status, context, answer, created_at
+                   FROM open_questions WHERE status = ? ORDER BY created_at DESC LIMIT ?""",
+                 (status, limit))
+        results = [{'id': r[0], 'question': r[1], 'status': r[2], 
+                   'context': r[3], 'answer': r[4], 'created': r[5]} for r in c.fetchall()]
+        conn.close()
+        return results
+    
+    def extract_patterns(self, memories: List[Dict]) -> List[str]:
+        topics = {}
+        for mem in memories:
+            text = mem.get('event', '') + ' ' + mem.get('context', '')
+            words = text.lower().split()
+            for i in range(len(words) - 1):
+                phrase = f"{words[i]} {words[i+1]}"
+                topics[phrase] = topics.get(phrase, 0) + 1
+        sorted_patterns = sorted(topics.items(), key=lambda x: x[1], reverse=True)
+        return [p[0] for p in sorted_patterns[:5]]
 
 
 # Singleton
