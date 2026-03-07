@@ -44,6 +44,7 @@ NOVA_LIFE = NOVA_DIR / "LIFE.md"
 NOVA_EMOTION_STATE = NOVA_DIR / "emotion_state.json"
 NOVA_CONFIG = NOVA_DIR / "config.json"
 NOVA_DAEMON_PID = NOVA_DIR / "daemon.pid"
+IDENTITY_FILE = NOVA_DIR / "IDENTITY.md"
 
 # Ensure directories exist
 NOVA_DIR.mkdir(exist_ok=True)
@@ -282,6 +283,134 @@ def get_recent_memories(limit: int = 10) -> list:
     results = c.fetchall()
     conn.close()
     return results
+
+
+def get_relevant_drifts(query: str = None, limit: int = 3, min_priority: float = 0.5) -> list:
+    """Get relevant accepted drifts for context.
+    
+    Args:
+        query: Optional search query
+        limit: Max number of drifts to return (default 3)
+        min_priority: Minimum priority score (default 0.5)
+    
+    Returns:
+        List of drift dicts with text, focus, scores, priority
+    """
+    conn = sqlite3.connect(NOVA_DB)
+    c = conn.cursor()
+    
+    # Ensure table exists (migration)
+    c.execute('''CREATE TABLE IF NOT EXISTS episodic_memory
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  event TEXT NOT NULL,
+                  context TEXT,
+                  emotion TEXT,
+                  importance INTEGER DEFAULT 5,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  tags TEXT,
+                  focus TEXT,
+                  scores TEXT,
+                  state TEXT,
+                  source_event_id INTEGER,
+                  priority_score REAL DEFAULT 0.0)''')
+    conn.commit()
+    
+    # Query for accepted drifts with minimum priority
+    if query:
+        c.execute("""
+            SELECT id, event, focus, scores, priority_score, created_at 
+            FROM episodic_memory 
+            WHERE state = 'accepted' 
+            AND priority_score >= ?
+            AND (event LIKE ? OR focus LIKE ?)
+            ORDER BY priority_score DESC, created_at DESC
+            LIMIT ?
+        """, (min_priority, f"%{query}%", f"%{query}%", limit))
+    else:
+        c.execute("""
+            SELECT id, event, focus, scores, priority_score, created_at 
+            FROM episodic_memory 
+            WHERE state = 'accepted' 
+            AND priority_score >= ?
+            ORDER BY priority_score DESC, created_at DESC
+            LIMIT ?
+        """, (min_priority, limit))
+    
+    results = []
+    for row in c.fetchall():
+        import json
+        scores = json.loads(row[3]) if row[3] else {}
+        results.append({
+            'id': row[0],
+            'text': row[1],
+            'focus': row[2],
+            'scores': scores,
+            'priority': row[4],
+            'created': row[5]
+        })
+    
+    conn.close()
+    return results
+
+
+def build_layered_context(user_input: str, max_memories: int = 5, max_drifts: int = 3) -> dict:
+    """Build layered context for LLM prompt.
+    
+    Context layers (in order):
+    1. Identity (from IDENTITY.md)
+    2. Conversation (recent memories)
+    3. Relevant accepted drifts
+    4. User input
+    
+    Args:
+        user_input: The user's message
+        max_memories: Max memories to include
+        max_drifts: Max drifts to include
+    
+    Returns:
+        Dict with context blocks and combined prompt
+    """
+    context = {
+        'identity': '',
+        'memories': [],
+        'drifts': [],
+        'user_input': user_input,
+        'blocks': []
+    }
+    
+    # Layer 1: Identity
+    if IDENTITY_FILE.exists():
+        context['identity'] = IDENTITY_FILE.read_text().split('#')[0].strip()[:500]  # First 500 chars
+        context['blocks'].append(f"=== IDENTITY ===\n{context['identity']}")
+    
+    # Layer 2: Recent memories
+    memories = get_recent_memories(limit=max_memories)
+    context['memories'] = [
+        {'content': m[0], 'type': m[1], 'importance': m[2], 'created': m[3]}
+        for m in memories
+    ]
+    if context['memories']:
+        mem_block = "=== RECENT MEMORIES ===\n"
+        for m in context['memories'][:3]:
+            mem_block += f"- [{m['type']}] {m['content'][:100]}...\n"
+        context['blocks'].append(mem_block)
+    
+    # Layer 3: Relevant drifts (subtle influence)
+    drifts = get_relevant_drifts(query=user_input, limit=max_drifts, min_priority=0.6)
+    context['drifts'] = drifts
+    if drifts:
+        drift_block = "=== INTERNAL THOUGHTS (subtle) ===\n"
+        for d in drifts:
+            drift_block += f"- {d['text'][:80]}... (focus: {d['focus']})\n"
+        context['blocks'].append(drift_block)
+    
+    # Layer 4: User input
+    context['blocks'].append(f"=== USER INPUT ===\n{user_input}")
+    
+    # Combined prompt
+    context['full_prompt'] = "\n\n".join(context['blocks'])
+    
+    return context
 
 
 def initialize_nova():
