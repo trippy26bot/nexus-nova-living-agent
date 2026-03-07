@@ -214,6 +214,104 @@ class EpisodicMemory:
     def search(self, keyword: str) -> List[Dict]:
         """Search memories by keyword."""
         return self.retrieve(query=keyword, limit=20)
+    
+    def prune_low_priority(self, min_priority: float = 0.2, keep_count: int = 100) -> int:
+        """Remove low-priority memories beyond keep_count.
+        
+        Args:
+            min_priority: Minimum priority to keep (default 0.2)
+            keep_count: Maximum memories to keep (default 100)
+        
+        Returns:
+            Number of memories pruned
+        """
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Get count
+        c.execute("SELECT COUNT(*) FROM episodic_memory")
+        total = c.fetchone()[0]
+        
+        if total <= keep_count:
+            conn.close()
+            return 0
+        
+        # Get IDs to delete (lowest priority, beyond keep_count)
+        c.execute("""
+            SELECT id FROM episodic_memory 
+            WHERE priority_score < ? 
+            ORDER BY priority_score ASC, created_at ASC
+            LIMIT ?
+        """, (min_priority, total - keep_count))
+        
+        to_delete = [row[0] for row in c.fetchall()]
+        
+        if to_delete:
+            placeholders = ','.join('?' * len(to_delete))
+            c.execute(f"DELETE FROM episodic_memory WHERE id IN ({placeholders})", to_delete)
+            conn.commit()
+        
+        conn.close()
+        return len(to_delete)
+    
+    def archive_old(self, days: int = 90) -> int:
+        """Archive memories older than specified days to separate storage.
+        
+        Args:
+            days: Age threshold for archiving (default 90)
+        
+        Returns:
+            Number of memories archived
+        """
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        # Mark old accepted memories as archived
+        c.execute("""
+            UPDATE episodic_memory 
+            SET state = 'archived'
+            WHERE state = 'accepted' 
+            AND created_at < ?
+            AND priority_score < 0.5
+        """, (cutoff.isoformat(),))
+        
+        deleted = c.rowcount
+        conn.commit()
+        conn.close()
+        
+        return deleted
+    
+    def get_stats(self) -> Dict:
+        """Get memory statistics."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        stats = {}
+        
+        # Total
+        c.execute("SELECT COUNT(*) FROM episodic_memory")
+        stats['total'] = c.fetchone()[0]
+        
+        # By state
+        c.execute("SELECT state, COUNT(*) FROM episodic_memory GROUP BY state")
+        stats['by_state'] = {row[0]: row[1] for row in c.fetchall()}
+        
+        # Average priority
+        c.execute("SELECT AVG(priority_score) FROM episodic_memory")
+        stats['avg_priority'] = c.fetchone()[0] or 0
+        
+        # Oldest
+        c.execute("SELECT MIN(created_at) FROM episodic_memory")
+        stats['oldest'] = c.fetchone()[0]
+        
+        # Newest
+        c.execute("SELECT MAX(created_at) FROM episodic_memory")
+        stats['newest'] = c.fetchone()[0]
+        
+        conn.close()
+        return stats
 
 
 class SemanticMemory:
