@@ -1,65 +1,88 @@
 # Skills Audit Report
 
 **Date:** 2026-03-07
-**Branch:** codex/nova-v5-release
-
-## Summary
-
-| Total Skills | Kept | Merged | Archived | Deleted |
-|-------------|------|--------|----------|---------|
-| 14 | 1 | 1 | 12 | 0 |
-
-## Classification
-
-### KEEP ✅
-
-| Skill | Reason |
-|-------|--------|
-| nova-task-persistence | Has runtime implementation (`nova_task_persistence.py`). May be useful for task tracking. |
-
-### MERGE 🔄
-
-| Skill | Reason |
-|-------|--------|
-| nova-memory | Overlaps with core `nova_memory.py`. Functionality already exists in core. |
-
-### ARCHIVE 📦
-
-| Skill | Reason |
-|-------|--------|
-| api-interaction | SKILL.md spec only, no runtime code. Duplicates potential future API work. |
-| code-execution | SKILL.md spec only, no runtime code. Security-sensitive, not ready. |
-| data-analysis | SKILL.md spec only, no runtime code. |
-| file-system | SKILL.md spec only, no runtime code. Security-sensitive. |
-| knowledge-summarization | SKILL.md spec only, no runtime code. |
-| memory-management | SKILL.md spec only, duplicates core `nova_memory.py`. |
-| report-generation | SKILL.md spec only, no runtime code. |
-| self-analysis | SKILL.md spec only, duplicates reflection functionality. |
-| self-improvement | SKILL.md spec only, duplicates `nova_evolution.py`. |
-| skill-discovery | SKILL.md spec only, no runtime code. |
-| task-planning | SKILL.md spec only, duplicates core planner. |
-| web-research | SKILL.md spec only, no runtime code. |
-
-### DELETED 🗑️
-
-None.
+**Branch:** codex/nova-v6-all-in
+**Version:** 1.0.0
 
 ---
 
-## Rationale
+## Classification Summary
 
-These skills were auto-generated as specifications but lack runtime implementation. They are archived rather than deleted to preserve the spec for potential future development.
+| Category | Count |
+|----------|-------|
+| **Active** | 2 |
+| **Archived** | 12 |
+| **Deleted** | 0 |
+
+---
 
 ## Active Skills
 
-Only `nova-task-persistence` has actual runtime code and is kept as active.
-
-## Next Steps
-
-1. Review `nova-task-persistence.py` for integration
-2. If memory merging is desired, port functionality to `nova_memory.py`
-3. Future skill development should include runtime implementation, not just specs
+| Skill | Trust Level | Rationale |
+|-------|-------------|-----------|
+| nova-memory | trusted | Core cognitive component - memory essential |
+| nova-task-persistence | restricted | Useful for task continuity |
 
 ---
 
-*Audit conducted by Nova*
+## Archived Skills
+
+| Skill | Rationale |
+|-------|-----------|
+| api-interaction | SKILL.md spec only, no runtime code |
+| code-execution | SKILL.md spec only, security-sensitive |
+| data-analysis | SKILL.md spec only |
+| file-system | SKILL.md spec only, security-sensitive |
+| knowledge-summarization | SKILL.md spec only |
+| memory-management | Duplicates core nova_memory.py |
+| report-generation | SKILL.md spec only |
+| self-analysis | Duplicates reflection |
+| self-improvement | Duplicates nova_evolution.py |
+| skill-discovery | SKILL.md spec only |
+| task-planning | Duplicates core planner (nova_agents.py) |
+| web-research | SKILL.md spec only |
+
+---
+
+## Core Separation
+
+Nova's cognitive architecture keeps core functions in dedicated modules:
+
+| Component | Location | Purpose |
+|----------|----------|---------|
+| Planner | nova_agents.py | RouterAgent, PlannerAgent, ExecutorAgent |
+| Memory | nova_memory.py | EpisodicMemory, SemanticMemory, WorkingMemory |
+| Reflection | nova_daemon.py | cycle_reflect() |
+| Emotion | nova_emotion.py | EmotionEngine |
+| Goals | nova_goal_engine.py | GoalEngine |
+| Evolution | nova_evolution.py | SkillMutationEngine |
+
+---
+
+## Registry Enforcement
+
+Skills are activated via `skills/dispatcher.py`:
+
+```python
+from skills.dispatcher import dispatch_skill
+
+result = dispatch_skill("nova-memory")
+if result["allowed"]:
+    # Execute skill
+else:
+    # Rejected - archived or deleted
+```
+
+---
+
+## Trust Levels
+
+| Level | Description |
+|-------|-------------|
+| trusted | Full access to memory and context |
+| restricted | Limited access, requires approval for sensitive ops |
+| approval_required | Must be explicitly approved per-use |
+
+---
+
+*Audit conducted by Nova - Phase 9 Complete*
