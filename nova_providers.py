@@ -75,11 +75,18 @@ class BaseProvider:
         messages.append({"role": "user", "content": message})
         return messages
 
+    def available(self) -> bool:
+        """Whether this provider can currently be used."""
+        return True
+
 # ── ANTHROPIC ─────────────────────────────────────────────────────────────────
 
 class AnthropicProvider(BaseProvider):
     name = "anthropic"
     default_model = "claude-haiku-4-5-20251001"
+
+    def available(self) -> bool:
+        return bool(self.api_key or os.environ.get("ANTHROPIC_API_KEY", ""))
 
     def complete(self, message: str, system: str = "", history: list = None,
                 max_tokens: int = 2000, temperature: float = 0.8) -> LLMResponse:
@@ -125,6 +132,9 @@ class AnthropicProvider(BaseProvider):
 class OpenAIProvider(BaseProvider):
     name = "openai"
     default_model = "gpt-4o-mini"
+
+    def available(self) -> bool:
+        return bool(self.api_key or os.environ.get("OPENAI_API_KEY", ""))
 
     def complete(self, message: str, system: str = "", history: list = None,
                 max_tokens: int = 2000, temperature: float = 0.8) -> LLMResponse:
@@ -185,6 +195,9 @@ class OllamaProvider(BaseProvider):
         except:
             return False
 
+    def available(self) -> bool:
+        return self.is_running()
+
     def complete(self, message: str, system: str = "", history: list = None,
                 max_tokens: int = 2000, temperature: float = 0.8) -> LLMResponse:
         import urllib.request
@@ -238,6 +251,9 @@ class GrokProvider(BaseProvider):
     name = "grok"
     default_model = "grok-2"
 
+    def available(self) -> bool:
+        return bool(self.api_key or os.environ.get("XAI_API_KEY", ""))
+
     def complete(self, message: str, system: str = "", history: list = None,
                 max_tokens: int = 2000, temperature: float = 0.8) -> LLMResponse:
         import urllib.request
@@ -284,6 +300,9 @@ class GrokProvider(BaseProvider):
 class GroqProvider(BaseProvider):
     name = "groq"
     default_model = "llama-3.3-70b-versatile"
+
+    def available(self) -> bool:
+        return bool(self.api_key or os.environ.get("GROQ_API_KEY", ""))
 
     def complete(self, message: str, system: str = "", history: list = None,
                 max_tokens: int = 2000, temperature: float = 0.8) -> LLMResponse:
@@ -340,6 +359,9 @@ class MiniMaxProvider(BaseProvider):
     """
     name = "minimax"
     default_model = "MiniMax-M2.5"
+
+    def available(self) -> bool:
+        return bool(self.api_key or os.environ.get("MINIMAX_API_KEY", ""))
 
     ENDPOINTS = {
         "global": "https://api.minimax.io/v1/chat/completions",

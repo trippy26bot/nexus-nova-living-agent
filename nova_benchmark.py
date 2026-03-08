@@ -183,7 +183,8 @@ def test_goals():
 def test_tools():
     """Tools can be imported."""
     try:
-        from nova_tools import list_tools
+        from nova_tool_registry import ToolRegistry
+        _ = ToolRegistry()
         return True
     except ImportError:
         return False

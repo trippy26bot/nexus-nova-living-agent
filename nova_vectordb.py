@@ -11,6 +11,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from enum import Enum
 
 # Configuration
 NOVA_DIR = Path.home() / ".nova"
