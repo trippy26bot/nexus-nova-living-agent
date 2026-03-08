@@ -41,12 +41,20 @@ def initialize_nova():
     
     nova_name = SETTINGS.get("nova", {}).get("name", "Nova")
     NOVA = NovaLiving(name=nova_name)
+    NOVA.leash.apply_dict(SETTINGS.get("safety", {}))
+    NOVA.save_state()
     
     DASHBOARD = NovaDashboard(NOVA)
     SKILL_MANAGER = SkillManager(NOVA)
     
     print(f"🧠 {NOVA.name} initialized")
     print(f"   Mood: {NOVA.personality.emoji} {NOVA.personality.state}")
+    print(
+        "   Safety:"
+        f" trade={NOVA.leash.can_trade}"
+        f" self_mod={NOVA.leash.can_self_modify}"
+        f" contact={NOVA.leash.can_contact}"
+    )
     print(f"   Skills: {', '.join(SKILL_MANAGER.list_skills())}")
     
     return NOVA
