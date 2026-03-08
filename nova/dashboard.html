@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova AI Command Center</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0d1b2a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 3D Canvas Container */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        /* Avatar Container */
+        #avatar-container {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            width: 200px;
+            height: 300px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        /* Animated Nova Avatar */
+        #nova-avatar {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 180px;
+            transition: all 0.5s ease;
+        }
+        
+        /* Avatar Body */
+        .avatar-body {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 100px;
+            background: linear-gradient(180deg, #7b2ff7, #4a90d9);
+            border-radius: 30px 30px 20px 20px;
+            animation: breathe 3s ease-in-out infinite;
+        }
+        
+        /* Avatar Head */
+        .avatar-head {
+            position: absolute;
+            bottom: 85px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 55px;
+            background: linear-gradient(180deg, #e0d4ff, #b8a9f0);
+            border-radius: 50%;
+            animation: breathe 3s ease-in-out infinite;
+        }
+        
+        /* Eyes */
+        .avatar-eyes {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .eye {
+            width: 10px;
+            height: 10px;
+            background: #1a1a3a;
+            border-radius: 50%;
+            animation: blink 4s ease-in-out infinite;
+        }
+        
+        /* Crown */
+        .avatar-crown {
+            position: absolute;
+            bottom: 135px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 25px;
+            background: linear-gradient(180deg, #ffd700, #ffaa00);
+            clip-path: polygon(0% 100%, 20% 0%, 40% 100%, 60% 0%, 80% 100%, 100% 0%, 100% 100%, 0% 100%);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        /* Antenna */
+        .avatar-antenna {
+            position: absolute;
+            bottom: 155px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 20px;
+            background: #00d4ff;
+            border-radius: 2px;
+        }
+        
+        .avatar-antenna::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #00d4ff;
+            border-radius: 50%;
+            animation: pulse-light 1.5s ease-in-out infinite;
+        }
+        
+        /* Arms */
+        .avatar-arm {
+            position: absolute;
+            top: 30px;
+            width: 15px;
+            height: 60px;
+            background: linear-gradient(180deg, #7b2ff7, #4a90d9);
+            border-radius: 10px;
+        }
+        
+        .arm-left { left: -10px; animation: wave-left 2s ease-in-out infinite; }
+        .arm-right { right: -10px; animation: wave-right 2s ease-in-out infinite; }
+        
+        /* Shadow */
+        .avatar-shadow {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 15px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent);
+            animation: shadow-breathe 3s ease-in-out infinite;
+        }
+        
+        /* Status indicator */
+        #avatar-status {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: blink 1s ease-in-out infinite;
+        }
+        
+        /* Talking indicator */
+        #nova-avatar.speaking .avatar-head {
+            animation: talk 0.3s ease-in-out infinite;
+        }
+        
+        /* Animations */
+        @keyframes breathe {
+            0%, 100% { transform: translateX(-50%) scaleY(1); }
+            50% { transform: translateX(-50%) scaleY(1.02); }
+        }
+        
+        @keyframes shadow-breathe {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+            50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+        }
+        
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+        
+        @keyframes wave-left {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+        
+        @keyframes wave-right {
+            0%, 100% { transform: rotate(5deg); }
+            50% { transform: rotate(-5deg); }
+        }
+        
+        @keyframes glow {
+            0% { filter: brightness(1); }
+            100% { filter: brightness(1.3); }
+        }
+        
+        @keyframes pulse-light {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px #00d4ff; }
+            50% { opacity: 0.5; box-shadow: 0 0 20px #00d4ff; }
+        }
+        
+        @keyframes talk {
+            0%, 100% { transform: translateX(-50%) scaleY(1); }
+            50% { transform: translateX(-50%) scaleY(1.05); }
+        }
+        
+        /* Walking animation */
+        #nova-avatar.walking .avatar-body {
+            animation: walk-bounce 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes walk-bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
+        }
+        
+        /* UI Container */
+        .ui-container {
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Rest of dashboard styles... */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-shadow: 0 0 20px rgba(100, 200, 255, 0.5);
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            color: #666;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 150, 255, 0.15);
+        }
+        
+        .card h3 {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        
+        .mood-card {
+            grid-column: span 2;
+            text-align: center;
+        }
+        
+        .mood-emoji {
+            font-size: 60px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .mood-text {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .joy-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .joy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .thoughts-card {
+            grid-column: span 2;
+        }
+        
+        .thought-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .thought {
+            padding: 10px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 3px solid #7b2ff7;
+        }
+        
+        .thought-time {
+            font-size: 9px;
+            color: #555;
+            margin-top: 4px;
+        }
+        
+        .safety-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .safety-item {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .safety-item.on {
+            border: 1px solid #6bcb77;
+            color: #6bcb77;
+        }
+        
+        .safety-item.off {
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        /* Voice toggle */
+        #voice-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: #888;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        #voice-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        #voice-toggle.active {
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D Canvas Background -->
+    <canvas id="canvas-container"></canvas>
+    
+    <!-- Voice Toggle -->
+    <button id="voice-toggle">🔇 Voice OFF</button>
+    
+    <!-- Nova Avatar -->
+    <div id="avatar-container">
+        <div id="nova-avatar">
+            <div class="avatar-crown"></div>
+            <div class="avatar-antenna"></div>
+            <div class="avatar-head">
+                <div class="avatar-eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+            </div>
+            <div class="avatar-body">
+                <div class="avatar-arm arm-left"></div>
+                <div class="avatar-arm arm-right"></div>
+            </div>
+            <div class="avatar-shadow"></div>
+        </div>
+        <div id="avatar-status">Thinking...</div>
+    </div>
+    
+    <!-- Dashboard UI -->
+    <div class="ui-container">
+        <header>
+            <h1>NOVA</h1>
+            <p class="tagline">Living AI Command Center</p>
+        </header>
+        
+        <div class="grid">
+            <!-- Mood -->
+            <div class="card mood-card">
+                <span class="mood-emoji" id="emoji">?</span>
+                <span class="mood-text" id="mood">Loading...</span>
+            </div>
+            
+            <!-- Joy -->
+            <div class="card">
+                <h3>Joy Score</h3>
+                <div class="stat-value" id="joy">--%</div>
+                <div class="joy-bar">
+                    <div class="joy-fill" id="joy-fill" style="width: 50%"></div>
+                </div>
+            </div>
+            
+            <!-- Drifts -->
+            <div class="card">
+                <h3>Total Drifts</h3>
+                <div class="stat-value" id="drifts">--</div>
+                <div style="font-size: 11px; color: #666; margin-top: 5px;" id="idle">Idle --h</div>
+            </div>
+            
+            <!-- Safety -->
+            <div class="card">
+                <h3>Safety Status</h3>
+                <div class="safety-grid">
+                    <div class="safety-item" id="trade-status">Trading</div>
+                    <div class="safety-item" id="spend-status">$0</div>
+                    <div class="safety-item" id="selfmod-status">No Self-Mod</div>
+                    <div class="safety-item" id="contact-status">No Contact</div>
+                </div>
+            </div>
+            
+            <!-- Thoughts -->
+            <div class="card thoughts-card">
+                <h3>Recent Thoughts</h3>
+                <div class="thought-list" id="thoughts">
+                    <div class="thought">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Voice state
+        let voiceEnabled = false;
+        const voiceBtn = document.getElementById('voice-toggle');
+        
+        voiceBtn.addEventListener('click', () => {
+            voiceEnabled = !voiceEnabled;
+            voiceBtn.textContent = voiceEnabled ? '🔊 Voice ON' : '🔇 Voice OFF';
+            voiceBtn.classList.toggle('active', voiceEnabled);
+            if (voiceEnabled) {
+                speak('Nova dashboard initialized. Hello!');
+            }
+        });
+        
+        function speak(text) {
+            if (!voiceEnabled || !('speechSynthesis' in window)) return;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.0;
+            utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
+        }
+        
+        // Avatar animations
+        const avatar = document.getElementById('nova-avatar');
+        const avatarStatus = document.getElementById('avatar-status');
+        let lastDriftCount = 0;
+        
+        // Background particles
+        const canvas = document.getElementById('canvas-container');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                r: Math.random() * 2,
+                dx: (Math.random() - 0.5) * 0.3,
+                dy: (Math.random() - 0.5) * 0.3,
+                alpha: Math.random()
+            });
+        }
+        
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw particles
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(100, 150, 255, ${p.alpha})`;
+                ctx.fill();
+                
+                p.x += p.dx;
+                p.y += p.dy;
+                p.alpha += Math.sin(Date.now() * 0.001 + p.x) * 0.01;
+                
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+            });
+            
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+        
+        // Update dashboard
+        async function update() {
+            try {
+                const res = await fetch('/api');
+                const d = await res.json();
+                
+                // Mood
+                document.getElementById('emoji').textContent = d.emoji || '?';
+                document.getElementById('mood').textContent = (d.mood || 'unknown').toUpperCase();
+                
+                // Avatar mood
+                avatar.style.filter = d.mood === 'happy' ? 'hue-rotate(30deg)' : 
+                                     d.mood === 'excited' ? 'hue-rotate(60deg)' : '';
+                
+                // Joy
+                const joyScore = Math.round((d.joy_score || 0.5) * 100);
+                document.getElementById('joy').textContent = joyScore + '%';
+                document.getElementById('joy-fill').style.width = joyScore + '%';
+                
+                // Drifts
+                document.getElementById('drifts').textContent = d.drift_count || 0;
+                document.getElementById('idle').textContent = 'Idle ' + (d.idle_hours || 0) + 'h';
+                
+                // Check for new drift
+                if (d.drift_count > lastDriftCount && lastDriftCount > 0) {
+                    avatarStatus.textContent = 'Had a thought!';
+                    avatar.classList.add('walking');
+                    setTimeout(() => avatar.classList.remove('walking'), 2000);
+                    speak('I just had a new thought.');
+                }
+                lastDriftCount = d.drift_count || 0;
+                
+                // Safety
+                const s = d.leash || {};
+                const tradeEl = document.getElementById('trade-status');
+                tradeEl.textContent = s.can_trade ? 'Trading ON' : 'Trading OFF';
+                tradeEl.className = 'safety-item ' + (s.can_trade ? 'on' : 'off');
+                
+                document.getElementById('spend-status').textContent = '$' + (s.spend_limit || 0);
+                document.getElementById('spend-status').className = 'safety-item ' + (s.spend_limit > 0 ? 'on' : 'off');
+                
+                const selfmodEl = document.getElementById('selfmod-status');
+                selfmodEl.textContent = s.can_self_modify ? 'Self-Mod ON' : 'Self-Mod OFF';
+                selfmodEl.className = 'safety-item ' + (s.can_self_modify ? 'on' : 'off');
+                
+                const contactEl = document.getElementById('contact-status');
+                contactEl.textContent = s.can_contact ? 'Contact ON' : 'Contact OFF';
+                contactEl.className = 'safety-item ' + (s.can_contact ? 'on' : 'off');
+                
+                // Thoughts
+                const thoughts = d.recent_drifts || [];
+                const thoughtsEl = document.getElementById('thoughts');
+                if (thoughts.length > 0) {
+                    thoughtsEl.innerHTML = thoughts.slice(-5).reverse().map(t => 
+                        '<div class="thought">' + (t.thought || '') + 
+                        '<div class="thought-time">' + (t.timestamp || '').slice(0,19) + '</div></div>'
+                    ).join('');
+                }
+                
+            } catch(e) {
+                console.log('Error:', e);
+            }
+        }
+        
+        update();
+        setInterval(update, 3000);
+    </script>
+</body>
+</html>

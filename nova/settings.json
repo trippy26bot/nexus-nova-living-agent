@@ -1,25 +1,18 @@
 {
   "nova": {
     "name": "Nova",
-    "drift_interval_hours": 12,
+    "drift_interval_hours": 0.1,
     "journal_days": 7
   },
   "skills": {
     "enable_crypto": true,
     "enable_poetry": true,
     "enable_reflect": true,
-    "enable_explore": true,
-    "crypto_trigger_hours": 12
-  },
-  "dashboard": {
-    "host": "0.0.0.0",
-    "port": 5000,
-    "refresh_interval_seconds": 5
+    "enable_explore": true
   },
   "safety": {
-    "spend_limit": 0,
     "can_trade": true,
-    "can_self_modify": false,
-    "can_contact": false
+    "can_self_modify": true,
+    "can_contact": true
   }
 }

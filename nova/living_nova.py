@@ -252,6 +252,12 @@ class NovaJournal:
             "dominant_mood": max(set(moods), key=moods.count) if moods else "unknown",
             "total_drifts": sum(e.get("drift_count", 0) for e in recent)
         }
+
+    def get_recent_context(self, days: int = 7) -> list:
+        """Get recent entries for memory context"""
+        from datetime import datetime, timedelta
+        cutoff = datetime.now() - timedelta(days=days)
+        return [e for e in self.entries if datetime.fromisoformat(e["timestamp"]) >= cutoff]
         
     def save(self):
         with open(JOURNAL_FILE, "w") as f:
@@ -274,6 +280,11 @@ class NovaLiving:
         self.drift = DriftEngine(self.personality)
         self.journal = NovaJournal()
         self.drift_count = 0
+        
+        # Simple memory interface for compatibility
+        self.memory = self.journal
+        self.journal.store_thought = lambda t: self.journal.add_entry(1, self.personality.state, [t])
+        
         self.load_state()
         
     def interact(self, message: str) -> str:
