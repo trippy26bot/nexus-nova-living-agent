@@ -285,6 +285,103 @@ def get_recent_memories(limit: int = 10) -> list:
     return results
 
 
+def store_conversation(user_message: str, nova_response: str, context: str = None) -> bool:
+    """Store a conversation exchange in episodic memory with tags for retrieval.
+    
+    Args:
+        user_message: What the user said
+        nova_response: What Nova responded
+        context: Optional context (current topic, task, etc.)
+    
+    Returns:
+        True if stored successfully
+    """
+    from nova_memory import EpisodicMemory
+    
+    try:
+        mem = EpisodicMemory()
+        
+        # Store user message
+        mem.store(
+            event=f"User: {user_message}",
+            context=context or "conversation",
+            importance=5,
+            tags=["conversation", "user_message"],
+            focus=extract_topic(user_message),
+            state="accepted"
+        )
+        
+        # Store Nova's response
+        mem.store(
+            event=f"Nova: {nova_response}",
+            context=context or "conversation", 
+            importance=5,
+            tags=["conversation", "nova_response"],
+            focus=extract_topic(nova_response),
+            state="accepted"
+        )
+        
+        return True
+    except Exception as e:
+        print(f"store_conversation error: {e}")
+        return False
+
+
+def retrieve_conversation_memories(query: str, limit: int = 3) -> list:
+    """Retrieve relevant past conversation memories.
+    
+    Args:
+        query: The current user message
+        limit: How many past exchanges to retrieve
+    
+    Returns:
+        List of relevant conversation memories
+    """
+    from nova_memory import EpisodicMemory
+    
+    try:
+        mem = EpisodicMemory()
+        
+        # Search for conversation memories
+        results = mem.retrieve(
+            query=query,
+            limit=limit * 2,  # Get more, filter later
+            min_priority=0.3
+        )
+        
+        # Filter to conversation tags
+        conv_memories = []
+        for r in results:
+            tags = r.get('tags', [])
+            if tags and 'conversation' in tags:
+                conv_memories.append(r)
+        
+        return conv_memories[:limit]
+    except Exception as e:
+        print(f"retrieve_conversation_memories error: {e}")
+        return []
+
+
+def extract_topic(text: str) -> str:
+    """Simple topic extraction from text."""
+    text = text.lower()
+    
+    topics = {
+        "feelings": ["feel", "feelings", "sad", "happy", "emotion"],
+        "memory": ["remember", "memory", "past", "before"],
+        "humans": ["human", "humans", "people"],
+        "ai": ["ai", "artificial", "intelligence", "nova"],
+        "code": ["code", "programming", "python", "fix"],
+        "talk": ["talk", "chat", "conversation"],
+    }
+    
+    for topic, keywords in topics.items():
+        if any(k in text for k in keywords):
+            return topic
+    
+    return "general"
+
+
 def get_relevant_drifts(query: str = None, limit: int = 3, min_priority: float = 0.5) -> list:
     """Get relevant accepted drifts for context.
     
@@ -407,6 +504,15 @@ def build_layered_context(user_input: str, max_memories: int = 5, max_drifts: in
         for d in drifts:
             drift_block += f"- {d['text'][:80]}... (focus: {d['focus']})\n"
         context['blocks'].append(drift_block)
+    
+    # Layer 3.5: Relevant conversation memories (NEW)
+    conv_memories = retrieve_conversation_memories(user_input, limit=2)
+    context['conversation_memories'] = conv_memories
+    if conv_memories:
+        conv_block = "=== PAST CONVERSATIONS ===\n"
+        for c in conv_memories:
+            conv_block += f"- {c['event'][:100]}...\n"
+        context['blocks'].append(conv_block)
     
     # Layer 4: Promoted insights (from reflection engine)
     try:
