@@ -94,6 +94,19 @@ class LoyaltyLeash:
             "can_trade": self.can_trade
         }
 
+    def apply_dict(self, data: dict):
+        """Apply safety config/state values with sane defaults."""
+        if not isinstance(data, dict):
+            return
+        if "spend_limit" in data:
+            self.spend_limit = data.get("spend_limit", self.spend_limit)
+        if "can_self_modify" in data:
+            self.can_self_modify = bool(data.get("can_self_modify"))
+        if "can_contact" in data:
+            self.can_contact = bool(data.get("can_contact"))
+        if "can_trade" in data:
+            self.can_trade = bool(data.get("can_trade"))
+
 
 class JoyMetric:
     """Track user reactions to adapt NOVA's behavior"""
@@ -351,6 +364,7 @@ class NovaLiving:
             "personality": self.personality.to_dict(),
             "drift_count": self.drift_count,
             "last_drift": self.drift.last_drift.isoformat(),
+            "leash": self.leash.to_dict(),
             "timestamp": datetime.now().isoformat()
         }
         with open(STATE_FILE, "w") as f:
@@ -365,6 +379,7 @@ class NovaLiving:
                 self.personality.emoji = self.personality.EMOTIONS.get(self.personality.state, "🧠")
                 self.drift_count = state.get("drift_count", 0)
                 self.drift.last_drift = datetime.fromisoformat(state.get("last_drift", datetime.now().isoformat()))
+                self.leash.apply_dict(state.get("leash", {}))
         self.joy.load()
 
 
