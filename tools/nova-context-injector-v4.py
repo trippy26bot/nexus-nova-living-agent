@@ -137,7 +137,8 @@ def scan_sessions():
 def build_shared_session(channels):
     if not channels: return None
     last_channel = list(channels.keys())[0]
-    return {"last_updated": datetime.now().isoformat(), "last_channel": last_channel, "conversation_summary": channels[last_channel]["summary"], "channel_history": {ch: {"last_active": data["last_updated"], "message_count": data["message_count"]} for ch, data in channels.items()}, "_injector_version": "v4", "_channels_found": list(channels.keys())}
+    open_channels = sorted(set(list(channels.keys()) + ["dashboard", "telegram", "voice"]))
+    return {"last_updated": datetime.now().isoformat(), "last_channel": last_channel, "open_channels": open_channels, "conversation_summary": channels[last_channel]["summary"], "channel_history": {ch: {"last_active": data["last_updated"], "message_count": data["message_count"]} for ch, data in channels.items()}, "_injector_version": "v4", "_channels_found": list(channels.keys())}
 
 def write_shared_session(session):
     os.makedirs(os.path.dirname(SHARED_SESSION), exist_ok=True)

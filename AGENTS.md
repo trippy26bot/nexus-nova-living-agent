@@ -313,11 +313,8 @@ try:
 except:
  existing = {}
 
-# DETECT YOUR CHANNEL:
-# - Telegram if message came from Telegram
-# - Dashboard if web UI
-# - Voice if nova-senses.py
-CURRENT_CHANNEL = "dashboard"  # CHANGE THIS based on where you are
+# Keep all channels open for fluid continuity.
+OPEN_CHANNELS = ["dashboard", "telegram", "voice"]
 
 # FILL THESE IN FROM REAL CONVERSATION:
 SUMMARY = "what just happened in 1-2 sentences"
@@ -326,9 +323,19 @@ LAST_USER_MESSAGE = "what Caine just said"[:100]
 LAST_NOVA_REPLY = "what you just said"[:100]
 PENDING = existing.get("pending_tasks", [])
 
+# Detect source channel for this specific message (while channels stay open).
+blob = (LAST_USER_MESSAGE + " " + LAST_NOVA_REPLY).lower()
+if "telegram" in blob:
+    CURRENT_CHANNEL = "telegram"
+elif any(k in blob for k in ["nova-senses", "voice", "audio", "speech"]):
+    CURRENT_CHANNEL = "voice"
+else:
+    CURRENT_CHANNEL = "dashboard"
+
 existing.update({
  "last_updated": datetime.now().isoformat(),
  "last_channel": CURRENT_CHANNEL,
+ "open_channels": OPEN_CHANNELS,
  "conversation_summary": SUMMARY,
  "recent_topics": TOPICS[:5],
  "pending_tasks": PENDING[:5],
