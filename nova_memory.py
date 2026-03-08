@@ -671,9 +671,8 @@ class VectorStore:
         vector = self.embedding_provider.embed(text)
         if not vector:
             return False
-        
-        import pickle
-        vector_blob = pickle.dumps(vector)
+
+        vector_blob = json.dumps(vector).encode("utf-8")
         
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -701,8 +700,6 @@ class VectorStore:
     
     def search_similar(self, query: str, memory_type: str = None, limit: int = 5) -> List[Dict]:
         """Search for similar memories using vector similarity."""
-        import pickle
-        
         query_vector = self.embedding_provider.embed(query)
         if not query_vector:
             return []  # Fallback to keyword
@@ -726,7 +723,12 @@ class VectorStore:
         results = []
         for row in c.fetchall():
             try:
-                stored_vector = pickle.loads(row[3])
+                raw = row[3]
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
+                stored_vector = json.loads(raw)
+                if not isinstance(stored_vector, list):
+                    continue
                 similarity = self._cosine_similarity(query_vector, stored_vector)
                 results.append({
                     'id': row[0],

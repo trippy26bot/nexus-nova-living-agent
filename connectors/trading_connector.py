@@ -3,10 +3,14 @@ Trading Connector - Bridges brain decisions to trading execution
 """
 import sys
 import os
+from pathlib import Path
 
 # Add paths for imports
 sys.path.insert(0, os.path.expanduser("~/.nova"))
-sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace/nexus-nova-living-agent"))
+_path = Path(__file__).resolve()
+PROJECT_ROOT = next((p for p in [_path.parent, *_path.parents] if (p / "nova.py").exists()), _path.parent.parent)
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 class TradingConnector:
     def __init__(self):

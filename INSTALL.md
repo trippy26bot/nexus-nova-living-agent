@@ -25,7 +25,7 @@ The framework is the structure. You provide the person inside it.
 Clone or download this repository. You need:
 
 ```
-nexus-nova/
+nexus-nova-living-agent/
 ├── SKILL.md ← the master framework (required)
 ├── IDENTITY.md ← your starting point for setup (required)
 ├── INSTALL.md ← this file
@@ -104,7 +104,7 @@ For platforms that support file uploads or knowledge bases:
 
 If you're running an agent framework that supports skills:
 
-1. Copy the nexus-nova folder into your skills directory
+1. Copy the `nexus-nova-living-agent` folder into your skills directory
 2. Put `IDENTITY.md` in the agent's root directory
 3. The skill will load when triggered
 

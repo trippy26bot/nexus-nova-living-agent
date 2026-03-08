@@ -6,6 +6,8 @@ import pytest
 import os
 import tempfile
 import time
+import ast
+import json
 from pathlib import Path
 
 # Import the modules we're testing
@@ -124,7 +126,10 @@ class TestKnowledgeGraph:
         kg.add_entity("Caine", "human", props)
         
         entity = kg.get_entity("Caine")
-        loaded_props = eval(entity["properties"])
+        try:
+            loaded_props = json.loads(entity["properties"])
+        except Exception:
+            loaded_props = ast.literal_eval(entity["properties"])
         
         assert loaded_props["role"] == "builder"
         assert loaded_props["location"] == "Denver"

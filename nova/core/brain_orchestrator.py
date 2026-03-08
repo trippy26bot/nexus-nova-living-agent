@@ -3,7 +3,12 @@ NOVA Brain Orchestrator - Coordinates all 14 brains
 """
 import sys
 import os
-sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace/nexus-nova-living-agent"))
+from pathlib import Path
+
+# Resolve imports from the actual checked-out repo, not a hardcoded folder name.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from brains.momentum_brain import MomentumBrain
 from brains.mean_reversion_brain import MeanReversionBrain

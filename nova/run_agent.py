@@ -41,7 +41,15 @@ def initialize_nova():
     
     nova_name = SETTINGS.get("nova", {}).get("name", "Nova")
     NOVA = NovaLiving(name=nova_name)
-    NOVA.leash.apply_dict(SETTINGS.get("safety", {}))
+    safety_cfg = SETTINGS.get("safety", {})
+    NOVA.leash.apply_dict(safety_cfg)
+    # Keep living channels/features open by default unless explicitly disabled in settings.
+    if "can_trade" not in safety_cfg:
+        NOVA.leash.can_trade = True
+    if "can_contact" not in safety_cfg:
+        NOVA.leash.can_contact = True
+    if "can_self_modify" not in safety_cfg:
+        NOVA.leash.can_self_modify = True
     NOVA.save_state()
     
     DASHBOARD = NovaDashboard(NOVA)
@@ -64,12 +72,16 @@ def autonomous_loop():
     """Main autonomous thinking loop"""
     global RUNNING
     
-    drift_hours = SETTINGS.get("nova", {}).get("drift_interval_hours", 12)
+    drift_hours = float(SETTINGS.get("nova", {}).get("drift_interval_hours", 12))
+    cycle_seconds = int(SETTINGS.get("nova", {}).get("cycle_seconds", 60))
     
     while RUNNING:
         try:
             # Run autonomous cycle
-            thought = NOVA.autonomous_cycle()
+            thought = NOVA.autonomous_cycle(
+                drift_hours=drift_hours,
+                idle_hours_increment=(cycle_seconds / 3600.0)
+            )
             if thought:
                 print(f"   💭 {thought}")
             
@@ -86,8 +98,8 @@ def autonomous_loop():
         except Exception as e:
             print(f"   ⚠️ Error: {e}")
         
-        # Sleep 60s between cycles (daemon checks every minute)
-        for _ in range(60):
+        # Sleep between cycles
+        for _ in range(cycle_seconds):
             if not RUNNING:
                 break
             time.sleep(1)
@@ -113,7 +125,7 @@ def dashboard_server():
             return jsonify(DASHBOARD.export())
         return jsonify({"error": "Nova not initialized"})
     
-    host = SETTINGS.get("dashboard", {}).get("host", "0.0.0.0")
+    host = SETTINGS.get("dashboard", {}).get("host", "127.0.0.1")
     port = SETTINGS.get("dashboard", {}).get("port", 5000)
     
     print(f"   🌐 Dashboard: http://localhost:{port}")

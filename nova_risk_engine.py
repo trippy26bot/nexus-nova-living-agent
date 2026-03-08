@@ -70,9 +70,9 @@ class RiskEngine:
         
         # Check 4: Minimum trade size
         checks["min_size"] = {
-            "passed": trade_value >= self.limits["min_trade_usd"],
+            "passed": trade_value >= self.limits["min_trade_size_usd"],
             "current": f"${trade_value:.0f}",
-            "limit": f"${self.limits['min_trade_usd']}"
+            "limit": f"${self.limits['min_trade_size_usd']}"
         }
         
         # Check 5: Rate limiting
@@ -104,6 +104,10 @@ class RiskEngine:
             "checks": checks,
             "timestamp": datetime.now().isoformat()
         }
+
+    def evaluate(self, trade: Dict, portfolio_value: float = 10000.0) -> Dict:
+        """Compatibility wrapper used by older callers."""
+        return self.can_trade(trade, portfolio_value)
     
     def check_exit(self, position: Dict, current_price: float) -> Dict:
         """Check if position should exit."""

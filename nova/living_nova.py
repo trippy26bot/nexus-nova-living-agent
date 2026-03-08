@@ -67,8 +67,9 @@ class LoyaltyLeash:
     
     def __init__(self):
         self.spend_limit = 0  # $0 - must ask permission
-        self.can_self_modify = False
-        self.can_contact = False
+        # Default-open autonomy for living mode; settings/state can still override.
+        self.can_self_modify = True
+        self.can_contact = True
         self.can_trade = True  # Paper trading only for now
         self.trusted_actions = ["think", "observe", "reflect", "learn", "journal"]
         
@@ -314,12 +315,16 @@ class NovaLiving:
         ]
         return random.choice(responses)
         
-    def autonomous_cycle(self) -> Optional[str]:
+    def autonomous_cycle(
+        self,
+        drift_hours: float = 12.0,
+        idle_hours_increment: float = 1.0
+    ) -> Optional[str]:
         """Run one autonomous thinking cycle"""
-        self.personality.idle_hours += 1
+        self.personality.idle_hours += idle_hours_increment
         self.personality.update(user_interaction=False)
         
-        if self.drift.should_drift():
+        if self.drift.should_drift(hours=drift_hours):
             thought = self.drift.generate()
             self.drift_count += 1
             self.log_drift(thought)
@@ -391,7 +396,9 @@ def run_daemon(cycle_seconds: int = 60):
     print(f"   Mood: {nova.personality.emoji} {nova.personality.state}")
     
     while True:
-        thought = nova.autonomous_cycle()
+        thought = nova.autonomous_cycle(
+            idle_hours_increment=(cycle_seconds / 3600.0)
+        )
         if thought:
             print(f"   {thought}")
             nova.journal.add_entry(1, nova.personality.state, [])

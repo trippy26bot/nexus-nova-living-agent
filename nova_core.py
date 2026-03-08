@@ -22,6 +22,7 @@ from nova_wallet_dna import get_wallet_dna
 from nova_predictive_flow import get_predictive_flow
 from nova_trap_detector import get_trap_detector
 from nova_strategy_tournament import get_strategy_tournament
+from nova_market_feed import get_market_feed
 
 
 class NovaCore:
@@ -45,50 +46,55 @@ class NovaCore:
         self.predictive = get_predictive_flow()
         self.trap = get_trap_detector()
         self.tournament = get_strategy_tournament()
+        self.market_feed = get_market_feed()
         
     async def analyze_market(self, token: str) -> Dict:
-        """Run full market analysis."""
+        """Run full market analysis with live data."""
         
-        # Get all signals
-        regime = self.market_regime.analyze({})
-        whales = await self.whale_hunter.scan_whales()
-        flow = self.order_flow.get_flow_signal({}, [])
-        liq = self.liquidity.get_liquidity_signal(token, 0.001, [], [])
+        # Get market data from feed
+        try:
+            market_data = await self.market_feed.get_dex_pairs()
+        except Exception as e:
+            market_data = []
         
-        # Calculate combined score
+        # Calculate score from market data
         score = 0
         signals = []
         
+        if market_data and len(market_data) > 0:
+            # High volume tokens
+            high_volume = [p for p in market_data if p.get('volume_24h', 0) > 1000000]
+            if high_volume:
+                score += 20
+                signals.append("HIGH_VOLUME")
+            
+            # Gainers
+            gainers = [p for p in market_data if p.get('change_24h', 0) > 5]
+            if gainers:
+                score += 15
+                signals.append("GAINERS")
+            
+            # Liquidity
+            liquid = [p for p in market_data if p.get('liquidity', 0) > 500000]
+            if liquid:
+                score += 15
+                signals.append("LIQUIDITY")
+        
         # Market regime
-        if regime.get("regime") in ["bull", "momentum"]:
-            score += 20
-            signals.append("BULL_REGIME")
-        
-        # Whale signal
-        whale_signal = "NEUTRAL"
-        if whales and len(whales) > 0:
-            whale_signal = "BUY"
-            score += 35
-            signals.append("WHALE_BUY")
-        
-        # Order flow
-        if flow.get("signal") == "STRONG_FLOW":
-            score += 25
-            signals.append("ORDER_FLOW")
-        
-        # Liquidity
-        if liq.get("signal") == "HIGH_LIQUIDITY_QUALITY":
-            score += 20
-            signals.append("LIQUIDITY_OK")
+        try:
+            regime = self.market_regime.analyze({})
+            if regime.get("regime") in ["bull", "momentum"]:
+                score += 20
+                signals.append("BULL_REGIME")
+        except:
+            regime = {}
         
         return {
             "token": token,
             "score": score,
             "signals": signals,
+            "market_data": {"pairs": len(market_data) if market_data else 0},
             "regime": regime,
-            "whales": whales,
-            "order_flow": flow,
-            "liquidity": liq,
             "timestamp": datetime.now().isoformat()
         }
     
@@ -107,11 +113,14 @@ class NovaCore:
         trap_result = self.trap.analyze(token, trap_data)
         
         # Risk check
+        portfolio_value = max(float(getattr(self.paper, "balance", 0) or 0), 1.0)
+        trade_value = max(portfolio_value * 0.05, 10.0)
         risk_result = self.risk.evaluate({
             "token": token,
             "side": side,
-            "confidence": analysis["score"] / 100
-        })
+            "confidence": analysis["score"] / 100,
+            "value_usd": trade_value
+        }, portfolio_value=portfolio_value)
         
         # Combine evaluation
         should_trade = (
@@ -129,7 +138,7 @@ class NovaCore:
             "analysis": analysis
         }
     
-    def execute_paper_trade(self, token: str, side: str, price: float) -> Dict:
+    async def execute_paper_trade(self, token: str, side: str, price: float) -> Dict:
         """Execute paper trade (no real money)."""
         
         # Check cooldown
@@ -139,14 +148,14 @@ class NovaCore:
                 return {"success": False, "reason": "cooldown"}
         
         # Evaluate trade
-        evaluation = self.evaluate_trade(token, side)
+        evaluation = await self.evaluate_trade(token, side)
         
         if not evaluation["should_trade"]:
             return {"success": False, "reason": "failed_evaluation"}
         
         # Execute
         if side == "BUY":
-            result = self.paper.buy(token, price, 5)  # 5% position
+            result = self.paper.buy(token, price, 5)
         else:
             result = self.paper.sell(token, price)
         
@@ -204,7 +213,7 @@ class NovaCore:
         
         while self.running:
             try:
-                result = self.run_cycle()
+                result = await self.run_cycle()
                 
                 if result.get("action") == "EVALUATE":
                     print(f"\n[Cycle {self.cycle_count}] Signal detected!")
