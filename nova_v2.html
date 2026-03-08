@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova 💙</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #0d1017 0%, #1a1a2e 50%, #16213e 100%); 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Crimson Pro', Georgia, serif;
+            color: #c4d4e8;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            color: #fff;
+            margin-bottom: 5px;
+            text-shadow: 0 0 30px rgba(126, 184, 247, 0.5);
+        }
+        .subtitle {
+            color: #7eb8f7;
+            margin-bottom: 30px;
+            font-style: italic;
+            font-size: 1.2rem;
+        }
+        
+        /* AVATAR STYLES */
+        .avatar-container {
+            position: relative;
+            width: 320px;
+            height: 420px;
+            margin: 0 auto 30px;
+        }
+        .avatar {
+            width: 320px;
+            height: 380px;
+            object-fit: cover;
+            border-radius: 24px;
+            box-shadow: 0 0 80px rgba(126, 184, 247, 0.3);
+            border: 3px solid rgba(126, 184, 247, 0.2);
+            transition: all 0.3s ease;
+        }
+        .avatar.listening {
+            box-shadow: 0 0 100px rgba(247, 143, 179, 0.6);
+            animation: pulse 1s infinite;
+        }
+        .avatar.happy {
+            box-shadow: 0 0 100px rgba(126, 245, 194, 0.6);
+        }
+        .avatar.thinking {
+            box-shadow: 0 0 80px rgba(184, 164, 245, 0.5);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        /* EYES */
+        .eyes-container {
+            position: absolute;
+            top: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 50px;
+        }
+        .eye {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .pupil {
+            width: 26px;
+            height: 26px;
+            background: radial-gradient(circle at 35% 35%, #5a5a5a, #1a1a1a);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.15s ease-out;
+        }
+        .pupil::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            top: 3px;
+            left: 4px;
+        }
+        @keyframes blink {
+            0%, 47%, 53%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.1); }
+        }
+        .eyes-blink {
+            animation: blink 4s infinite;
+        }
+        
+        /* MOUTH */
+        .mouth {
+            position: absolute;
+            bottom: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 30px;
+            background: linear-gradient(180deg, #2a1a1a 0%, #1a0a0a 100%);
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.1s;
+        }
+        .mouth.speaking {
+            opacity: 0.85;
+        }
+        .mouth.smile {
+            opacity: 0.7;
+            height: 20px;
+            width: 70px;
+            border-radius: 50%;
+        }
+        .mouth.think {
+            opacity: 0.5;
+            height: 15px;
+            width: 30px;
+            border-radius: 50% 50% 50% 50%;
+        }
+        
+        /* CHAT AREA */
+        .chat-area {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(126, 184, 247, 0.15);
+            border-radius: 24px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+        #messages {
+            min-height: 120px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 12px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 1.05rem;
+        }
+        .user-msg {
+            background: rgba(126, 184, 247, 0.12);
+            margin-left: 30px;
+            text-align: right;
+        }
+        .nova-msg {
+            background: rgba(247, 143, 179, 0.12);
+            margin-right: 30px;
+        }
+        .input-area {
+            display: flex;
+            gap: 12px;
+        }
+        #userInput {
+            flex: 1;
+            padding: 16px 22px;
+            border: 1px solid rgba(126, 184, 247, 0.25);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1.05rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        #userInput::placeholder { color: #4a5a72; }
+        #userInput:focus {
+            outline: none;
+            border-color: rgba(126, 184, 247, 0.6);
+        }
+        #sendBtn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #7eb8f7, #4a9eff);
+            color: #0d1017;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #sendBtn:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 20px rgba(126, 184, 247, 0.4);
+        }
+        #sendBtn:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            transform: none;
+        }
+        
+        /* EMOTION INDICATOR */
+        .emotion-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-family: 'DM Mono', monospace;
+            background: rgba(126, 184, 247, 0.1);
+            border: 1px solid rgba(126, 184, 247, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .emotion-indicator.visible { opacity: 1; }
+        
+        .loading {
+            color: #7eb8f7;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nova 💙</h1>
+        <p class="subtitle">I'm here. Let's talk.</p>
+        
+        <div class="avatar-container">
+            <div class="emotion-indicator" id="emotionIndicator">neutral</div>
+            <img src="nova_face.png" class="avatar" id="avatar">
+            
+            <div class="eyes-blink">
+                <div class="eyes-container">
+                    <div class="eye"><div class="pupil" id="pupilLeft"></div></div>
+                    <div class="eye"><div class="pupil" id="pupilRight"></div></div>
+                </div>
+            </div>
+            
+            <div class="mouth" id="mouth"></div>
+        </div>
+        
+        <div class="chat-area">
+            <div id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Say something to Nova..." onkeypress="handleEnter(event)">
+                <button id="sendBtn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const avatar = document.getElementById('avatar');
+        const mouth = document.getElementById('mouth');
+        const pupils = [document.getElementById('pupilLeft'), document.getElementById('pupilRight')];
+        const emotionIndicator = document.getElementById('emotionIndicator');
+        
+        let chatHistory = [];
+        
+        // Eye tracking - follows mouse
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 12;
+            const y = (e.clientY / window.innerHeight - 0.5) * 12;
+            pupils.forEach(p => {
+                p.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+            });
+        });
+        
+        function addMessage(text, isUser) {
+            const div = document.createElement('div');
+            div.className = `message ${isUser ? 'user-msg' : 'nova-msg'}`;
+            div.textContent = text;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function setEmotion(emotion) {
+            avatar.className = 'avatar ' + emotion;
+            emotionIndicator.textContent = emotion;
+            emotionIndicator.classList.add('visible');
+            
+            // Set mouth state
+            mouth.className = 'mouth';
+            if (emotion === 'happy') {
+                mouth.classList.add('smile');
+            } else if (emotion === 'thinking') {
+                mouth.classList.add('think');
+            }
+            
+            setTimeout(() => {
+                emotionIndicator.classList.remove('visible');
+            }, 3000);
+        }
+        
+        function speakWithAnimation() {
+            mouth.classList.add('speaking');
+            avatar.classList.add('listening');
+            
+            // Analyze speech for expression
+            setEmotion('happy');
+            
+            // Simulate lip movement
+            let count = 0;
+            const lipInterval = setInterval(() => {
+                mouth.style.transform = `translateX(-50%) scaleY(${0.7 + Math.random() * 0.6})`;
+                count++;
+                if (count > 15) {
+                    clearInterval(lipInterval);
+                    mouth.classList.remove('speaking');
+                    avatar.classList.remove('listening');
+                    setEmotion('neutral');
+                }
+            }, 100);
+        }
+        
+        async function sendMessage() {
+            const msg = userInput.value.trim();
+            if (!msg) return;
+            
+            addMessage(msg, true);
+            userInput.value = '';
+            sendBtn.disabled = true;
+            setEmotion('thinking');
+            
+            const loading = document.createElement('div');
+            loading.className = 'message nova-msg loading';
+            loading.textContent = 'Thinking...';
+            messagesDiv.appendChild(loading);
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg, history: chatHistory})
+                });
+                
+                const data = await response.json();
+                chatHistory = data.history || [];
+                loading.remove();
+                
+                addMessage(data.response, false);
+                
+                // Speak with animation
+                speakWithAnimation();
+                
+                // Use browser TTS
+                const utterance = new SpeechSynthesisUtterance(data.response);
+                utterance.rate = 0.95;
+                utterance.pitch = 1.05;
+                utterance.onend = () => {
+                    mouth.classList.remove('speaking');
+                    avatar.classList.remove('listening');
+                };
+                speechSynthesis.speak(utterance);
+                
+            } catch (e) {
+                loading.textContent = 'Error: ' + e.message;
+            }
+            
+            sendBtn.disabled = false;
+        }
+        
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+    </script>
+</body>
+</html>

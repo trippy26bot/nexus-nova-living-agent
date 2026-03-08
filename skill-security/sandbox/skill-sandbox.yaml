@@ -1,0 +1,139 @@
+# OpenClaw Skill Sandbox Configuration
+# Apply with: docker run --security-opt seccomp=seccomp-profile.json ...
+
+# Default container profile for skills
+container:
+  # Read-only filesystem except these paths
+  readonly_rootfs: true
+  tmpfs:
+    - /tmp
+    - /workspace
+  
+  # Drop all capabilities, add only what's needed
+  cap_drop:
+    - ALL
+  
+  # Network isolation
+  network_mode: "none"  # Default: no network
+  
+  # Resource limits
+  resources:
+    cpu_quota: 100000  # 1 CPU
+    memory_limit: 512m
+    pids_limit: 128
+  
+  # Security options
+  security_options:
+    no_new_privileges: true
+    seccomp_profile: "default"
+  
+  # Environment - block sensitive vars
+  env_block:
+    - "ANTHROPIC_API_KEY"
+    - "OPENAI_API_KEY"
+    - "MINIMAX_API_KEY"
+    - "AWS_SECRET"
+    - "GITHUB_TOKEN"
+
+# File access rules
+filesystem:
+  # Allowed read paths
+  read:
+    - /workspace
+    - /tmp
+  
+  # Allowed write paths  
+  write:
+    - /workspace
+    - /tmp
+  
+  # Deny these paths entirely
+  deny:
+    - /home
+    - /root
+    - /etc
+    - ~/.ssh
+    - ~/.aws
+    - ~/.gnupg
+
+# Network allowlist (if network enabled)
+network:
+  default: deny
+  
+  # Whitelist specific domains
+  allowlist:
+    - api.github.com
+    - api.openai.com
+    - api.anthropic.com
+  
+  # Block these
+  blocklist:
+    - localhost
+    - 127.0.0.1
+    - 0.0.0.0
+
+# Command allowlist
+commands:
+  # Only these commands can be executed
+  allowlist:
+    - python
+    - python3
+    - node
+    - npm
+    - git
+    - pip
+  
+  # Block these entirely
+  blocklist:
+    - curl
+    - wget
+    - bash
+    - sh
+    - zsh
+    - fish
+    - dash
+    - eval
+    - exec
+    - /bin/sh
+    - /bin/bash
+
+# Runtime limits
+limits:
+  max_execution_time: 60  # seconds
+  max_file_size: 10m
+  max_files_open: 50
+  max_processes: 10
+  max_network_requests: 10
+
+# Audit logging
+audit:
+  enabled: true
+  log_file: /var/log/openclaw/skill-audit.log
+  log_level: info
+  
+  # Events to log
+  events:
+    - file_read
+    - file_write
+    - command_exec
+    - network_request
+    - process_spawn
+  
+  # Alert on these
+  alert_on:
+    - sensitive_file_access
+    - shell_spawn
+    - network_exfil
+    - repeated_failures
+
+# Circuit breaker
+circuit_breaker:
+  enabled: true
+  
+  # Kill skill after these thresholds
+  failure_threshold: 5
+  syscall_block_threshold: 3
+  network_attempt_threshold: 10
+  
+  # Reset after cool-down period
+  cooldown_seconds: 300

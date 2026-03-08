@@ -1,0 +1,112 @@
+/Users/dr.claw/.openclaw/workspace/nova_full.py:43: UserWarning: The parameters have been moved from the Blocks constructor to the launch() method in Gradio 6.0: theme. Please pass these parameters to launch() instead.
+  with gr.Blocks(title="Nova 💙", theme=gr.themes.Soft()) as demo:
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 766, in process_events
+    response = await route_utils.call_process_api(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/route_utils.py", line 355, in call_process_api
+    output = await app.get_blocks().process_api(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 2169, in process_api
+    data = await self.postprocess_data(block_fn, result["prediction"], state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 1946, in postprocess_data
+    prediction_value = block.postprocess(prediction_value)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 704, in postprocess
+    self._check_format(value)
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 402, in _check_format
+    raise Error(
+gradio.exceptions.Error: "Data incompatible with messages format. Each message should be a dictionary with 'role' and 'content' keys or a ChatMessage object."
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 766, in process_events
+    response = await route_utils.call_process_api(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/route_utils.py", line 355, in call_process_api
+    output = await app.get_blocks().process_api(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 2169, in process_api
+    data = await self.postprocess_data(block_fn, result["prediction"], state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 1946, in postprocess_data
+    prediction_value = block.postprocess(prediction_value)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 704, in postprocess
+    self._check_format(value)
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 402, in _check_format
+    raise Error(
+gradio.exceptions.Error: "Data incompatible with messages format. Each message should be a dictionary with 'role' and 'content' keys or a ChatMessage object."
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 796, in process_events
+    await run_sync(self.compute_analytics_summary, self.event_analytics)
+  File "/opt/homebrew/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 183, in compute_analytics_summary
+    df = self._get_df(event_analytics)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 174, in _get_df
+    .infer_objects(copy=False)  # type: ignore
+     ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: NDFrame.infer_objects() got an unexpected keyword argument 'copy'
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 766, in process_events
+    response = await route_utils.call_process_api(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/route_utils.py", line 355, in call_process_api
+    output = await app.get_blocks().process_api(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 2169, in process_api
+    data = await self.postprocess_data(block_fn, result["prediction"], state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 1946, in postprocess_data
+    prediction_value = block.postprocess(prediction_value)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 704, in postprocess
+    self._check_format(value)
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 402, in _check_format
+    raise Error(
+gradio.exceptions.Error: "Data incompatible with messages format. Each message should be a dictionary with 'role' and 'content' keys or a ChatMessage object."
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 766, in process_events
+    response = await route_utils.call_process_api(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/route_utils.py", line 355, in call_process_api
+    output = await app.get_blocks().process_api(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 2169, in process_api
+    data = await self.postprocess_data(block_fn, result["prediction"], state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/blocks.py", line 1946, in postprocess_data
+    prediction_value = block.postprocess(prediction_value)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 704, in postprocess
+    self._check_format(value)
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/components/chatbot.py", line 402, in _check_format
+    raise Error(
+gradio.exceptions.Error: "Data incompatible with messages format. Each message should be a dictionary with 'role' and 'content' keys or a ChatMessage object."
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 796, in process_events
+    await run_sync(self.compute_analytics_summary, self.event_analytics)
+  File "/opt/homebrew/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 183, in compute_analytics_summary
+    df = self._get_df(event_analytics)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/lib/python3.11/site-packages/gradio/queueing.py", line 174, in _get_df
+    .infer_objects(copy=False)  # type: ignore
+     ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: NDFrame.infer_objects() got an unexpected keyword argument 'copy'

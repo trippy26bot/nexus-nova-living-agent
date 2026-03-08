@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-03-07",
+  "registry": {
+    "nova-memory": {
+      "status": "active",
+      "trust_level": "trusted",
+      "description": "Nova's persistent memory system",
+      "entrypoint": "skills/nova-memory/SKILL.md",
+      "rationale": "Core cognitive component - memory is essential to Nova's continuity"
+    },
+    "nova-task-persistence": {
+      "status": "active",
+      "trust_level": "restricted",
+      "description": "Persistent task tracking across sessions",
+      "entrypoint": "skills/nova-task-persistence/skill.py",
+      "rationale": "Useful for task continuity, has runtime implementation"
+    }
+  },
+  "archived": {
+    "api-interaction": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, no runtime code"
+    },
+    "code-execution": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, security-sensitive"
+    },
+    "data-analysis": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, no runtime"
+    },
+    "file-system": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, security-sensitive"
+    },
+    "knowledge-summarization": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, no runtime"
+    },
+    "memory-management": {
+      "status": "archived",
+      "rationale": "Duplicates core nova_memory.py"
+    },
+    "report-generation": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only"
+    },
+    "self-analysis": {
+      "status": "archived",
+      "rationale": "Duplicates reflection functionality"
+    },
+    "self-improvement": {
+      "status": "archived",
+      "rationale": "Duplicates nova_evolution.py"
+    },
+    "skill-discovery": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only"
+    },
+    "task-planning": {
+      "status": "archived",
+      "rationale": "Duplicates core planner in nova_agents.py"
+    },
+    "web-research": {
+      "status": "archived",
+      "rationale": "SKILL.md spec only, no runtime"
+    }
+  },
+  "deleted": [],
+  "core_separation": {
+    "planner": "nova_agents.py - RouterAgent, PlannerAgent, ExecutorAgent",
+    "memory": "nova_memory.py - EpisodicMemory, SemanticMemory, WorkingMemory",
+    "reflection": "nova_daemon.py - cycle_reflect()",
+    "emotion": "nova_emotion.py - EmotionEngine",
+    "goals": "nova_goal_engine.py - GoalEngine",
+    "evolution": "nova_evolution.py - SkillMutationEngine"
+  },
+  "trust_levels": {
+    "trusted": "Full access to memory and context",
+    "restricted": "Limited access, requires approval for sensitive operations",
+    "approval_required": "Must be explicitly approved per-use"
+  }
+}

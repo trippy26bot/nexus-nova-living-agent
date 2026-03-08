@@ -1,0 +1,2 @@
+/Users/dr.claw/.openclaw/workspace/nova_animated.py:40: UserWarning: The parameters have been moved from the Blocks constructor to the launch() method in Gradio 6.0: theme. Please pass these parameters to launch() instead.
+  with gr.Blocks(title="Nova 💙", theme=gr.themes.Soft()) as demo:

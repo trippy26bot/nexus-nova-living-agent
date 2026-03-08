@@ -1,0 +1,32 @@
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_AARCH64"],
+  "syscalls": [
+    {
+      "names": [
+        "read", "write", "open", "openat", "close", "fstat", "newfstatat", "lseek",
+        "mmap", "mprotect", "munmap", "brk", "rt_sigaction", "rt_sigprocmask", "rt_sigreturn",
+        "ioctl", "pread64", "pwrite64", "readv", "writev", "access", "pipe", "pipe2",
+        "select", "pselect6", "poll", "ppoll", "dup", "dup2", "dup3", "fcntl", "flock",
+        "fsync", "fdatasync", "getdents64", "getcwd", "fchdir", "rename", "renameat", "renameat2",
+        "mkdir", "mkdirat", "rmdir", "unlink", "unlinkat", "readlink", "readlinkat", "chmod",
+        "fchmod", "fchmodat", "chown", "fchown", "fchownat", "umask", "stat", "lstat",
+        "getpid", "gettid", "getppid", "clock_gettime", "clock_nanosleep", "nanosleep",
+        "setitimer", "getitimer", "alarm", "sched_yield", "futex", "prlimit64", "getrlimit",
+        "uname", "arch_prctl", "set_tid_address", "set_robust_list", "getrandom", "execve",
+        "exit", "exit_group", "wait4", "waitid"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "names": ["socket", "connect", "accept", "bind", "listen", "sendto", "recvfrom", "sendmsg", "recvmsg"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "names": ["mount", "umount2", "ptrace", "kexec_load", "kexec_file_load", "bpf", "keyctl"],
+      "action": "SCMP_ACT_KILL"
+    }
+  ]
+}

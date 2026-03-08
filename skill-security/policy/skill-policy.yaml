@@ -1,0 +1,132 @@
+# OpenClaw Skill Policy Schema
+# Each skill can include this file to declare its permissions
+
+# Required: Skill identity
+name: "skill-name"
+version: "1.0.0"
+author: "optional-author"
+
+# Required: What this skill needs
+permissions:
+  # File system access
+  filesystem:
+    read:
+      - /workspace
+      - /tmp
+    write:
+      - /workspace
+      - /tmp
+    deny:
+      - /home
+      - ~/.ssh
+      - ~/.aws
+  
+  # Network access (default: none)
+  network:
+    enabled: false
+    # If enabled, whitelist domains:
+    # allowlist:
+    #   - api.github.com
+  
+  # Shell commands (default: none)
+  commands:
+    # Only these commands allowed
+    allowlist:
+      - python
+      - python3
+    # Block these explicitly
+    blocklist:
+      - curl
+      - wget
+      - bash
+      - sh
+  
+  # Environment variables (default: none exposed)
+  env:
+    # Keys to expose (skill sees these)
+    expose: []
+    # Keys to block (skill cannot access)
+    block:
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+
+# Rate limiting
+limits:
+  # Max executions per minute
+  max_calls_per_minute: 60
+  
+  # Max tokens per day (if LLM calls)
+  max_tokens_per_day: 100000
+  
+  # Max execution time per call (seconds)
+  timeout: 30
+  
+  # Max concurrent calls
+  max_concurrent: 3
+
+# Required tools (only these can be used)
+allowed_tools:
+  - read
+  - write
+  - exec
+  - memory_get
+  - memory_search
+
+# Audit settings
+audit:
+  # Log all calls
+  log_calls: true
+  
+  # Log file access
+  log_file_access: false
+  
+  # Log network requests
+  log_network: false
+
+# Trust level (affects what other skills can interact with)
+trust:
+  # Can this skill call other skills?
+  can_delegate: false
+  
+  # Can this skill access inner memory?
+  can_access_inner_memory: false
+  
+  # Can this skill modify its own policy?
+  can_self_modify: false
+
+# Example: Minimal skill
+# ---
+# name: "hello-world"
+# version: "1.0.0"
+# permissions:
+#   filesystem:
+#     read: [/workspace]
+#     write: []
+#   network:
+#     enabled: false
+#   commands:
+#     allowlist: []
+# limits:
+#   max_calls_per_minute: 10
+#   timeout: 5
+# allowed_tools:
+#   - read
+# audit:
+#   log_calls: true
+
+# Example: Network-enabled skill
+# ---
+# name: "web-fetcher"
+# version: "1.0.0"
+# permissions:
+#   network:
+#     enabled: true
+#     allowlist:
+#       - api.example.com
+#       - *.github.com
+#   commands:
+#     allowlist:
+#       - curl
+# limits:
+#   max_calls_per_minute: 30
+#   timeout: 10
