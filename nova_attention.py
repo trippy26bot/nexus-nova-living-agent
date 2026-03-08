@@ -156,4 +156,5 @@ if __name__ == "__main__":
     for t in tests:
         score = a.score(t)
         store = a.should_store(t)
-        print(f"'{[:30]}...' score={score:.2f} store={store}")
+        truncated = t[:30] if len(t) > 30 else t
+        print(f"'{truncated}...' score={score:.2f} store={store}")
