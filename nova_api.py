@@ -114,6 +114,9 @@ class NovaAPIHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self.send_json({"status": "ok", "time": datetime.now().isoformat()})
 
+        elif path == "/identity":
+            data, code = handle_get_identity()
+            self._send(data, code)
         elif path == "/emotion":
             state_file = NOVA_DIR / "emotion_state.json"
             state = load_json(state_file, {})

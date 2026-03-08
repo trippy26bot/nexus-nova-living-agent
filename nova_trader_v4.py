@@ -17,7 +17,9 @@ import argparse
 from datetime import datetime
 
 # === CONFIG ===
-SIMMER_API_KEY = "sk_live_REDACTED"  # Your primary agent
+SIMMER_API_KEY = os.getenv("SIMMER_API_KEY") or os.getenv("TRADER_API_KEY")
+if not SIMMER_API_KEY:
+    raise ValueError("SIMMER_API_KEY or TRADER_API_KEY environment variable not set")
 POLYMARKET_API = "https://gamma-api.polymarket.com"
 SIMMER_API = "https://api.simmer.markets"
 
