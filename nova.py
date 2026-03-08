@@ -285,7 +285,7 @@ def get_recent_memories(limit: int = 10) -> list:
     return results
 
 
-def store_conversation(user_message: str, nova_response: str, context: str = None) -> bool:
+def store_conversation(user_message: str, nova_response: str, context: str = None, ttl_days: int = 30) -> bool:
     """Store a conversation exchange in episodic memory with tags for retrieval.
     
     Args:

@@ -20,6 +20,8 @@ Usage:
 import os, sys, json, time, signal, random
 from datetime import datetime, timedelta
 from pathlib import Path
+from nova_memory import EpisodicMemory
+from nova_emotion import EmotionEngine
 
 NOVA_DIR = Path.home() / ".nova"
 MEMORY_DIR = NOVA_DIR / "memory"
@@ -51,10 +53,9 @@ def read_interests():
     try:
         from nova_interests import InterestSystem
         interests_db = InterestSystem()
-        all_interests = interests_db.all_interests()
-        interests_db.close()
+        all_interests = interests_db.load_interests()
         if all_interests:
-            return [i["topic"] for i in all_interests]
+            return list(all_interests.keys())
     except ImportError:
         pass
 
@@ -102,7 +103,7 @@ def call_api(messages, system=None, max_tokens=800, model=None):
     try:
         from nova_providers import get_provider
         provider = get_provider()
-        if not provider or not provider.available():
+        if not provider or not provider.is_running():
             dlog("No API configured — daemon will use local reflection only")
             return None
 
@@ -193,8 +194,7 @@ Write in first person. Be specific and genuine. Keep it 150-200 words."""
     try:
         from nova_interests import InterestSystem
         interests_sys = InterestSystem()
-        interests_sys.deepen(focus, reflection=result[:200] if result else "")
-        interests_sys.close()
+        interests_sys.deepen(focus, findings=result[:200] if result else "")
     except ImportError:
         pass
 
@@ -375,9 +375,8 @@ def cycle_daydream(agent_name, interests, recent_life):
     if state == "accepted" and random.random() <= DAYDREAM_SURFACE_CHANCE:
         surfaced = True
     
-    # Also store in database with full metadata
+    # Store in database with full metadata
     try:
-        from nova_memory import EpisodicMemory
         memory = EpisodicMemory()
         memory.store(
             event=drift,

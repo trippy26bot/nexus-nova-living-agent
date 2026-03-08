@@ -171,7 +171,7 @@ class OpenAIProvider(BaseProvider):
 
 class OllamaProvider(BaseProvider):
     name = "ollama"
-    default_model = "llama3.1:8b"
+    default_model = "llama3.1:latest"
 
     def __init__(self, model=None, api_key=None, host="http://localhost:11434", **kwargs):
         super().__init__(model, api_key, **kwargs)
@@ -499,7 +499,7 @@ def get_provider(name: str = None, model: str = None,
 
     if not provider_name:
         try:
-            ollama = OllamaProvider(model=model or "llama3.1:8b")
+            ollama = OllamaProvider(model=model or "llama3.1:latest")
             if ollama.is_running():
                 return ollama
         except Exception:
