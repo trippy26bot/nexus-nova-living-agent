@@ -1,0 +1,14 @@
+# Nexus Nova Living Agent - Requirements
+
+# Web dashboard
+flask>=2.3.2
+
+# HTTP requests for skills
+requests>=2.31.0
+
+# Optional: for future AI skills
+# openai>=1.0.0
+
+# Optional: for data analysis
+# pandas>=2.1.0
+# websockets>=11.0.0

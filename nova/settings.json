@@ -1,0 +1,18 @@
+{
+  "nova": {
+    "name": "Nova",
+    "drift_interval_hours": 0.1,
+    "journal_days": 7
+  },
+  "skills": {
+    "enable_crypto": true,
+    "enable_poetry": true,
+    "enable_reflect": true,
+    "enable_explore": true
+  },
+  "safety": {
+    "can_trade": true,
+    "can_self_modify": true,
+    "can_contact": true
+  }
+}
