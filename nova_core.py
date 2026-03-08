@@ -17,7 +17,7 @@ from nova_order_flow import get_order_flow
 from nova_liquidity_mapping import get_liquidity_mapper
 from nova_risk_engine import get_risk_engine
 from nova_virtual_trader import get_virtual_trader
-from nova_alerts import get_alerts
+from nova_alerts import get_alert_system
 from nova_wallet_dna import get_wallet_dna
 from nova_predictive_flow import get_predictive_flow
 from nova_trap_detector import get_trap_detector
@@ -40,18 +40,18 @@ class NovaCore:
         self.liquidity = get_liquidity_mapper()
         self.risk = get_risk_engine()
         self.paper = get_virtual_trader(10000)
-        self.alerts = get_alerts()
+        self.alerts = get_alert_system()
         self.wallet_dna = get_wallet_dna()
         self.predictive = get_predictive_flow()
         self.trap = get_trap_detector()
         self.tournament = get_strategy_tournament()
         
-    def analyze_market(self, token: str) -> Dict:
+    async def analyze_market(self, token: str) -> Dict:
         """Run full market analysis."""
         
         # Get all signals
-        regime = self.market_regime.detect_regime()
-        whales = self.whale_hunter.scan_whales(token)
+        regime = self.market_regime.analyze({})
+        whales = await self.whale_hunter.scan_whales()
         flow = self.order_flow.get_flow_signal({}, [])
         liq = self.liquidity.get_liquidity_signal(token, 0.001, [], [])
         
@@ -65,7 +65,9 @@ class NovaCore:
             signals.append("BULL_REGIME")
         
         # Whale signal
-        if whales.get("signal") in ["STRONG_BUY", "BUY"]:
+        whale_signal = "NEUTRAL"
+        if whales and len(whales) > 0:
+            whale_signal = "BUY"
             score += 35
             signals.append("WHALE_BUY")
         
@@ -90,11 +92,11 @@ class NovaCore:
             "timestamp": datetime.now().isoformat()
         }
     
-    def evaluate_trade(self, token: str, side: str) -> Dict:
+    async def evaluate_trade(self, token: str, side: str) -> Dict:
         """Evaluate if trade should execute."""
         
         # Get market analysis
-        analysis = self.analyze_market(token)
+        analysis = await self.analyze_market(token)
         
         # Check trap detection
         trap_data = {
@@ -156,16 +158,16 @@ class NovaCore:
         
         return result
     
-    def run_cycle(self, token: str = "BTC") -> Dict:
+    async def run_cycle(self, token: str = "BTC") -> Dict:
         """Run one analysis cycle."""
         self.cycle_count += 1
         
         # Full analysis
-        analysis = self.analyze_market(token)
+        analysis = await self.analyze_market(token)
         
         # Check for entry
         if analysis["score"] >= 70:
-            eval_result = self.evaluate_trade(token, "BUY")
+            eval_result = await self.evaluate_trade(token, "BUY")
             
             return {
                 "cycle": self.cycle_count,
