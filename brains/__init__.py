@@ -34,3 +34,6 @@ __all__ = [
     'LearningBrain',
     'MetaBrain'
 ]
+
+from .critic_brain import CriticBrain
+    'CriticBrain',
