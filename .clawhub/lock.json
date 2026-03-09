@@ -48,6 +48,10 @@
     "simmer-x402": {
       "version": "1.0.4",
       "installedAt": 1772627845638
+    },
+    "moltypics": {
+      "version": "1.0.2",
+      "installedAt": 1773004483415
     }
   }
 }

@@ -3,7 +3,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  NEXUS NOVA v4.0.1 — FULL UPDATE INSTALLER
  Applies all 7 bug fixes + installs nova-task-persistence skill
- Run from inside ~/nexus-nova: python3 nova_v401_full_install.py
+ Run from inside your repo root: python3 nova_v401_full_install.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -20,7 +20,7 @@ from pathlib import Path
 
 REPO = Path(__file__).parent
 if not (REPO / "nova.py").exists() and not (REPO / "nova_daemon.py").exists():
-    REPO = Path.home() / "nexus-nova"
+    REPO = Path.home() / "nexus-nova-living-agent"
 NOVA_DIR = Path.home() / ".nova"
 SKILL_DIR = Path.home() / ".openclaw" / "workspace" / "skills" / "nova-task-persistence"
 

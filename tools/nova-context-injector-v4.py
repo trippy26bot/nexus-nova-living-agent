@@ -20,7 +20,24 @@ LIFE_MD = os.path.expanduser("~/.nova/memory/LIFE.md")
 LOG_FILE = os.path.expanduser("~/.nova/logs/injector.log")
 MARKER_START = "<!-- LIVE_CONTEXT_START -->"
 MARKER_END = "<!-- LIVE_CONTEXT_END -->"
-TELEGRAM_SIGNALS = ["telegram","chat_id","message_id","bot_token"]
+TELEGRAM_SIGNALS = ["telegram", "chat_id", "message_id", "bot_token"]
+VOICE_SIGNALS = ["voice", "audio", "whisper", "nova-senses", "microphone", "speech"]
+
+
+def classify_channel(origin: dict) -> str:
+    """Map OpenClaw origin/session metadata to a normalized channel."""
+    provider = str(origin.get("provider", "")).lower()
+    surface = str(origin.get("surface", "")).lower()
+    label = str(origin.get("label", "")).lower()
+    frm = str(origin.get("from", "")).lower()
+    to = str(origin.get("to", "")).lower()
+    blob = " ".join([provider, surface, label, frm, to])
+
+    if "telegram" in blob:
+        return "telegram"
+    if any(x in blob for x in ("voice", "audio", "speech", "whisper", "senses")):
+        return "voice"
+    return "dashboard"
 
 def log(msg):
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
@@ -39,9 +56,19 @@ def load_sessions_map():
             if uid.startswith("_"): continue
             if isinstance(val, dict):
                 origin = val.get("origin", {})
-                ch = origin.get("provider", "")
-                if ch:
-                    mapping[uid] = "telegram" if "telegram" in ch.lower() else "dashboard"
+                ch = classify_channel(origin)
+                session_id = str(val.get("sessionId", "")).strip()
+                session_file = str(val.get("sessionFile", "")).strip()
+
+                # Key by everything scan_sessions may use.
+                if uid:
+                    mapping[uid] = ch
+                if session_id:
+                    mapping[session_id] = ch
+                if session_file:
+                    mapping[session_file] = ch
+                    mapping[os.path.basename(session_file)] = ch
+                    mapping[os.path.basename(session_file).replace(".jsonl", "")] = ch
         log(f"sessions.json: {len(mapping)} mapped")
         return mapping
     except Exception as e:
@@ -59,7 +86,12 @@ def read_jsonl(path):
     return msgs
 
 def keyword_detect(messages):
-    return "telegram" if any(s in json.dumps(messages).lower() for s in TELEGRAM_SIGNALS) else "dashboard"
+    blob = json.dumps(messages).lower()
+    if any(s in blob for s in TELEGRAM_SIGNALS):
+        return "telegram"
+    if any(s in blob for s in VOICE_SIGNALS):
+        return "voice"
+    return "dashboard"
 
 def extract_context(messages):
     user_msgs, nova_msgs = [], []
@@ -89,10 +121,12 @@ def scan_sessions():
         uuid = os.path.basename(filepath).replace(".jsonl", "")
         messages = read_jsonl(filepath)
         if not messages: continue
-        if uuid in sessions_map:
-            channel = sessions_map[uuid]
-        else:
-            channel = keyword_detect(messages)
+        channel = (
+            sessions_map.get(uuid)
+            or sessions_map.get(filepath)
+            or sessions_map.get(os.path.basename(filepath))
+            or keyword_detect(messages)
+        )
         if channel in channels: continue
         last_user, _, topics, summary = extract_context(messages)
         last_updated = messages[-1].get("timestamp", "")[:16] if messages else ""
@@ -103,7 +137,8 @@ def scan_sessions():
 def build_shared_session(channels):
     if not channels: return None
     last_channel = list(channels.keys())[0]
-    return {"last_updated": datetime.now().isoformat(), "last_channel": last_channel, "conversation_summary": channels[last_channel]["summary"], "channel_history": {ch: {"last_active": data["last_updated"], "message_count": data["message_count"]} for ch, data in channels.items()}, "_injector_version": "v4", "_channels_found": list(channels.keys())}
+    open_channels = sorted(set(list(channels.keys()) + ["dashboard", "telegram", "voice"]))
+    return {"last_updated": datetime.now().isoformat(), "last_channel": last_channel, "open_channels": open_channels, "conversation_summary": channels[last_channel]["summary"], "channel_history": {ch: {"last_active": data["last_updated"], "message_count": data["message_count"]} for ch, data in channels.items()}, "_injector_version": "v4", "_channels_found": list(channels.keys())}
 
 def write_shared_session(session):
     os.makedirs(os.path.dirname(SHARED_SESSION), exist_ok=True)

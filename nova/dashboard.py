@@ -49,7 +49,8 @@ class NovaDashboard:
             "safety": {
                 "spend_limit": self.nova.leash.spend_limit,
                 "can_trade": self.nova.leash.can_trade,
-                "can_self_modify": self.nova.leash.can_self_modify
+                "can_self_modify": self.nova.leash.can_self_modify,
+                "can_contact": self.nova.leash.can_contact
             },
             "recent_drifts": recent_drifts,
             "journal_entries": journal_entries[-5:] if journal_entries else []

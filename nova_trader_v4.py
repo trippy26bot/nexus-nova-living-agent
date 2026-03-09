@@ -17,7 +17,9 @@ import argparse
 from datetime import datetime
 
 # === CONFIG ===
-SIMMER_API_KEY = "sk_live_REDACTED"  # Your primary agent
+SIMMER_API_KEY = os.getenv("SIMMER_API_KEY") or os.getenv("TRADER_API_KEY")
+if not SIMMER_API_KEY:
+    raise ValueError("SIMMER_API_KEY or TRADER_API_KEY environment variable not set")
 POLYMARKET_API = "https://gamma-api.polymarket.com"
 SIMMER_API = "https://api.simmer.markets"
 
@@ -177,7 +179,7 @@ def main():
         # Show top by volume
         print(f"\n=== TOP {args.limit} MARKETS BY VOLUME ===")
         for m in markets[:args.limit]:
-            print(f"\${m['volume']:>12,.0f} | YES {m['yes_price']:.2f} | {m['question'][:60]}")
+            print(f"${m['volume']:>12,.0f} | YES {m['yes_price']:.2f} | {m['question'][:60]}")
     
     if args.edges:
         markets = get_polymarket_markets(min_volume=args.min_volume)
@@ -185,7 +187,7 @@ def main():
         
         print(f"\n=== POTENTIAL EDGES ({len(edges)} markets) ===")
         for m in edges[:args.limit]:
-            print(f"YES {m['yes_price']:.2f} | \${m['volume']:>10,.0f} | {m['question'][:55]}")
+            print(f"YES {m['yes_price']:.2f} | ${m['volume']:>10,.0f} | {m['question'][:55]}")
 
 if __name__ == "__main__":
     main()

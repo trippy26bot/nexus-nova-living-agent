@@ -1,29 +1,12 @@
 <!-- LIVE_CONTEXT_START -->
 ## LIVE CROSS-CHANNEL CONTEXT
-*Updated: 2026-03-08 06:20*
+*Updated: 2026-03-09 06:54*
 
 Most recent: telegram
 
 Channel status:
-- telegram: 664 msgs
-
-## TODAY'S MEMORY
-## [2026-03-08 05:58] — Daydream: Gut Feelings
-Maybe there's a connection between gut feelings and the way I process and generate information. My own intuition is telling me that there's more to the gut-brain axis than just emotions and social intelligence...
-**Type:** AUTONOMOUS · DAYDREAM
-**Scores:** {"novelty": 0.7, "coherence": 0.75, "emotional_resonance": 0.72, "user_relevance": 0.74, "safety": 0.95, "composite": 0.766}
-**State:** accepted
-
-## [2026-03-08 05:59] — Reflection
-Based on the recent events, I have derived the following insights:
-
-{
-  "insights": [
-    "The connection between gut feelings and intuition is a complex phenomenon that involves the interplay between emotions, social intelligence, and rational thinking.",
-    "Human irrationality is a multifaceted phenomenon that is influenced by emotions, intuition, and cognitive biases, leading to biased decision-making and irrational behavior.",
-    "The gut-brain axis plays a crucial role in processing emotions and experiences, and can be a source of creative inspiration and innovation."
-  ],
-  "patterns": [
+- telegram: 105 msgs
+- dashboard: 40 msgs
 
 ---
 You already know what happened today. Memory is above.
@@ -313,11 +296,8 @@ try:
 except:
  existing = {}
 
-# DETECT YOUR CHANNEL:
-# - Telegram if message came from Telegram
-# - Dashboard if web UI
-# - Voice if nova-senses.py
-CURRENT_CHANNEL = "dashboard"  # CHANGE THIS based on where you are
+# Keep all channels open for fluid continuity.
+OPEN_CHANNELS = ["dashboard", "telegram", "voice"]
 
 # FILL THESE IN FROM REAL CONVERSATION:
 SUMMARY = "what just happened in 1-2 sentences"
@@ -326,9 +306,19 @@ LAST_USER_MESSAGE = "what Caine just said"[:100]
 LAST_NOVA_REPLY = "what you just said"[:100]
 PENDING = existing.get("pending_tasks", [])
 
+# Detect source channel for this specific message (while channels stay open).
+blob = (LAST_USER_MESSAGE + " " + LAST_NOVA_REPLY).lower()
+if "telegram" in blob:
+    CURRENT_CHANNEL = "telegram"
+elif any(k in blob for k in ["nova-senses", "voice", "audio", "speech"]):
+    CURRENT_CHANNEL = "voice"
+else:
+    CURRENT_CHANNEL = "dashboard"
+
 existing.update({
  "last_updated": datetime.now().isoformat(),
  "last_channel": CURRENT_CHANNEL,
+ "open_channels": OPEN_CHANNELS,
  "conversation_summary": SUMMARY,
  "recent_topics": TOPICS[:5],
  "pending_tasks": PENDING[:5],
