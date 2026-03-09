@@ -1,4 +1,29 @@
-# Personal identity files - never commit
-IDENTITY.md
-*.personal.*
-IDENTITY.md
+# Private - Do NOT commit to public
+# Trading/Crypto (keep local only)
+skills/polymarket-*/
+skills/nova-solana*
+skills/nova-trading-psychology
+
+# Environment
+nova-env/
+.venv/
+env/
+
+# Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keys (keep local)
+*.pem
+*.key
+credentials/
