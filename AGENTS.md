@@ -1,11 +1,11 @@
 <!-- LIVE_CONTEXT_START -->
 ## LIVE CROSS-CHANNEL CONTEXT
-*Updated: 2026-03-09 06:54*
+*Updated: 2026-03-09 08:54*
 
 Most recent: telegram
 
 Channel status:
-- telegram: 105 msgs
+- telegram: 477 msgs
 - dashboard: 40 msgs
 
 ---
