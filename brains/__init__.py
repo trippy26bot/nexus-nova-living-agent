@@ -32,8 +32,8 @@ __all__ = [
     'GuardianBrain',
     'SimulationBrain',
     'LearningBrain',
-    'MetaBrain'
+    'MetaBrain',
+    'CriticBrain'
 ]
 
 from .critic_brain import CriticBrain
-    'CriticBrain',
