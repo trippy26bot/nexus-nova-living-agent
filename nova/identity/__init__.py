@@ -1,11 +1,15 @@
+#!/usr/bin/env python3
 """
 Nova Identity Module
-Protects Nova's identity as she evolves
 """
 
-from nova.identity.identity_core import IdentityCore, get_identity_core
+from nova.identity.identity_seed import IdentitySeed, get_identity_seed
+from nova.identity.identity_lock import IdentityLock, CloneProtection, get_identity_lock
 
 __all__ = [
-    "IdentityCore",
-    "get_identity_core",
+    'IdentitySeed',
+    'get_identity_seed',
+    'IdentityLock',
+    'CloneProtection',
+    'get_identity_lock'
 ]
