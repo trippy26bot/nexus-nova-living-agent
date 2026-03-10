@@ -27,7 +27,7 @@ from brains.risk_brain import RiskBrain
 from brains.guardian_brain import GuardianBrain
 from brains.simulation_brain import SimulationBrain
 from brains.learning_brain import LearningBrain
-from core.emotional_council import EMOTIONAL_BRAINS
+from nova.core.emotional_council import EMOTIONAL_BRAINS
 
 logger = logging.getLogger("NovaOrchestrator")
 

@@ -1,133 +1,195 @@
 #!/usr/bin/env python3
 """
-Nova Heartbeat Loop - The living agent cycle
-This is what makes Nova feel alive rather than just responding
+Nova Heartbeat Loop
+Makes Nova feel alive - continuous cognitive pulse
 """
 
 import time
-import threading
-from nova.core.nova_core import get_nova_core
-from nova.core.emotion_engine import get_emotion_engine
-from nova.core.drift_engine import get_drift_engine
-from nova.core.memory_engine import get_memory_engine
+from typing import Dict, List, Callable, Optional
 
 class NovaHeartbeat:
     """
-    Background loop that keeps Nova 'alive'
-    
-    Fast cycle (5s): Quick processing, emotion decay
-    Medium cycle (30s): Context check, memory consolidation  
-    Slow cycle (5min): Deep reflection, goal review
+    Nova's living heartbeat.
+    Runs continuously: perceive → think → act → reflect
     """
     
     def __init__(self):
         self.running = False
-        self.core = get_nova_core()
-        self.emotions = get_emotion_engine()
-        self.drift = get_drift_engine()
-        self.memory = get_memory_engine()
-        self.thread = None
+        self.cycle_count = 0
+        self.interval = 0.1  # 100ms = 10 times per second
         
-        # Cycle timing
-        self.fast_interval = 5
-        self.medium_interval = 30
-        self.slow_interval = 300
+        # Systems
+        self.task_queue = []
+        self.memory_buffer = []
         
-        self.last_medium = time.time()
-        self.last_slow = time.time()
+        # Stats
+        self.stats = {
+            "cycles": 0,
+            "tasks_processed": 0,
+            "reflections": 0,
+            "last_task": None
+        }
     
     def start(self):
         """Start the heartbeat"""
-        if self.running:
-            return
         self.running = True
-        self.thread = threading.Thread(target=self._run, daemon=True)
-        self.thread.start()
-        print("💓 Nova heartbeat started")
+        print("❤️ Nova Heartbeat Started")
+        print("   Interval: {}ms ({} cycles/sec)".format(
+            self.interval * 1000, 
+            1 / self.interval
+        ))
     
     def stop(self):
         """Stop the heartbeat"""
         self.running = False
-        if self.thread:
-            self.thread.join(timeout=2)
-        print("💔 Nova heartbeat stopped")
+        print("💤 Nova Heartbeat Stopped")
     
-    def _run(self):
-        """Main heartbeat loop"""
-        while self.running:
-            try:
-                now = time.time()
-                
-                # Fast cycle - always runs
-                self._fast_cycle()
-                
-                # Medium cycle
-                if now - self.last_medium > self.medium_interval:
-                    self._medium_cycle()
-                    self.last_medium = now
-                
-                # Slow cycle  
-                if now - self.last_slow > self.slow_interval:
-                    self._slow_cycle()
-                    self.last_slow = time.time()
-                
-                time.sleep(self.fast_interval)
-                
-            except Exception as e:
-                print(f"Heartbeat error: {e}")
-                time.sleep(5)
-    
-    def _fast_cycle(self):
-        """Fast processing - emotion decay, quick checks"""
-        # Apply emotion decay
-        self.emotions.decay()
-    
-    def _medium_cycle(self):
-        """Medium cycle - context check, memory work"""
-        # Check drift
-        status = self.drift.check()
+    def perceive(self) -> List:
+        """Stage 1: Gather what's happening"""
+        events = []
         
-        # Consolidate short-term to conversation history
-        short = self.memory.get_short(3)
-        if short:
-            # Already handled by memory engine
-    
-    def _slow_cycle(self):
-        """Slow cycle - deep reflection, evolution"""
-        # Run reflection
-        self.drift.reflect()
+        # Add any queued tasks
+        events.extend(self.task_queue)
+        self.task_queue.clear()
         
-        # Compress memory if needed
-        self.memory.compress()
+        # Add memory triggers (placeholder)
+        # events += memory.check_triggers()
+        
+        return events
     
-    def status(self) -> dict:
+    def prioritize(self, events: List) -> Optional[Dict]:
+        """Stage 2: What's most important?"""
+        if not events:
+            return None
+        
+        # Sort by priority (highest first)
+        # For now: first in, first out
+        return events[0]
+    
+    def think(self, task: Dict) -> Dict:
+        """Stage 3: Cognitive processing"""
+        # Use the cognitive scheduler
+        from nova.cognition.cognitive_scheduler import get_scheduler
+        
+        scheduler = get_scheduler()
+        
+        task_text = task.get("text", str(task))
+        result = scheduler.run_cycle(task_text)
+        
+        return {
+            "task": task,
+            "priority": result["priority"],
+            "systems": result["systems_used"],
+            "thought": f"Processed as {result['priority']} priority"
+        }
+    
+    def act(self, decision: Dict) -> Dict:
+        """Stage 4: Execute"""
+        task = decision.get("task", {})
+        
+        # Different actions based on task type
+        action = task.get("action", "idle")
+        
+        return {
+            "action": action,
+            "executed": True,
+            "result": "complete"
+        }
+    
+    def reflect(self, task: Dict, result: Dict):
+        """Stage 5: Learn from it"""
+        # Store experience
+        self.memory_buffer.append({
+            "task": task,
+            "result": result,
+            "time": time.time()
+        })
+        
+        # Keep buffer small
+        if len(self.memory_buffer) > 100:
+            self.memory_buffer = self.memory_buffer[-50:]
+        
+        self.stats["reflections"] += 1
+    
+    def add_task(self, task: Dict):
+        """Add something for Nova to process"""
+        self.task_queue.append(task)
+    
+    def pulse(self) -> Dict:
+        """One heartbeat cycle"""
+        self.cycle_count += 1
+        
+        # Stage 1: Perceive
+        events = self.perceive()
+        
+        # Stage 2: Prioritize
+        task = self.prioritize(events)
+        
+        if not task:
+            return {
+                "cycle": self.cycle_count,
+                "status": "idle"
+            }
+        
+        # Stage 3: Think
+        decision = self.think(task)
+        
+        # Stage 4: Act
+        action_result = self.act(decision)
+        
+        # Stage 5: Reflect
+        self.reflect(task, action_result)
+        
+        self.stats["cycles"] += 1
+        self.stats["tasks_processed"] += 1
+        self.stats["last_task"] = str(task)[:30]
+        
+        return {
+            "cycle": self.cycle_count,
+            "status": "active",
+            "task": task.get("text", str(task))[:30],
+            "priority": decision.get("priority", "unknown")
+        }
+    
+    def run(self, cycles: int = None):
+        """Run heartbeat for N cycles or forever"""
+        self.start()
+        
+        try:
+            while self.running:
+                result = self.pulse()
+                
+                # Log every 50 cycles
+                if self.cycle_count % 50 == 0:
+                    print(f"❤️ Cycle {self.cycle_count}: {result.get('status', 'unknown')}")
+                
+                time.sleep(self.interval)
+                
+                if cycles and self.cycle_count >= cycles:
+                    break
+                    
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop()
+    
+    def get_status(self) -> Dict:
         """Get heartbeat status"""
         return {
             "running": self.running,
-            "fast_interval": self.fast_interval,
-            "medium_interval": self.medium_interval,
-            "slow_interval": self.slow_interval,
-            "drift_stats": self.drift.get_stats(),
-            "emotions": self.emotions.get_state()
+            "cycles": self.cycle_count,
+            "interval_ms": self.interval * 1000,
+            "cycles_per_second": 1 / self.interval,
+            "tasks_processed": self.stats["tasks_processed"],
+            "last_task": self.stats["last_task"]
         }
 
 
-# Global instance
+# Global
 _heartbeat = None
 
-def get_heartbeat():
+def get_heartbeat() -> NovaHeartbeat:
     global _heartbeat
     if _heartbeat is None:
         _heartbeat = NovaHeartbeat()
     return _heartbeat
-
-def start_nova():
-    """Start Nova's heartbeat"""
-    hb = get_heartbeat()
-    hb.start()
-    return hb
-
-def stop_nova():
-    """Stop Nova's heartbeat"""
-    hb = get_heartbeat()
-    hb.stop()

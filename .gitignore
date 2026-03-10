@@ -3,6 +3,44 @@
 skills/polymarket-*/
 skills/nova-solana*
 skills/nova-trading-psychology
+nova/trading/
+cryptoskill_v3_bootstrap.py
+
+# Crypto/Trading root files
+nova_arbitrage_engine.py
+nova_backtester.py
+nova_black_swan.py
+nova_compounder.py
+nova_dex_router.py
+nova_exit_detector.py
+nova_liquidity_*.py
+nova_market_*.py
+nova_order_flow.py
+nova_paper_trade.py
+nova_pump_*.py
+nova_risk_engine.py
+nova_rug_*.py
+nova_strategy_*.py
+nova_trader_v4.py
+nova_trading_brain.py
+nova_virtual_trader.py
+nova_wallet_*.py
+nova_whale_*.py
+nova_signal_learner.py
+nova_sentiment_ai.py
+nova_predictive_flow.py
+
+# Trading brains
+brains/arbitrage_brain.py
+brains/liquidity_brain.py
+brains/portfolio_brain.py
+
+# Trading connectors
+connectors/trading_connector.py
+nova/skills/trading_skill.py
+
+# Simmer routine
+SIMMER_ROUTINE.md
 
 # Environment
 nova-env/
