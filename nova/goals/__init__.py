@@ -1,4 +1,8 @@
-from .goal_generator import GoalGenerator
-from .goal_tracker import GoalTracker
+"""
+Nova Goals Module
+Goal management
+"""
 
-__all__ = ['GoalGenerator', 'GoalTracker']
+from nova.goals.goal_engine import GoalEngine, get_goal_engine
+
+__all__ = ["GoalEngine", "get_goal_engine"]

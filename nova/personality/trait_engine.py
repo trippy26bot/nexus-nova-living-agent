@@ -43,7 +43,7 @@ class TraitEngine:
         
         return modified
     
-    defiosity(self, value _modify_cur: float, thought: Dict) -> Dict:
+    def _modify_curiosity(self, value: float, thought: Dict) -> Dict:
         """Curious agents explore more options"""
         if value > 0.7:
             thought["exploration_depth"] = "extensive"

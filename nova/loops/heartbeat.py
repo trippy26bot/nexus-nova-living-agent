@@ -7,6 +7,15 @@ Makes Nova feel alive - continuous cognitive pulse
 import time
 from typing import Dict, List, Callable, Optional
 
+# Import telemetry for command center
+try:
+    from nova.command_center.telemetry import get_telemetry, heartbeat as log_heartbeat
+    from nova.command_center.event_stream import get_event_stream, publish_heartbeat
+    TELEMETRY_AVAILABLE = True
+except ImportError:
+    TELEMETRY_AVAILABLE = False
+
+
 class NovaHeartbeat:
     """
     Nova's living heartbeat.
@@ -118,6 +127,14 @@ class NovaHeartbeat:
     def pulse(self) -> Dict:
         """One heartbeat cycle"""
         self.cycle_count += 1
+        
+        # Log heartbeat to telemetry
+        if TELEMETRY_AVAILABLE:
+            try:
+                log_heartbeat()
+                publish_heartbeat(self.cycle_count)
+            except Exception:
+                pass  # Don't break heartbeat if telemetry fails
         
         # Stage 1: Perceive
         events = self.perceive()

@@ -51,6 +51,13 @@ Things like:
 - Google Time Zone API: https://developers.google.com/maps/documentation/timezone
 - Reddit API: https://www.reddit.com/dev/api/
 
+### Web Search
+
+- **SearXNG** (self-hosted via Docker)
+  - URL: http://localhost:8080
+  - No API keys needed, fully private
+  - Enabled formats: html, json
+
 ### Blockchain APIs
 
 - Helius (Solana RPC): 5c58c24c-3db7-4546-89af-261c5c6bbb62

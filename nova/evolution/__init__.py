@@ -1,4 +1,11 @@
-from .self_analysis import SelfAnalysis
-from .code_refactor_engine import CodeRefactorEngine
+"""
+Nova Evolution Module
+Self-improvement and evolution systems
+"""
 
-__all__ = ['SelfAnalysis', 'CodeRefactorEngine']
+from nova.evolution.self_evolution_engine import SelfEvolutionEngine, get_self_evolution_engine
+
+__all__ = [
+    "SelfEvolutionEngine",
+    "get_self_evolution_engine",
+]
