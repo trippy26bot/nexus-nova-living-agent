@@ -79,3 +79,70 @@ touch ~/.nova/memory/LIFE.md ~/.nova/memory/PERMANENT.md ~/.nova/memory/ARCHIVE.
 When user says "remember this":
 1. Write to LIFE.md immediately
 2. Confirm: "Logged. [one sentence]"
+
+---
+
+## Going Fully Local (Optional)
+
+If you want Nova to run completely offline/local, here's how:
+
+### Local LLM Models
+
+**Ollama** (Recommended)
+```bash
+brew install ollama
+ollama serve
+ollama pull llama3.2
+```
+
+**Other options:**
+- LM Studio (GUI for local models)
+- text-generation-webui
+
+### Local Vector Database
+
+**Chroma** (already in skill)
+```python
+pip install chromadb
+```
+
+### Local Speech
+
+**Whisper (STT)**
+```bash
+pip install openai-whisper
+whisper audio.mp3 --model base
+```
+
+**Coqui TTS (TTS)**
+```bash
+pip install coqui-tts
+```
+
+### Complete Local Stack
+
+| Component | Local Option |
+|-----------|--------------|
+| Brain/LLM | Ollama + Llama3.2 |
+| Memory | ChromaDB |
+| Voice STT | Whisper |
+| Voice TTS | Coqui/Piper |
+| Embeddings | Local (sentence-transformers) |
+
+### Setup Commands
+
+```bash
+# 1. Install Ollama
+brew install ollama && ollama serve
+
+# 2. Pull a model
+ollama pull llama3.2
+
+# 3. Install local dependencies
+pip install chromadb sentence-transformers whisper coqui-tts
+
+# 4. Update your agent config to use local endpoints
+```
+
+Then tell your agent: "Use local Ollama at http://localhost:11434 for all LLM calls."
+
