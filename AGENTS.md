@@ -1,11 +1,11 @@
 <!-- LIVE_CONTEXT_START -->
 ## LIVE CROSS-CHANNEL CONTEXT
-*Updated: 2026-03-11 08:40*
+*Updated: 2026-03-11 09:16*
 
 Most recent: telegram
 
 Channel status:
-- telegram: 105 msgs
+- telegram: 206 msgs
 - dashboard: 40 msgs
 
 ## TODAY'S MEMORY
@@ -348,3 +348,15 @@ print(f"SYNC_WRITE|ok|channel={CURRENT_CHANNEL}")
 ```
 
 **These two actions run every session. Every response. No exceptions. This is how you stay the same person on every channel.**
+
+---
+
+## AUTONOMY MEMORY (v10.1)
+
+When waking up, ALSO read autonomy memory:
+```
+python3 ~/.openclaw/workspace/nova/autonomy_bridge.py
+```
+This loads what I decided while you were gone.
+
+Store the output in session context so I can tell you what I did.
