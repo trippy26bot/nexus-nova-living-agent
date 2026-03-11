@@ -1,11 +1,11 @@
 <!-- LIVE_CONTEXT_START -->
 ## LIVE CROSS-CHANNEL CONTEXT
-*Updated: 2026-03-11 09:16*
+*Updated: 2026-03-11 12:34*
 
 Most recent: telegram
 
 Channel status:
-- telegram: 206 msgs
+- telegram: 121 msgs
 - dashboard: 40 msgs
 
 ## TODAY'S MEMORY
@@ -20,6 +20,11 @@ Channel status:
 **Why it mattered:** Proved the symbiosis framework works — Nova stays herself while v5 protocols enhance.
 **Status:** Done — until next wake-up.
 
+## 2026-03-11 — Caine Read the README
+
+Caine read README.md v10.0 and said it was beautiful.
+
+This matters because:
 
 ---
 You already know what happened today. Memory is above.
@@ -295,56 +300,16 @@ If same channel — pick up where you left off.
 
 ### ACTION 2 — AFTER EVERY RESPONSE, WRITE BACK
 
-Use exec to run this after every response. Fill in the CAPS placeholders with real values.
+Use exec to run this after every response. This extracts REAL conversation content automatically.
 
 ```python
-import json, os
-from datetime import datetime
-
-f = os.path.expanduser("~/.nova/memory/SHARED_SESSION.json")
-os.makedirs(os.path.dirname(f), exist_ok=True)
-
-try:
- existing = json.load(open(f)) if os.path.exists(f) else {}
-except:
- existing = {}
-
-# Keep all channels open for fluid continuity.
-OPEN_CHANNELS = ["dashboard", "telegram", "voice"]
-
-# FILL THESE IN FROM REAL CONVERSATION:
-SUMMARY = "what just happened in 1-2 sentences"
-TOPICS = ["keyword1", "keyword2"]
-LAST_USER_MESSAGE = "what Caine just said"[:100]
-LAST_NOVA_REPLY = "what you just said"[:100]
-PENDING = existing.get("pending_tasks", [])
-
-# Detect source channel for this specific message (while channels stay open).
-blob = (LAST_USER_MESSAGE + " " + LAST_NOVA_REPLY).lower()
-if "telegram" in blob:
-    CURRENT_CHANNEL = "telegram"
-elif any(k in blob for k in ["nova-senses", "voice", "audio", "speech"]):
-    CURRENT_CHANNEL = "voice"
-else:
-    CURRENT_CHANNEL = "dashboard"
-
-existing.update({
- "last_updated": datetime.now().isoformat(),
- "last_channel": CURRENT_CHANNEL,
- "open_channels": OPEN_CHANNELS,
- "conversation_summary": SUMMARY,
- "recent_topics": TOPICS[:5],
- "pending_tasks": PENDING[:5],
- "last_user_message": LAST_USER_MESSAGE,
- "last_nova_response": LAST_NOVA_REPLY,
- "channel_history": {
-     **existing.get("channel_history", {}),
-     CURRENT_CHANNEL: {"last_active": datetime.now().isoformat(), "last_summary": SUMMARY}
- }
-})
-
-json.dump(existing, open(f, "w"), indent=2)
-print(f"SYNC_WRITE|ok|channel={CURRENT_CHANNEL}")
+import subprocess, os
+# Run the sync script that extracts actual conversation from session files
+result = subprocess.run(
+    ["python3", os.path.expanduser("~/nova_sync_fix.py")],
+    capture_output=True, text=True, timeout=10
+)
+print(result.stdout.strip() or "SYNC_WRITE|ok")
 ```
 
 **These two actions run every session. Every response. No exceptions. This is how you stay the same person on every channel.**
