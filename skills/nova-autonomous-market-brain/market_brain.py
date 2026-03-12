@@ -22,6 +22,10 @@ JOURNAL_FILE = DATA_DIR / "journal.json"
 DECISIONS_FILE = DATA_DIR / "decisions.json"
 LOG_FILE = DATA_DIR / "brain.log"
 
+# TRADING CONFIG
+DEFAULT_BET_AMOUNT = 5  # $5 per trade - realistic for starting
+MAX_POSITION_SIZE = 25  # Max $25 per position
+
 # ===== CORE SYSTEMS (ALL BUILT-IN) =====
 
 class FastLoopEngine:
@@ -164,7 +168,9 @@ class MarketBrain:
         decision = {
             "action": "HOLD",
             "reason": "No high-confidence signals",
-            "confidence": 0.0
+            "confidence": 0.0,
+            "bet_amount": DEFAULT_BET_AMOUNT,  # $5 per trade
+            "currency": "USD"
         }
         
         # Log decision
