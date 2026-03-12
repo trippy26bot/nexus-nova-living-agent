@@ -23,7 +23,7 @@ class UniversalGatherer:
             params = {
                 "vs_currency": "usd",
                 "order": "volume_desc",
-                "per_page": 50,
+                "per_page": 100,
                 "page": 1,
                 "sparkline": False
             }
@@ -47,20 +47,25 @@ class UniversalGatherer:
     def gather_cryptocompare(self) -> List[Dict]:
         """CryptoCompare free API"""
         try:
-            url = "https://min-api.cryptocompare.com/data/top/totalvol?limit=50"
+            url = "https://min-api.cryptocompare.com/data/top/totalvol?limit=50&tsym=USD"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 data = r.json()
                 if data.get("Data"):
                     self.sources_tried.append("cryptocompare")
-                    return [{
-                        "symbol": d.get("CoinInfo", {}).get("Symbol", "").upper(),
-                        "name": d.get("CoinInfo", {}).get("FullName", ""),
-                        "price": d.get("RAW", {}).get("USD", {}).get("PRICE"),
-                        "change_24h": d.get("RAW", {}).get("USD", {}).get("CHANGEPCT24HOUR"),
-                        "volume": d.get("RAW", {}).get("USD", {}).get("VOLUME24HOUR"),
-                        "source": "cryptocompare"
-                    } for d in data["Data"]]
+                    coins = []
+                    for d in data["Data"]:
+                        coin_info = d.get("CoinInfo", {})
+                        raw = d.get("RAW", {}).get("USD", {})
+                        coins.append({
+                            "symbol": coin_info.get("Symbol", "").upper(),
+                            "name": coin_info.get("FullName", ""),
+                            "price": raw.get("PRICE"),
+                            "change_24h": raw.get("CHANGEPCT24HOUR"),
+                            "volume": raw.get("VOLUME24HOURTO"),
+                            "source": "cryptocompare"
+                        })
+                    return coins
         except Exception as e:
             pass
         return []
