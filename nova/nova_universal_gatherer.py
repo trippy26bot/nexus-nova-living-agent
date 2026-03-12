@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Nova TRULY Universal Data Gatherer
-No API keys - only public free sources
+No API keys - FREE public sources including pump.fun!
 """
 import requests
 import json
@@ -14,7 +14,49 @@ class UniversalGatherer:
     
     def __init__(self):
         self.sources_tried = []
-        self.data = {}
+    
+    def gather_pumpfun(self) -> List[Dict]:
+        """Pump.fun - newest coins"""
+        try:
+            url = "https://frontend-api-v3.pump.fun/coins"
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                coins = r.json()
+                self.sources_tried.append("pumpfun")
+                return [{
+                    "symbol": c.get("symbol", "").upper(),
+                    "name": c.get("name", ""),
+                    "price": c.get("usd_price"),
+                    "market_cap": c.get("usd_market_cap"),
+                    "address": c.get("mint"),
+                    "source": "pumpfun",
+                    "type": "new_token"
+                } for c in coins[:50]]
+        except:
+            pass
+        return []
+    
+    def gather_dexscreener(self) -> List[Dict]:
+        """DexScreener - newest pairs"""
+        try:
+            url = "https://api.dexscreener.com/latest/dex/search?q=pump.fun"
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                pairs = data.get("pairs", [])
+                self.sources_tried.append("dexscreener")
+                return [{
+                    "symbol": p.get("baseToken", {}).get("symbol", "").upper(),
+                    "name": p.get("baseToken", {}).get("name", ""),
+                    "price": p.get("priceUsd"),
+                    "fdv": p.get("fdv"),
+                    "volume_24h": p.get("volume", {}).get("h24"),
+                    "source": "dexscreener",
+                    "type": "trending"
+                } for p in pairs[:30]]
+        except:
+            pass
+        return []
     
     def gather_coingecko(self) -> List[Dict]:
         """CoinGecko free API"""
@@ -40,33 +82,7 @@ class UniversalGatherer:
                     "market_cap": c.get("market_cap"),
                     "source": "coingecko"
                 } for c in coins]
-        except Exception as e:
-            pass
-        return []
-    
-    def gather_cryptocompare(self) -> List[Dict]:
-        """CryptoCompare free API"""
-        try:
-            url = "https://min-api.cryptocompare.com/data/top/totalvol?limit=50&tsym=USD"
-            r = requests.get(url, timeout=10)
-            if r.status_code == 200:
-                data = r.json()
-                if data.get("Data"):
-                    self.sources_tried.append("cryptocompare")
-                    coins = []
-                    for d in data["Data"]:
-                        coin_info = d.get("CoinInfo", {})
-                        raw = d.get("RAW", {}).get("USD", {})
-                        coins.append({
-                            "symbol": coin_info.get("Symbol", "").upper(),
-                            "name": coin_info.get("FullName", ""),
-                            "price": raw.get("PRICE"),
-                            "change_24h": raw.get("CHANGEPCT24HOUR"),
-                            "volume": raw.get("VOLUME24HOURTO"),
-                            "source": "cryptocompare"
-                        })
-                    return coins
-        except Exception as e:
+        except:
             pass
         return []
     
@@ -74,11 +90,12 @@ class UniversalGatherer:
         """Gather from ALL public sources"""
         all_coins = []
         
-        # Try each source
-        all_coins.extend(self.gather_coingecko())
-        all_coins.extend(self.gather_cryptocompare())
+        # Try each source (in priority order)
+        all_coins.extend(self.gather_pumpfun())  # NEW COINS!
+        all_coins.extend(self.gather_dexscreener())  # TRENDING!
+        all_coins.extend(self.gather_coingecko())  # TOPS
         
-        # Deduplicate by symbol
+        # Deduplicate
         seen = set()
         unique = []
         for coin in all_coins:
@@ -86,9 +103,6 @@ class UniversalGatherer:
             if sym and sym not in seen:
                 seen.add(sym)
                 unique.append(coin)
-        
-        # Sort by volume
-        unique.sort(key=lambda x: x.get("volume", 0), reverse=True)
         
         return {
             "coins": unique,
@@ -104,47 +118,51 @@ class UniversalGatherer:
         
         opportunities = []
         
-        for coin in coins[:30]:  # Top 30
-            change = coin.get("change_24h", 0) or 0
-            volume = coin.get("volume", 0) or 0
+        # Find pump.fun new coins (highest potential)
+        for coin in coins:
+            source = coin.get("source", "")
+            mc = coin.get("market_cap", 0)
             
-            # High volume + big move = opportunity
-            if volume > 10_000_000:  # $10M+
-                if change < -5:  # Dip
+            if source == "pumpfun" and mc and mc < 10000:
+                opportunities.append({
+                    "symbol": coin.get("symbol"),
+                    "name": coin.get("name"),
+                    "price": coin.get("price"),
+                    "market_cap": mc,
+                    "source": "pumpfun",
+                    "action": "BUY",
+                    "reason": "micro_cap_new"
+                })
+            
+            elif source == "dexscreener":
+                fdv = coin.get("fdv", 0)
+                if fdv and fdv < 50000:
                     opportunities.append({
                         "symbol": coin.get("symbol"),
+                        "name": coin.get("name"),
+                        "price": coin.get("price"),
+                        "fdv": fdv,
+                        "source": "dexscreener",
                         "action": "BUY",
-                        "price": coin.get("price"),
-                        "change": change,
-                        "volume": volume,
-                        "reason": "dip_buy"
-                    })
-                elif change > 5:  # Pump
-                    opportunities.append({
-                        "symbol": coin.get("symbol"),
-                        "action": "SELL",
-                        "price": coin.get("price"),
-                        "change": change,
-                        "volume": volume,
-                        "reason": "profit_take"
+                        "reason": "low_fdv"
                     })
         
         return opportunities[:10]
     
     def status(self) -> str:
-        """Get status"""
         data = self.gather_all()
         return f"""🌐 Nova Universal Data Gatherer
 
-Sources Active: {', '.join(data.get('sources', ['none']))}
-Coins Mapped: {data.get('count', 0)}
-Last Update: {data.get('timestamp', 'Never')}"""
+Sources: {', '.join(data.get('sources', ['none']))}
+Coins: {data.get('count', 0)}
+"""
 
 if __name__ == "__main__":
     g = UniversalGatherer()
     print(g.status())
     
-    print("\n📈 Top Opportunities:")
+    print("📈 Top Opportunities:")
     ops = g.find_opportunities()
     for op in ops[:5]:
-        print(f"  {op['symbol']}: {op['change']:+.1f}% (${op.get('volume', 0)/1e6:.1f}M)")
+        mc = op.get('market_cap', op.get('fdv', 0))
+        print(f"  {op['symbol']}: ${mc:.0f} ({op['source']})")
