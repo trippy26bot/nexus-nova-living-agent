@@ -2,10 +2,16 @@
 Nova Skills - Modular plugins that Nova can call
 """
 import os
+import sys
 import json
 import random
 from datetime import datetime
 from typing import Dict, List, Optional
+
+# Add skills path for prerequisite checking
+SKILLS_PATH = os.path.expanduser("~/.openclaw/skills")
+if SKILLS_PATH not in sys.path:
+    sys.path.insert(0, SKILLS_PATH)
 
 # Skills registry
 SKILLS = {}
@@ -23,22 +29,6 @@ def registerSkill(name: str):
     return decorator
 
 # --- BUILT-IN SKILLS ---
-
-@registerSkill("crypto")
-def crypto_skill(context: dict = None) -> str:
-    """Analyze crypto markets"""
-    SKILLS["crypto"]["calls"] += 1
-    
-    cryptos = ["BTC", "ETH", "SOL", "ADA", "DOGE", "XRP", "AVAX"]
-    actions = ["rising 📈", "falling 📉", "stable ➡️", "volatile 🎢"]
-    
-    results = []
-    for _ in range(3):
-        crypto = random.choice(cryptos)
-        action = random.choice(actions)
-        results.append(f"{crypto}: {action}")
-    
-    return f"Crypto: {' | '.join(results)}"
 
 
 @registerSkill("reflect")
@@ -119,8 +109,35 @@ class SkillManager:
     def get_skill(self, name: str):
         return SKILLS.get(name)
     
+    def check_prereqs(self, skill_name: str) -> tuple[bool, str]:
+        """
+        Check if a skill's prerequisites are met.
+        Returns: (ready, message)
+        """
+        # Map skill names to prereq keys
+        prereq_map = {
+            "github": "github",
+            "gh": "github",
+            "web-research": "web-research",
+            "research": "web-research"
+        }
+        
+        prereq_key = prereq_map.get(skill_name, skill_name)
+        
+        # Check prerequisites
+        try:
+            from nova.skills.skill_prereq_checker import check_skill_prereqs
+            return check_skill_prereqs(prereq_key)
+        except ImportError:
+            return True, "No prereq checker available"
+    
     def call(self, skill_name: str, context: dict = None) -> Optional[str]:
-        """Call a skill by name"""
+        """Call a skill by name, checking prerequisites first"""
+        # Check prerequisites
+        ready, msg = self.check_prereqs(skill_name)
+        if not ready:
+            return f"⚠️ {msg}"
+        
         skill = SKILLS.get(skill_name)
         if not skill:
             return None
