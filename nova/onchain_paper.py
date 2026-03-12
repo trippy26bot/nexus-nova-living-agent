@@ -56,31 +56,22 @@ def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=2)
 
-# Import real data from Nova's crypto mapper
+# Import real data from Nova's universal gatherer (now with pump.fun!)
 def get_real_opportunities():
-    """Get real opportunities from Nova's crypto mapper"""
+    """Get real opportunities from Nova's universal gatherer"""
     try:
         import sys
         sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace"))
-        from nova.nova_crypto_mapper import UniversalCryptoMapper
+        from nova.nova_universal_gatherer import UniversalGatherer
         
-        mapper = UniversalCryptoMapper()
-        opportunities = mapper.get_opportunities()
+        gatherer = UniversalGatherer()
+        opportunities = gatherer.find_opportunities()
         
-        real_opps = []
-        for op in opportunities[:10]:
-            real_opps.append({
-                "symbol": op.get("symbol", ""),
-                "name": op.get("symbol", ""),
-                "base_price": op.get("price", 1),
-                "volatility": abs(op.get("change_24h", 0)) / 100,
-                "volume": op.get("volume", 0),
-                "change_24h": op.get("change_24h", 0),
-                "source": "real"
-            })
-        return real_opps
+        if opportunities:
+            return opportunities[:10]
+        return None
     except Exception as e:
-        print(f"Mapper error: {e}")
+        print(f"Gatherer error: {e}")
         return None
 
 # Try to get real data first, fallback to mock
