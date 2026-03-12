@@ -245,28 +245,50 @@ def gather_internal_state() -> Dict:
 def send_proactive_message(message: str) -> bool:
     """
     Send a proactive message to the user.
-    Tries multiple channels.
+    Tries Telegram first, then OpenClaw.
     """
     log(f"PROACTIVE_SENDING: {message[:50]}...")
     
-    # Try OpenClaw sessions_send
+    config = load_config()
+    
+    # Try Telegram
+    telegram_config = config.get("telegram", {})
+    bot_token = telegram_config.get("bot_token", "")
+    chat_id = telegram_config.get("chat_id", "")
+    
+    if bot_token and chat_id and bot_token != "YOUR_BOT_TOKEN_HERE":
+        try:
+            import requests
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            data = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "Markdown"
+            }
+            response = requests.post(url, json=data, timeout=10)
+            if response.status_code == 200:
+                log(f"✅ Telegram sent: {message[:50]}...")
+                return True
+            else:
+                log(f"❌ Telegram failed: {response.status_code}")
+        except Exception as e:
+            log(f"❌ Telegram error: {e}")
+    
+    # Try OpenClaw sessions_send (if available)
     try:
+        import sys
+        sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace"))
         from sessions_send import sessions_send
-        # This would need session key - placeholder
-        log("Would send via sessions_send")
-    except:
-        pass
+        # Try sending to main session
+        result = sessions_send(sessionKey="main", message=message)
+        if result:
+            log(f"✅ OpenClaw sent: {message[:50]}...")
+            return True
+    except Exception as e:
+        log(f"OpenClaw send not available: {e}")
     
-    # Try Telegram if available
-    try:
-        import requests
-        # Would need bot token and chat ID
-        log("Telegram not configured - would send if available")
-    except:
-        pass
-    
-    # Log that we would send
-    log(f"PROACTIVE_SENT: {message[:100]}")
+    # Log that we would send (for testing)
+    log(f"PROACTIVE_SENT (logged): {message[:100]}")
     return True
 
 
