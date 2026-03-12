@@ -18,9 +18,9 @@ from pathlib import Path
 WORKSPACE = os.path.expanduser("~/.openclaw/workspace")
 sys.path.insert(0, WORKSPACE)
 
-CYCLE_INTERVAL = int(os.getenv("NOVA_CYCLE_SECONDS", 60))
-LIFE_CYCLE_INTERVAL = int(os.getenv("NOVA_LIFE_CYCLE_MINUTES", 30))
-IDLE_CHECK_INTERVAL = int(os.getenv("NOVA_IDLE_CHECK_MINUTES", 5))
+CYCLE_INTERVAL = int(os.getenv("NOVA_CYCLE_SECONDS", 15))  # 15s for faster reaction
+LIFE_CYCLE_INTERVAL = int(os.getenv("NOVA_LIFE_CYCLE_MINUTES", 10))  # 10min for faster decisions
+IDLE_CHECK_INTERVAL = int(os.getenv("NOVA_IDLE_CHECK_MINUTES", 1))  # 1min for responsive idle
 LOG_FILE = os.path.expanduser("~/.nova/logs/autonomy.log")
 STATE_FILE = os.path.expanduser("~/.nova/autonomy_state.json")
 GOALS_FILE = os.path.expanduser("~/.nova/memory/goals.json")
@@ -277,7 +277,7 @@ def daemon_loop():
                 state["idle_cycles"] = state.get("idle_cycles", 0) + 1
         
         # Proactive initiative check (less frequent)
-        proactive_interval_cycles = (15 * 60) // CYCLE_INTERVAL  # Every 15 min
+        proactive_interval_cycles = (5 * 60) // CYCLE_INTERVAL  # Every 5 min for faster proactive
         if cycle_count % proactive_interval_cycles == 0:
             try:
                 from nova.proactive_initiative import run_proactive_check, InitiativeBrain

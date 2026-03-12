@@ -141,6 +141,9 @@ class SkillManager:
     def __init__(self, nova):
         self.nova = nova
         self.last_skill_call = {}
+        # Skill result cache for speed
+        self._cache = {}
+        self._cache_ttl = 60  # 60 seconds TTL
         
     def list_skills(self) -> List[str]:
         return list(SKILLS.keys())
@@ -170,12 +173,27 @@ class SkillManager:
         except ImportError:
             return True, "No prereq checker available"
     
-    def call(self, skill_name: str, context: dict = None) -> Optional[str]:
-        """Call a skill by name, checking prerequisites first"""
-        # Check prerequisites
-        ready, msg = self.check_prereqs(skill_name)
-        if not ready:
-            return f"⚠️ {msg}"
+    def call(self, skill_name: str, context: dict = None, fast: bool = False) -> Optional[str]:
+        """Call a skill by name, checking prerequisites first
+        
+        Args:
+            skill_name: Name of skill to call
+            context: Optional context dict
+            fast: If True, skip prereq checks for speed
+        """
+        # Check prerequisites only if not fast mode
+        if not fast:
+            ready, msg = self.check_prereqs(skill_name)
+            if not ready:
+                return f"⚠️ {msg}"
+        
+        # Check cache first
+        cache_key = f"{skill_name}:{str(context)[:50]}"
+        now = datetime.now().timestamp()
+        if cache_key in self._cache:
+            cached_time, cached_result = self._cache[cache_key]
+            if now - cached_time < self._cache_ttl:
+                return cached_result  # Return cached
         
         skill = SKILLS.get(skill_name)
         if not skill:
@@ -185,6 +203,11 @@ class SkillManager:
             
         try:
             result = skill["func"](context)
+            # Cache result
+            self._cache[cache_key] = (now, result)
+            # Limit cache size
+            if len(self._cache) > 50:
+                self._cache = dict(list(self._cache.items())[-25:])
             return result
         except Exception as e:
             return f"Skill error: {e}"
