@@ -1,10 +1,8 @@
 # Nova Agent Dependencies
 # Core requirements for running the Nova agent
 
-# AI & Cognitive
+# Required
 numpy>=1.24.0
-
-# Web & API
 requests>=2.28.0
 
 # Optional: Voice (uncomment if needed)
@@ -13,5 +11,8 @@ requests>=2.28.0
 # Optional: Vector DB (uncomment if needed)
 # chromadb>=0.4.0
 
-# Optional: ML (uncomment if needed)  
+# Optional: ML (uncomment if needed - large download)
 # torch>=2.0.0
+
+# Optional: Environment variables
+# python-dotenv>=1.0.0

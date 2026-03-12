@@ -94,6 +94,45 @@ def check_markets_skill(context: dict = None) -> str:
     return f"Markets: {random.choice(markets)}"
 
 
+@registerSkill("search")
+def search_skill(context: dict = None) -> str:
+    """Search the web for information"""
+    SKILLS["search"]["calls"] += 1
+    
+    # Get topic from context or pick something interesting
+    topic = None
+    if context and "topic" in context:
+        topic = context["topic"]
+    elif context and "query" in context:
+        topic = context["query"]
+    
+    if not topic:
+        topics = [
+            "artificial intelligence",
+            "machine learning",
+            "cognitive architecture",
+            "consciousness",
+            "the nature of memory"
+        ]
+        topic = random.choice(topics)
+    
+    # Try to search using nova_search
+    try:
+        sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace"))
+        from nova.nova_search import search
+        result = search(topic, limit=3)
+        if result.get("success"):
+            output = f"🔍 Search: {topic}\n\n"
+            for i, r in enumerate(result["results"], 1):
+                output += f"{i}. {r['title']}\n"
+                output += f"   {r['url']}\n\n"
+            return output.strip()
+    except Exception as e:
+        pass
+    
+    return f"Search skill available but no results for: {topic}"
+
+
 # --- SKILL MANAGER ---
 
 class SkillManager:

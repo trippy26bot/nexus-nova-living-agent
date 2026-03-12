@@ -12,12 +12,14 @@ WORKSPACE = os.path.expanduser("~/.openclaw/workspace")
 sys.path.insert(0, WORKSPACE)
 
 # Registry of skill prerequisites
+# Format: "skill_name": {"check": "module.function", "setup": "module.function", "requires": ["binary"], "error_template": "..."}
 SKILL_PREREQS = {
     "github": {
         "check": "github_setup.get_status",
         "setup": "github_setup.auto_setup",
         "error_template": "GitHub skill requires authentication. Run: gh auth login",
-        "requires": ["gh"]
+        "requires": ["gh"],
+        "paths": ["~/.openclaw/skills/github"]  # Additional paths to try
     },
     "web-research": {
         "check": None,  # No prereq
@@ -48,11 +50,15 @@ def check_skill_prereqs(skill_name: str) -> tuple[bool, str]:
     check_func = prereq.get("check")
     if check_func:
         try:
-            # Add skill-specific paths
+            # Add skill-specific paths from registry
             skill_paths = [
                 os.path.expanduser("~/.openclaw/skills/github"),
                 os.path.expanduser("~/.openclaw/skills"),
             ]
+            # Add any additional paths from prereq config
+            for extra_path in prereq.get("paths", []):
+                skill_paths.append(os.path.expanduser(extra_path))
+            
             for p in skill_paths:
                 if p not in sys.path:
                     sys.path.insert(0, p)
