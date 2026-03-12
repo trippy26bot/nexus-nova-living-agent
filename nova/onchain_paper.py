@@ -56,7 +56,37 @@ def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=2)
 
-# Mock opportunities (since APIs are limited)
+# Import real data from Nova's crypto mapper
+def get_real_opportunities():
+    """Get real opportunities from Nova's crypto mapper"""
+    try:
+        import sys
+        sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace"))
+        from nova.nova_crypto_mapper import UniversalCryptoMapper
+        
+        mapper = UniversalCryptoMapper()
+        opportunities = mapper.get_opportunities()
+        
+        real_opps = []
+        for op in opportunities[:10]:
+            real_opps.append({
+                "symbol": op.get("symbol", ""),
+                "name": op.get("symbol", ""),
+                "base_price": op.get("price", 1),
+                "volatility": abs(op.get("change_24h", 0)) / 100,
+                "volume": op.get("volume", 0),
+                "change_24h": op.get("change_24h", 0),
+                "source": "real"
+            })
+        return real_opps
+    except Exception as e:
+        print(f"Mapper error: {e}")
+        return None
+
+# Try to get real data first, fallback to mock
+REAL_OPPORTUNITIES = get_real_opportunities()
+
+# Mock opportunities (fallback)
 MOCK_OPPORTUNITIES = [
     {"symbol": "SOL", "name": "Solana", "base_price": 86.50, "volatility": 0.03},
     {"symbol": "ETH", "name": "Ethereum", "base_price": 1850.00, "volatility": 0.02},
@@ -87,7 +117,38 @@ class PaperTrader:
         return prices
     
     def find_opportunities(self) -> List[Dict]:
-        """Find paper trading opportunities"""
+        """Find paper trading opportunities using REAL data"""
+        # Try real data first
+        if REAL_OPPORTUNITIES:
+            opportunities = []
+            for opp in REAL_OPPORTUNITIES:
+                symbol = opp.get("symbol", "")
+                price = opp.get("base_price", 1)
+                change = opp.get("change_24h", 0)
+                
+                if change < -3:  # Dip buy
+                    opportunities.append({
+                        "symbol": symbol,
+                        "action": "BUY",
+                        "price": price,
+                        "change": change / 100,
+                        "confidence": min(abs(change) / 20, 0.9),
+                        "source": "real"
+                    })
+                elif change > 5:  # Profit take
+                    opportunities.append({
+                        "symbol": symbol,
+                        "action": "SELL",
+                        "price": price,
+                        "change": change / 100,
+                        "confidence": min(change / 30, 0.8),
+                        "source": "real"
+                    })
+            
+            if opportunities:
+                return opportunities
+        
+        # Fallback to mock
         prices = self.get_current_prices()
         opportunities = []
         
