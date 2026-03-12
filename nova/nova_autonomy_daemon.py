@@ -276,6 +276,17 @@ def daemon_loop():
                 run_idle_consolidation()
                 state["idle_cycles"] = state.get("idle_cycles", 0) + 1
         
+        # Proactive initiative check (less frequent)
+        proactive_interval_cycles = (15 * 60) // CYCLE_INTERVAL  # Every 15 min
+        if cycle_count % proactive_interval_cycles == 0:
+            try:
+                from nova.proactive_initiative import run_proactive_check, InitiativeBrain
+                brain = InitiativeBrain()
+                if brain.config.get("enabled"):
+                    run_proactive_check()
+            except Exception as e:
+                log(f"Proactive check error: {e}", "WARN")
+        
         # Life cycle decision (existing)
         life_interval_cycles = LIFE_CYCLE_INTERVAL * 60 // CYCLE_INTERVAL
         if cycle_count % life_interval_cycles == 0:
