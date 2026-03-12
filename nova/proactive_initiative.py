@@ -289,6 +289,14 @@ def send_proactive_message(message: str) -> bool:
     
     # Log that we would send (for testing)
     log(f"PROACTIVE_SENT (logged): {message[:100]}")
+    
+    # Log outcome for learning
+    try:
+        from nova.proactive_outcomes import log_outcome
+        log_outcome(message)
+    except:
+        pass
+    
     return True
 
 
