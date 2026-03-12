@@ -1,0 +1,5 @@
+# Nova Voice Configuration
+voice: en_US-lessac-medium
+speed: 1.0
+wake_word: nova
+listen_duration: 4

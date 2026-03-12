@@ -64,7 +64,7 @@ def run_cycle():
         decision = orchestrator.process(context, {})
         
         # Update emotions
-        emotions.update("success")
+        emotions.adjust("joy", 0.1)
         
         # Store in memory
         memory.store_short("last_cycle", {

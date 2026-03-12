@@ -1,9 +1,0 @@
-{
-  "emoji": "\ud83d\udd0d",
-  "requires": {
-    "env": [],
-    "pip": []
-  },
-  "cron": null,
-  "autostart": false
-}
