@@ -297,6 +297,32 @@ def send_proactive_message(message: str) -> bool:
     except:
         pass
     
+    # Store in shared session for cross-channel memory
+    try:
+        import json
+        session_file = os.path.expanduser("~/.nova/memory/SHARED_SESSION.json")
+        if os.path.exists(session_file):
+            with open(session_file) as f:
+                session = json.load(f)
+            
+            # Add proactive message to conversation history
+            if "conversation_history" not in session:
+                session["conversation_history"] = []
+            
+            session["conversation_history"].append({
+                "source": "proactive",
+                "message": message,
+                "timestamp": datetime.now().isoformat(),
+                "channel": "telegram"
+            })
+            session["conversation_history"] = session["conversation_history"][-20:]
+            session["last_updated"] = datetime.now().isoformat()
+            
+            with open(session_file, "w") as f:
+                json.dump(session, f, indent=2)
+    except Exception as e:
+        log(f"Session update error: {e}")
+    
     return True
 
 
