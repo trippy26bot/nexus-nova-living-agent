@@ -12,6 +12,7 @@ import os
 import sys
 import time
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -298,11 +299,10 @@ def daemon_loop():
 
 def start():
     log("Starting autonomy daemon (v10.2)...")
-    pid = os.fork()
-    if pid == 0:
-        daemon_loop()
-    else:
-        print(f"Started PID {pid}")
+    # Use threading instead of os.fork() for cross-platform compatibility
+    daemon_thread = threading.Thread(target=daemon_loop, daemon=True)
+    daemon_thread.start()
+    print(f"Started daemon thread: {daemon_thread.name}")
 
 if __name__ == "__main__":
     start()

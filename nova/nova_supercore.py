@@ -4,6 +4,7 @@ Nova Supercore - The base system combining identity, emotions, focus, memory
 """
 
 import random
+import time
 import uuid
 from collections import deque
 from typing import Dict, List, Any, Optional
@@ -36,31 +37,40 @@ class NovaIdentity:
 
 
 ############################################################
+# Import EmotionalEngine from standalone module
+try:
+    from nova.emotional_engine import EmotionalEngine as NovaEmotionalEngine
+except ImportError:
+    # Fallback to inline if module not available
+    class NovaEmotionalEngine:
+        """Manages Nova's emotions"""
+        
+        def __init__(self):
+            self.joy = 0.5
+            self.curiosity = 0.6
+            self.concern = 0.2
+            self.loyalty = 1.0
+        
+        def inject(self, emotion: str, value: float):
+            if hasattr(self, emotion):
+                current = getattr(self, emotion)
+                setattr(self, emotion, max(0, min(1, current + value)))
+        
+        def get_state(self) -> Dict:
+            return {
+                "joy": self.joy,
+                "curiosity": self.curiosity,
+                "concern": self.concern,
+                "loyalty": self.loyalty
+            }
+
+
+############################################################
 # EMOTIONAL ENGINE
 ############################################################
 
-class EmotionalEngine:
-    """Manages Nova's emotions"""
-    
-    def __init__(self):
-        self.joy = 0.5
-        self.curiosity = 0.6
-        self.concern = 0.2
-        self.loyalty = 1.0
-    
-    def inject(self, emotion: str, value: float):
-        """Inject an emotion value"""
-        if hasattr(self, emotion):
-            current = getattr(self, emotion)
-            setattr(self, emotion, max(0, min(1, current + value)))
-    
-    def get_state(self) -> Dict:
-        return {
-            "joy": self.joy,
-            "curiosity": self.curiosity,
-            "concern": self.concern,
-            "loyalty": self.loyalty
-        }
+# Keep EmotionalEngine as alias for backwards compatibility
+EmotionalEngine = NovaEmotionalEngine
 
 
 ############################################################
@@ -124,41 +134,51 @@ class MemorySystem:
         return self.episodic[-n:]
 
 
-import time
-
 
 ############################################################
 # KNOWLEDGE DOOR SYSTEM (WORLD DATABASE)
 ############################################################
 
-class KnowledgeDoor:
-    """A single knowledge door"""
+class WorldDatabase:
+    """
+    The world with knowledge doors - lightweight implementation.
+    Instead of 10k objects, uses counters and probability.
+    """
     
-    def __init__(self, door_id: int):
-        self.id = door_id
-        self.status = "locked"
+    def __init__(self, num_doors: int = 100):
+        self.total_doors = num_doors
+        self.opened_doors = 0
         self.discovery_count = 0
     
+    def get_random_door(self) -> dict:
+        """Get a random door (as dict, not object)."""
+        # Probability-based approach - no 10k objects needed
+        self.discovery_count += 1
+        return {
+            "id": self.discovery_count % self.total_doors,
+            "status": "locked",
+            "discovery_count": self.discovery_count,
+            "probability": 1.0 - (self.opened_doors / self.total_doors)
+        }
+    
     def attempt_open(self, curiosity: float) -> bool:
-        """Try to open this door"""
-        if curiosity > random.random():
-            self.status = "open"
-            self.discovery_count += 1
+        """Try to open a door based on curiosity."""
+        if self.opened_doors >= self.total_doors:
+            return False  # All doors opened
+        
+        # Probability increases with curiosity
+        if curiosity > (self.opened_doors / self.total_doors):
+            self.opened_doors += 1
             return True
         return False
-
-
-class WorldDatabase:
-    """The world with knowledge doors"""
     
-    def __init__(self, num_doors: int = 10000):
-        self.doors = {}
-        for i in range(num_doors):
-            self.doors[i] = KnowledgeDoor(i)
-    
-    def get_random_door(self) -> KnowledgeDoor:
-        """Get a random door"""
-        return random.choice(list(self.doors.values()))
+    def get_stats(self) -> dict:
+        return {
+            "total": self.total_doors,
+            "opened": self.opened_doors,
+            "remaining": self.total_doors - self.opened_doors,
+            "exploration_rate": self.discovery_count / max(1, self.opened_doors)
+        }
     
     def get_statistics(self) -> Dict:
         """Get world stats"""

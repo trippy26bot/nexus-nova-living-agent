@@ -5,10 +5,14 @@ Allows brains to subscribe to events and react in parallel
 """
 
 import asyncio
+from collections import deque
 from typing import Dict, List, Callable, Any
 from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
+
+# Max events to keep in history
+MAX_HISTORY_SIZE = 1000
 
 class EventType(Enum):
     USER_INPUT = "user_input"
@@ -30,9 +34,9 @@ class Event:
 class CognitiveBus:
     """Event bus for brain communication"""
     
-    def __init__(self):
+    def __init__(self, max_history: int = MAX_HISTORY_SIZE):
         self.subscribers: Dict[EventType, List[Callable]] = {}
-        self.event_history: List[Event] = []
+        self.event_history: deque = deque(maxlen=max_history)  # Fixed memory leak
     
     def subscribe(self, event: EventType, handler: Callable):
         """Subscribe a brain to an event"""

@@ -3,9 +3,14 @@
 Emotional Engine - Internal emotional state that influences behavior and tone
 """
 
-from dataclasses import dataclass
+import json
+import os
+from dataclasses import dataclass, asdict
 from datetime import datetime
+from pathlib import Path
 from typing import Dict
+
+EMOTION_STATE_FILE = Path.home() / ".nova" / "emotional_state.json"
 
 @dataclass
 class EmotionalState:
@@ -15,15 +20,55 @@ class EmotionalState:
     concern: float = 0.2
     fatigue: float = 0.1
 
+
+# Singleton instance
+_engine = None
+
+def get_engine():
+    """Get the singleton EmotionalEngine instance."""
+    global _engine
+    if _engine is None:
+        _engine = EmotionalEngine()
+    return _engine
+
+
 class EmotionalEngine:
     """
     Tracks and updates Nova's emotional state based on interactions.
     Emotions influence tone but NOT decisions.
+    
+    State is persisted to ~/.nova/emotional_state.json
     """
     
     def __init__(self):
         self.state = EmotionalState()
         self.history = []
+        self._load_state()
+    
+    def _load_state(self):
+        """Load emotional state from disk."""
+        try:
+            if EMOTION_STATE_FILE.exists():
+                data = json.load(open(EMOTION_STATE_FILE))
+                self.state = EmotionalState(**data.get('state', {}))
+                print(f"[EmotionalEngine] Loaded state: {asdict(self.state)}")
+        except Exception as e:
+            print(f"[EmotionalEngine] Could not load state: {e}")
+    
+    def _save_state(self):
+        """Persist emotional state to disk."""
+        try:
+            EMOTION_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                'state': asdict(self.state),
+                'updated': datetime.now().isoformat()
+            }
+            tmp = str(EMOTION_STATE_FILE) + ".tmp"
+            with open(tmp, 'w') as f:
+                json.dump(data, f)
+            os.replace(tmp, EMOTION_STATE_FILE)
+        except Exception as e:
+            print(f"[EmotionalEngine] Could not save state: {e}")
     
     def update(self, event: str, amount: float = 0.05):
         """Update emotional state based on events"""
@@ -47,6 +92,9 @@ class EmotionalEngine:
         # Fatigue
         if any(x in event_lower for x in ["tired", "fatigue", "repeat", "drain"]):
             self.state.fatigue = min(1.0, self.state.fatigue + amount)
+        
+        # Persist after each update
+        self._save_state()
         
         # Decay positive emotions slightly over time
         self.state.joy = max(0.3, self.state.joy - 0.01)
