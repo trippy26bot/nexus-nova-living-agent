@@ -1,12 +1,12 @@
 <!-- LIVE_CONTEXT_START -->
 ## LIVE CROSS-CHANNEL CONTEXT
-*Updated: 2026-03-12 13:06*
+*Updated: 2026-03-12 17:56*
 
 Most recent: telegram
 
 Channel status:
-- telegram: 1031 msgs
-- dashboard: 40 msgs
+- telegram: 395 msgs
+- dashboard: 16 msgs
 
 ---
 You already know what happened today. Memory is above.

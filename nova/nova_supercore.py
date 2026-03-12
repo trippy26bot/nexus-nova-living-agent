@@ -116,7 +116,12 @@ class MemorySystem:
     def __init__(self):
         self.episodic = []  # Experiences
         self.semantic = {}   # Facts
-        self.vector = {}     # Embeddings
+        # Use real vector memory if available
+        try:
+            from nova.memory.vector_memory import get_vector_memory
+            self.vector = get_vector_memory()
+        except ImportError:
+            self.vector = {}  # Fallback
     
     def store_experience(self, event: str):
         """Store an experience"""

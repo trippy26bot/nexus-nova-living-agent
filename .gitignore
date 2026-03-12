@@ -65,3 +65,25 @@ Thumbs.db
 *.pem
 *.key
 credentials/
+
+# Runtime state
+.env
+*.log
+nova*.log
+*.log.*
+
+# OpenClaw
+.openclaw/
+agents/main/sessions/*.jsonl
+agents/main/sessions/*.jsonl.*
+
+# Nova runtime
+.emotional_state.json
+.trading_strategy.json
+.skills_manifest.json
+.sessions/
+vector_memory.json
+
+# Memory (private)
+memory/*.md
+!memory/.gitkeep

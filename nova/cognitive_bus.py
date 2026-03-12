@@ -88,11 +88,18 @@ async def tool_brain_handler(data):
 
 
 # Example setup
-def setup_brains(bus: CognitiveBus):
-    """Register brains to events"""
-    bus.subscribe(EventType.USER_INPUT, reasoning_brain_handler)
-    bus.subscribe(EventType.USER_INPUT, memory_brain_handler)
-    bus.subscribe(EventType.USER_INPUT, tool_brain_handler)
+def setup_brains(bus: CognitiveBus, skill_runner=None):
+    """Register REAL brains to events"""
+    try:
+        from nova.brain_handlers import setup_brains as init_brains
+        init_brains(bus, skill_runner)
+        print("[CognitiveBus] ✓ Real brain handlers initialized")
+    except ImportError as e:
+        # Fallback to stubs
+        bus.subscribe(EventType.USER_INPUT, reasoning_brain_handler)
+        bus.subscribe(EventType.USER_INPUT, memory_brain_handler)
+        bus.subscribe(EventType.USER_INPUT, tool_brain_handler)
+        print(f"[CognitiveBus] ⚠ Using stubs: {e}")
 
 
 if __name__ == "__main__":
