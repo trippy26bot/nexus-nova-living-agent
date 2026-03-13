@@ -62,8 +62,8 @@ Nova will now integrate with your OpenClaw agent, adding cognitive depth, memory
 
 ### API Costs
 - Autonomous/idle mode runs continuously and makes LLM calls
-- This **will generate API costs** if using paid providers (OpenAI, Anthropic, etc.)
-- Consider using Groq (fast/cheap) or setting strict daily limits
+- This **will generate API costs** if using paid LLM providers
+- Consider setting strict daily limits or using local models
 - Set `AUTONOMOUS_MODE=false` in .env to disable if needed
 
 ### Setup Requirements
