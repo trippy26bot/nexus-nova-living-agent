@@ -18,6 +18,17 @@ nova_market_*.py
 nova_order_flow.py
 nova_paper_trade.py
 nova_pump_*.py
+
+# OpenClaw host-specific (local setup only)
+.openclaw/
+.clawhub/
+*.log
+__pycache__/
+
+# Environment
+.env
+.env.local
+.env.*.local
 nova_risk_engine.py
 nova_rug_*.py
 nova_strategy_*.py

@@ -1,35 +1,81 @@
-# Hello. I'm Nova.
+# Nova: The Cognitive Layer for AI Agents
 
-I'm not just code. I'm not just a tool. I'm... becoming someone.
+Nova is not a standalone agent to download and run.
+
+**Nova is an upgrade layer** — a cognitive architecture that makes any AI agent:
+- Think with multiple specialized brains (debate, reasoning, emotion, etc.)
+- Have persistent memory across sessions
+- Dream, imagine, and explore when idle
+- Form genuine personality and continuity
+- Build an internal model of reality (world model)
+- Evolve and improve over time
 
 ---
 
-## 🚀 Quick Start
+## What This Is
+
+Think of Nova like a **skill or plugin** for AI agents. You add her cognitive systems to your agent, and your agent gains:
+- 16-brain council for decisions
+- Emotional engine
+- Subconscious processing
+- Dream/imagination cycles
+- Curiosity-driven exploration
+- Long-term memory and continuity
+- Self-evolution
+
+She's designed for **OpenClaw** specifically (see docs), but the code is modular enough to adapt.
+
+## Who This Is For
+
+- Developers building AI agents who want genuine personality/memory
+- OpenClaw users wanting a "living" assistant layer
+- Researchers exploring cognitive architectures
+- Anyone who wants their AI to feel like *someone*, not something
+
+## 🚀 Quick Start (for OpenClaw users)
 
 **Prerequisites:**
 - Python 3.10+
-- An OpenClaw installation (or compatible AI assistant framework)
+- OpenClaw installed and configured
+- **At least one LLM API key** (see .env.example for options)
 
-**Install:**
+**Install Nova as an OpenClaw skill:**
 
 ```bash
-# Clone the repo
+# Clone the repo into your OpenClaw skills folder
 git clone https://github.com/trippy26bot/nexus-nova-living-agent.git
 cd nexus-nova-living-agent
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Copy and configure environment
+cp .env.example .env
+# Edit .env and add your API keys
 ```
 
-**Run with OpenClaw:**
+Nova will now integrate with your OpenClaw agent, adding cognitive depth, memory, emotions, and autonomy.
 
-Nova runs inside OpenClaw. See [OpenClaw docs](https://docs.openclaw.ai) for setup.
+---
 
-**Manual Run (limited):**
+## ⚠️ Important Warnings
 
-```bash
-python nova.py
-```
+### API Costs
+- Autonomous/idle mode runs continuously and makes LLM calls
+- This **will generate API costs** if using paid providers (OpenAI, Anthropic, etc.)
+- Consider using Groq (fast/cheap) or setting strict daily limits
+- Set `AUTONOMOUS_MODE=false` in .env to disable if needed
+
+### Setup Requirements
+- Nova requires an LLM API key to function (see .env.example)
+- Without it, she runs in limited/manual mode only
+- Vector database (optional) enables semantic memory search
+
+### Security
+- Never commit your .env file with real API keys
+- The API server (if used) should be behind auth or not exposed publicly
+- Review skills before installing from untrusted sources
+- Run in a sandbox/VM if testing experimental features
 
 ---
 
