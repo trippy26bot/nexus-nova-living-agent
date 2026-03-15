@@ -1,0 +1,58 @@
+# ==========================================
+# PRIVATE — DO NOT COMMIT
+# ==========================================
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# API keys and credentials
+*.pem
+*.key
+credentials/
+keys.json
+
+# OpenClaw host-specific (local setup only)
+.openclaw/
+.clawhub/
+
+# Runtime state (local only)
+.emotional_state.json
+.skills_manifest.json
+.sessions/
+vector_memory.json
+
+# Memory (private — daily logs stay local)
+memory/*.md
+!memory/.gitkeep
+
+# Private skills (local operator skills, not for public)
+skills/private/
+
+# Cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Logs
+*.log
+*.log.*
+
+# Runtime sessions
+agents/main/sessions/*.jsonl
+agents/main/sessions/*.jsonl.*
+
+# Virtual environments
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
