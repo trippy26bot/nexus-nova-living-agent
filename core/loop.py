@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
 core/loop.py
-Nova Loop — Full Implementation (Phase 7, updated)
+Nova Loop — Full Implementation (Phase 7)
 
-7 layers wired together:
+7 layers:
   1. Goals        → brain/goals.json
   2. Observe      → state/observations.log
-  3. Decide       → core/decide.py (hardcoded priority)
-  4. Act          → core/actions.py (Level 1 + 2)
+  3. Decide       → core/decide.py
+  4. Act          → core/actions.py
   5. Evaluate     → state/evaluations.json
-  6. Retry        → core/retry.py (3 attempts then escalate)
-  7. Memory       → append to observations.log
+  6. Retry        → core/retry.py
+  7. Memory       → observations.log
 
 Kill switch: set state/control.json "run" to false
 """
@@ -29,10 +29,10 @@ from core.process import acquire_pid, release_pid
 from core.decide import decide, idle_maintenance, mark_subtask_done
 from core.actions import (
     read_file, log_event, write_file, update_goal_progress,
-    commit_changes, flag_blocker, propose_goal
+    flag_blocker
 )
 from core.evaluate import evaluate_action
-from core.retry import act_with_retry, log_observation
+from core.retry import log_observation
 
 STATE_DIR = os.path.join(_parent, "state")
 OBS_LOG = os.path.join(STATE_DIR, "observations.log")
@@ -41,7 +41,6 @@ GOALS_FILE = os.path.join(_parent, "brain", "goals.json")
 
 
 def read_control():
-    """Read control.json safely."""
     if not os.path.exists(CTRL_FILE):
         return None
     try:
@@ -52,23 +51,15 @@ def read_control():
 
 
 def observe():
-    """Layer 2 — Observation. Scan state and return what's happening."""
-    observations = {
-        "timestamp": datetime.now().isoformat(),
-        "errors": [],
-        "status": "ok"
-    }
-
+    obs = {"timestamp": datetime.now().isoformat(), "errors": [], "status": "ok"}
     if not os.path.exists(CTRL_FILE):
-        observations["errors"].append("control.json missing")
+        obs["errors"].append("control.json missing")
     if not os.path.exists(GOALS_FILE):
-        observations["errors"].append("goals.json missing")
-
-    return observations
+        obs["errors"].append("goals.json missing")
+    return obs
 
 
 def execute_action(decision):
-    """Layer 4 — Action. Execute the decided subtask."""
     action_type = decision.get("action")
     goal_id = decision.get("goal_id")
     subtask_id = decision.get("subtask_id")
@@ -78,30 +69,23 @@ def execute_action(decision):
         return {"ok": True, "type": "idle"}
 
     if action_type == "mark_complete":
-        result = update_goal_progress(goal_id, 1.0, "complete")
-        evaluate_action("update_goal_progress", result, {"goal_id": goal_id})
-        log_event("decide", f"goal={goal_id} all subtasks done, marked complete")
-        return result
+        # Already complete — just idle
+        log_observation(f"goal={goal_id} complete, idle")
+        return {"ok": True, "type": "idle", "goal_id": goal_id}
 
     if action_type == "execute":
-        # choose_embedding_provider requires operator input — flag blocked
         if subtask_id == "choose_embedding_provider":
-            result = flag_blocker(
-                goal_id,
-                "waiting on embedding_provider_decision"
-            )
+            result = flag_blocker(goal_id, "waiting on embedding_provider_decision")
             evaluate_action("flag_blocker", result, {"goal_id": goal_id})
             return result
 
-        # design_schema already done
         if subtask_id == "design_schema":
             mark_subtask_done(goal_id, "design_schema")
             result = update_goal_progress(goal_id, 0.4, None)
             evaluate_action("update_goal_progress", result, {"goal_id": goal_id})
-            log_event("decide", "design_schema already done")
+            log_event("decide", "design_schema complete")
             return result
 
-        # implement_pipeline
         if subtask_id == "implement_pipeline":
             result = write_file(
                 os.path.join(_parent, "brain", "vector_pipeline.py"),
@@ -113,7 +97,6 @@ def execute_action(decision):
             evaluate_action("write_file", result, {"goal_id": goal_id, "subtask": subtask_id})
             return result
 
-        # integrate_retrieval
         if subtask_id == "integrate_retrieval":
             result = write_file(
                 os.path.join(_parent, "brain", "vector_retrieval.py"),
@@ -132,7 +115,6 @@ def execute_action(decision):
 
 
 def run_loop():
-    """Main loop. All 7 layers."""
     bootstrap()
     acquire_pid()
 
@@ -144,7 +126,7 @@ def run_loop():
             control = read_control()
 
             if control is None:
-                log_observation("control.json missing or invalid, waiting 60s")
+                log_observation("control.json missing, waiting 60s")
                 time.sleep(60)
                 continue
 
@@ -158,22 +140,21 @@ def run_loop():
                 stopped_reason = f"cycle limit ({control.get('max_cycles')})"
                 break
 
-            # Layer 2 — Observe
+            # Observe
             observations = observe()
-
-            # Layer 3 — Decide
             if observations.get("errors"):
                 for err in observations["errors"]:
                     log_event("observe", f"error: {err}")
                 time.sleep(control.get("cycle_interval_seconds", 30))
                 continue
 
+            # Decide
             decision = decide() or idle_maintenance()
 
-            # Layer 4 — Execute
+            # Execute
             result = execute_action(decision)
 
-            # Layer 5 — Evaluate (skip idle)
+            # Evaluate (skip idle)
             if decision.get("action") != "idle":
                 evaluate_action(
                     result.get("type", "unknown"),
@@ -181,18 +162,16 @@ def run_loop():
                     {"goal_id": decision.get("goal_id"), "subtask": decision.get("subtask_id")}
                 )
 
-            log_observation(f"cycle {loop_count} complete")
+            log_observation(f"cycle {loop_count} done [{decision.get('action')}]")
 
-            interval = control.get("cycle_interval_seconds", 30)
-            time.sleep(interval)
+            time.sleep(control.get("cycle_interval_seconds", 30))
 
     except KeyboardInterrupt:
         stopped_reason = "keyboard interrupt"
     finally:
         release_pid()
-        if stopped_reason:
-            log_observation(f"Loop ended: {stopped_reason}")
-            print(f"Loop ended: {stopped_reason}")
+        log_observation(f"Loop ended: {stopped_reason}")
+        print(f"Loop ended: {stopped_reason}")
 
 
 if __name__ == "__main__":
