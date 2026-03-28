@@ -1,2 +1,3 @@
-# vector_pipeline.py — pending implementation
-# Depends on embedding provider decision
+# vector_pipeline.py
+# Pipeline for vector store population.
+# Status: pending — blocked on embedding provider decision.

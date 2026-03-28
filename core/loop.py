@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 core/loop.py
-Nova Loop — Full Implementation (Phase 7)
+Nova Loop — Full Implementation (Phase 7, updated)
 
 7 layers wired together:
   1. Goals        → brain/goals.json
@@ -9,7 +9,7 @@ Nova Loop — Full Implementation (Phase 7)
   3. Decide       → core/decide.py (hardcoded priority)
   4. Act          → core/actions.py (Level 1 + 2)
   5. Evaluate     → state/evaluations.json
-  6. Retry       → core/retry.py (3 attempts then escalate)
+  6. Retry        → core/retry.py (3 attempts then escalate)
   7. Memory       → append to observations.log
 
 Kill switch: set state/control.json "run" to false
@@ -26,7 +26,7 @@ sys.path.insert(0, _parent)
 
 from core.bootstrap import bootstrap
 from core.process import acquire_pid, release_pid
-from core.decide import decide, idle_maintenance
+from core.decide import decide, idle_maintenance, mark_subtask_done
 from core.actions import (
     read_file, log_event, write_file, update_goal_progress,
     commit_changes, flag_blocker, propose_goal
@@ -52,52 +52,26 @@ def read_control():
 
 
 def observe():
-    """
-    Layer 2 — Observation.
-    Scan state and return what's happening.
-    """
+    """Layer 2 — Observation. Scan state and return what's happening."""
     observations = {
         "timestamp": datetime.now().isoformat(),
         "errors": [],
         "status": "ok"
     }
 
-    # Check control.json exists
     if not os.path.exists(CTRL_FILE):
         observations["errors"].append("control.json missing")
-
-    # Check goals.json exists
     if not os.path.exists(GOALS_FILE):
         observations["errors"].append("goals.json missing")
 
     return observations
 
 
-def decide_action(observations):
-    """
-    Layer 3 — Decision.
-    Returns the next action to take.
-    """
-    # Errors always take priority
-    if observations.get("errors"):
-        log_event("observe", f"errors detected: {observations['errors']}")
-        return None  # Handled separately for now
-
-    decision = decide()
-
-    if decision is None:
-        return idle_maintenance()
-
-    return decision
-
-
 def execute_action(decision):
-    """
-    Layer 4 — Action.
-    Execute the decided action.
-    """
+    """Layer 4 — Action. Execute the decided subtask."""
     action_type = decision.get("action")
     goal_id = decision.get("goal_id")
+    subtask_id = decision.get("subtask_id")
 
     if action_type == "idle":
         log_observation("idle — nothing to do")
@@ -106,46 +80,59 @@ def execute_action(decision):
     if action_type == "mark_complete":
         result = update_goal_progress(goal_id, 1.0, "complete")
         evaluate_action("update_goal_progress", result, {"goal_id": goal_id})
-        log_event("decide", f"goal={goal_id} marked complete")
+        log_event("decide", f"goal={goal_id} all subtasks done, marked complete")
         return result
 
     if action_type == "execute":
-        subtask_id = decision.get("subtask_id")
-        subtask = decision.get("subtask", {})
-
-        # Execute the appropriate action based on subtask
+        # choose_embedding_provider requires operator input — flag blocked
         if subtask_id == "choose_embedding_provider":
-            # Can't execute this without operator input — flag it
-            flag_blocker(goal_id, "waiting on embedding_provider_decision")
-            return {"ok": False, "type": "blocked", "reason": "requires operator decision"}
+            result = flag_blocker(
+                goal_id,
+                "waiting on embedding_provider_decision"
+            )
+            evaluate_action("flag_blocker", result, {"goal_id": goal_id})
+            return result
 
-        elif subtask_id == "design_schema":
-            # Schema was already written during the test session
+        # design_schema already done
+        if subtask_id == "design_schema":
+            mark_subtask_done(goal_id, "design_schema")
             result = update_goal_progress(goal_id, 0.4, None)
             evaluate_action("update_goal_progress", result, {"goal_id": goal_id})
-            log_event("decide", f"design_schema already done, progress updated")
+            log_event("decide", "design_schema already done")
             return result
 
-        elif subtask_id == "implement_pipeline":
+        # implement_pipeline
+        if subtask_id == "implement_pipeline":
             result = write_file(
                 os.path.join(_parent, "brain", "vector_pipeline.py"),
-                "# vector_pipeline.py — pending implementation\n# Depends on embedding provider decision\n",
+                "# vector_pipeline.py\n# Pipeline for vector store population.\n# Status: pending — blocked on embedding provider decision.\n",
                 "pipeline stub for vector store"
             )
-            evaluate_action("write_file", result, {"goal_id": goal_id})
+            if result.get("ok"):
+                mark_subtask_done(goal_id, "implement_pipeline")
+            evaluate_action("write_file", result, {"goal_id": goal_id, "subtask": subtask_id})
             return result
 
-        else:
-            log_event("decide", f"unknown subtask: {subtask_id}")
-            return {"ok": False, "type": "unknown_subtask", "subtask": subtask_id}
+        # integrate_retrieval
+        if subtask_id == "integrate_retrieval":
+            result = write_file(
+                os.path.join(_parent, "brain", "vector_retrieval.py"),
+                "# vector_retrieval.py\n# Integration of vector store into session startup.\n# Status: pending — blocked on embedding provider decision.\n",
+                "retrieval integration stub"
+            )
+            if result.get("ok"):
+                mark_subtask_done(goal_id, "integrate_retrieval")
+            evaluate_action("write_file", result, {"goal_id": goal_id, "subtask": subtask_id})
+            return result
+
+        log_event("decide", f"unknown subtask: {subtask_id}")
+        return {"ok": False, "type": "unknown_subtask", "subtask": subtask_id}
 
     return {"ok": False, "type": "unknown_action", "action": action_type}
 
 
 def run_loop():
-    """
-    Main loop. All 7 layers.
-    """
+    """Main loop. All 7 layers."""
     bootstrap()
     acquire_pid()
 
@@ -175,20 +162,25 @@ def run_loop():
             observations = observe()
 
             # Layer 3 — Decide
-            decision = decide_action(observations)
+            if observations.get("errors"):
+                for err in observations["errors"]:
+                    log_event("observe", f"error: {err}")
+                time.sleep(control.get("cycle_interval_seconds", 30))
+                continue
+
+            decision = decide() or idle_maintenance()
 
             # Layer 4 — Execute
-            if decision:
-                result = execute_action(decision)
-                # Layer 5 — Evaluate
-                if decision.get("action") != "idle":
-                    evaluate_action(
-                        result.get("type", "unknown"),
-                        result,
-                        {"goal_id": decision.get("goal_id"), "subtask": decision.get("subtask_id")}
-                    )
+            result = execute_action(decision)
 
-            # Log tick
+            # Layer 5 — Evaluate (skip idle)
+            if decision.get("action") != "idle":
+                evaluate_action(
+                    result.get("type", "unknown"),
+                    result,
+                    {"goal_id": decision.get("goal_id"), "subtask": decision.get("subtask_id")}
+                )
+
             log_observation(f"cycle {loop_count} complete")
 
             interval = control.get("cycle_interval_seconds", 30)
@@ -204,5 +196,5 @@ def run_loop():
 
 
 if __name__ == "__main__":
-    print("Nova Loop starting (Phase 7 — full implementation)...")
+    print("Nova Loop starting (Phase 7)...")
     run_loop()
