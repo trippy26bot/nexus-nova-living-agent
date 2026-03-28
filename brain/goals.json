@@ -1,0 +1,35 @@
+{
+  "locked_goals": [],
+  "active_goals": [
+    {
+      "id": "vector_store_implementation",
+      "priority": 9,
+      "status": "in_progress",
+      "progress": 0.35,
+      "success_metric": "memory_search() returns vector-backed results",
+      "subtasks": [
+        {
+          "id": "design_schema",
+          "status": "complete"
+        },
+        {
+          "id": "choose_embedding_provider",
+          "status": "blocked"
+        },
+        {
+          "id": "implement_pipeline",
+          "status": "pending"
+        },
+        {
+          "id": "integrate_retrieval",
+          "status": "pending"
+        }
+      ],
+      "blockers": [
+        "embedding_provider_decision"
+      ],
+      "created": "2026-03-28"
+    }
+  ],
+  "proposed_goals": []
+}
