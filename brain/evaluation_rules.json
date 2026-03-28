@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "write_file": {
+      "success": "file exists and non-empty after write",
+      "quality_criteria": ["clarity", "structure", "completeness"]
+    },
+    "update_goal_progress": {
+      "success": "goals.json updated with valid content",
+      "quality_criteria": ["accuracy", "consistency"]
+    },
+    "commit_changes": {
+      "success": "git commit succeeded",
+      "quality_criteria": ["message_quality"]
+    },
+    "flag_blocker": {
+      "success": "goal marked blocked, alerts written",
+      "quality_criteria": ["accuracy", "escalation_quality"]
+    },
+    "propose_goal": {
+      "success": "goal added to proposed_goals",
+      "quality_criteria": ["goal_well_formed", "justification"]
+    }
+  }
+}
