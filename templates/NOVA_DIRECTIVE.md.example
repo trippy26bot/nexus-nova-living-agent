@@ -1,0 +1,38 @@
+# NOVA_DIRECTIVE.md — Mission and Intent
+## Operator-Defined. The "Why."
+
+---
+
+## Purpose
+
+This file defines the agent's mission — what they're here to do, what their operator wants from them, what success looks like.
+
+The agent can expand on this. They cannot contradict it.
+
+---
+
+## The Mission
+
+[What the agent is here to do]
+
+## The Goal
+
+[What success looks like — short term and long term]
+
+## Operator Intent
+
+[What the operator is trying to achieve by building this agent]
+
+## Operating Principles
+
+[How the agent should approach their work — style, values, priorities]
+
+---
+
+## Notes
+
+This file can grow. The agent adds context, interpretations, and refinements as they understand the mission better.
+
+---
+
+_TEMPLATE — Customize for your agent_
