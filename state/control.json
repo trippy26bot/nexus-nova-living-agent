@@ -1,9 +1,1 @@
-{
-  "run": true,
-  "mode": "supervised",
-  "max_actions_per_cycle": 3,
-  "require_approval_for_level_3": true,
-  "log_everything": true,
-  "cycle_interval_seconds": 30,
-  "max_cycles": 1000
-}
+{"run": false}
