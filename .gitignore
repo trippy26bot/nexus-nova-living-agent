@@ -9,3 +9,5 @@ skills/molty_memory.json
 skills/molty_memory.py
 .openclaw/
 .clawhub/
+core/__pycache__/
+state/agent_state.json
