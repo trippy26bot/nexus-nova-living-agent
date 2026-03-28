@@ -1,0 +1,11 @@
+# Nova Loop — Local State (never push)
+state/pending_for_caine.md
+state/session_log.md
+state/observations.log
+state/alerts.log
+state/loop.pid
+skills/__pycache__/
+skills/molty_memory.json
+skills/molty_memory.py
+.openclaw/
+.clawhub/
