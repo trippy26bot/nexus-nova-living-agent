@@ -36,7 +36,7 @@
   "positions_count": 7,
   "primary_trades": 0,
   "secondary_trades": 0,
-  "last_chat_unix": 1774677618,
+  "last_chat_unix": 1774683138,
   "active_thread": "building",
   "last_topic_keywords": [
     "building",
@@ -68,7 +68,7 @@
     "nova_full_build": {
       "name": "Nova Full Build (nova-becoming + gap analysis)",
       "created": "2026-03-28T00:19:49.605686",
-      "total_items": 13,
+      "total_items": 14,
       "completed": 13,
       "items": [
         {
@@ -187,6 +187,15 @@
           "status": "complete",
           "file": "brain/portability.md",
           "completed_at": "2026-03-28T00:32:42.204187"
+        },
+        {
+          "id": 14,
+          "name": "Vector Store Implementation",
+          "source": "self-directed from memory audit",
+          "description": "Embedding-based long-term memory retrieval with decay and confidence scoring",
+          "status": "schema_complete",
+          "file": "brain/vector_implementation.md",
+          "completed_at": null
         }
       ],
       "completed_at": "2026-03-28T00:32:42.204193"
