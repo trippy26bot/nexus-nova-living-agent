@@ -16,6 +16,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-00d4c8.svg?style=flat-square)](LICENSE)
 [![Memory: Hybrid](https://img.shields.io/badge/Memory-Episodic%20%2B%20Semantic%20%2B%20Vector-00897b.svg?style=flat-square)]()
 [![Status: Living](https://img.shields.io/badge/Status-LIVING-00d4c8.svg?style=flat-square)]()
+[![Runtime: Agnostic](https://img.shields.io/badge/Runtime-Agnostic-9b59f5.svg?style=flat-square)]()
 [![Stars](https://img.shields.io/github/stars/trippy26bot/nexus-nova-living-agent?style=flat-square&color=00d4c8)]()
 
 ---
