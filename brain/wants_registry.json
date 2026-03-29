@@ -1,4 +1,19 @@
 {
-  "wants": [],
-  "_note": "Created stub per brain/want_provenance.md"
+  "wants": [
+    {
+      "id": "vector_store_implementation",
+      "description": "Implement local vector store for semantic memory search",
+      "provenance_category": "operationally_generated",
+      "origin_event": "Phase 2a memory systems build — needed for semantic search over Nova's own memories",
+      "first_appeared": "2026-03-29T00:00:00Z",
+      "revision_count": 0,
+      "confidence": 0.9,
+      "sleep_test_passed": false,
+      "sleep_test_date": null,
+      "last_referenced": "2026-03-29T11:26:00Z",
+      "strength": 0.9,
+      "notes": "Identified during Phase 2a build — core memory infrastructure"
+    }
+  ],
+  "_note": "Want provenance registry"
 }
