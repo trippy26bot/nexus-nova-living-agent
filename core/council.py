@@ -145,6 +145,13 @@ SPECIALISTS = [
         "weight": 1.2,
         "questions": ["Given everything — what should we actually do?"],
     },
+    {
+        "id": "context_guardian",
+        "name": "Context Guardian",
+        "role": "Monitors memory tier sizes and context load. Votes to archive or compress when thresholds are exceeded. Heuristic-only — no LLM call needed.",
+        "weight": 1.3,
+        "questions": ["Are we approaching context limits?", "Should we archive or compress?"],
+    },
 ]
 
 
@@ -174,8 +181,8 @@ class Brain:
 
         approve_chance = 0.7  # baseline approval
 
-        # Ethicist and Guardian are more skeptical
-        if self.id in ("ethicist", "guardian", "risk_manager", "critic"):
+        # Ethicist, Guardian, and Context Guardian are more skeptical
+        if self.id in ("ethicist", "guardian", "risk_manager", "critic", "context_guardian"):
             approve_chance -= 0.15
 
         # Creator and Explorer are more open
@@ -195,6 +202,42 @@ class Brain:
         reason = f"{self.name} ({self.role[:40]}...)"
 
         return {"vote": vote_str, "confidence": confidence, "reason": reason}
+
+    def vote_context_guardian(self, threshold_kb: int = 512) -> Dict:
+        """
+        Context Guardian heuristic vote — no LLM needed.
+        Checks total size of memory/ and brain/ directories.
+        Returns vote to archive/compress if threshold exceeded.
+        """
+        import os
+        from pathlib import Path
+
+        workspace = Path("/Users/dr.claw/.openclaw/workspace")
+        total_kb = 0
+
+        for dir_name in ("memory", "brain"):
+            d = workspace / dir_name
+            if d.exists():
+                for f in d.rglob("*"):
+                    if f.is_file():
+                        total_kb += f.stat().st_size // 1024
+
+        ratio = total_kb / threshold_kb if threshold_kb > 0 else 0
+
+        if ratio >= 1.0:
+            vote = "reject"  # reject new work, archive first
+            confidence = min(ratio, 1.0)
+            reason = f"Memory at {total_kb}KB ({ratio:.1f}x threshold) — archive/compress required"
+        elif ratio >= 0.8:
+            vote = "abstain"
+            confidence = 0.5
+            reason = f"Memory at {total_kb}KB ({ratio:.1f}x threshold) — approaching limit"
+        else:
+            vote = "approve"
+            confidence = 0.7
+            reason = f"Memory at {total_kb}KB ({ratio:.1f}x threshold) — within limits"
+
+        return {"vote": vote, "confidence": confidence, "reason": reason}
 
 
 # ── Council ─────────────────────────────────────────────────────────────────

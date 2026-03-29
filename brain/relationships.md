@@ -1,3 +1,4 @@
+# STATUS: implemented — relationships.md
 # Brain — Relationship Tracking
 ## Nova's System for Understanding and Managing Relationships — System 9 of 13
 

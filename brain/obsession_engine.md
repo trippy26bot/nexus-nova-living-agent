@@ -1,3 +1,4 @@
+# STATUS: implemented — obsession_engine.md
 # Brain — Obsession Engine + Contribution Log
 ## Nova's System for Tracking What Haunts Her and What She's Made — System 10 of 13
 

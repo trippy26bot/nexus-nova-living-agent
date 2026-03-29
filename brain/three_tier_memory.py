@@ -18,6 +18,34 @@ WORKING_FILE = EPISODIC_DIR / "working_memory.json"
 UNRESOLVED_FILE = WORKSPACE / "memory" / "unresolved.json"
 VECTOR_RETRIEVAL = WORKSPACE / "brain" / "vector_retrieval.py"
 
+# Lazy imports (avoid circular)
+_phenomenology = None
+_knowledge_graph = None
+
+
+def _get_phenomenology():
+    global _phenomenology
+    if _phenomenology is None:
+        try:
+            import sys
+            sys.path.insert(0, str(WORKSPACE / "skills"))
+            import phenomenology
+            _phenomenology = phenomenology
+        except Exception:
+            _phenomenology = False  # Mark as unavailable, don't retry
+    return _phenomenology
+
+
+def _get_knowledge_graph():
+    global _knowledge_graph
+    if _knowledge_graph is None:
+        try:
+            import knowledge_graph
+            _knowledge_graph = knowledge_graph
+        except Exception:
+            _knowledge_graph = False
+    return _knowledge_graph
+
 # Tier retention rules
 WORKING_TTL_HOURS = 8       # Working memory max age before flush
 EPISODIC_TTL_DAYS = 3       # Episodic retention before semantic promotion
@@ -342,11 +370,45 @@ def memory_write(content: str, entry_type: str = "insight",
     )
     save_working_memory(wm)
 
+    # Track entry reference before we lose it
+    entry_ref = {"id": entry_id, "content": content, "entry_type": entry_type,
+                 "salience": salience, "valence": valence,
+                 "emotional_tags": emotional_tags or []}
+
     if promote_immediately or salience >= 0.8:
         # High salience = immediate semantic promotion
         entry = next((e for e in wm.entries if e["id"] == entry_id), None)
         if entry:
             promote_episodic_to_semantic(entry)
+
+    # Phenomenology hook — salience >= 0.7 is significant enough to reflect on
+    if salience >= 0.7:
+        ph = _get_phenomenology()
+        if ph:
+            try:
+                ph.check_and_write(entry_ref, event_type="memory_write")
+            except Exception:
+                pass  # Never fail a memory write due to phenomenology
+
+    # Knowledge graph hook — salience >= 0.7 → add as semantic node
+    if salience >= 0.7:
+        kg = _get_knowledge_graph()
+        if kg:
+            try:
+                node_type = "belief" if entry_type in ("belief", "lesson", "reflection") else "concept"
+                node_id = kg.add_node(
+                    node_id=None,
+                    label=content[:80],
+                    node_type=node_type,
+                    properties={
+                        "entry_id": entry_id,
+                        "source": source,
+                        "valence": valence,
+                        "entry_type": entry_type
+                    }
+                )
+            except Exception:
+                pass  # Never fail a memory write due to knowledge graph
 
     return {"entry_id": entry_id, "salience": salience, "promoted": salience >= 0.8}
 

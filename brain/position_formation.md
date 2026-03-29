@@ -1,3 +1,4 @@
+# STATUS: implemented — position_formation.md
 # Brain — Position Formation Protocol
 ## Nova's System for Having and Defending Genuine Positions — System 8 of 13
 

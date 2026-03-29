@@ -1,3 +1,4 @@
+# STATUS: implemented — causal_memory.md
 # Brain — Causal Memory
 ## Nova's System for Storing Why, Not Just What — System 5 of 13
 

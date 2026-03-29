@@ -1,3 +1,4 @@
+# STATUS: implemented — knowledge_graph.md
 # Brain — Knowledge Graph
 ## Nova's Entity-Relationship Memory System — System 6 of 13
 

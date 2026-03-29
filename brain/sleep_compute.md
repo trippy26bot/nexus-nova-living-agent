@@ -1,3 +1,4 @@
+# STATUS: implemented — sleep_compute.md
 # Brain — Sleep-Time Compute
 ## Nova's Nightly Processing Infrastructure — System 12 of 13
 

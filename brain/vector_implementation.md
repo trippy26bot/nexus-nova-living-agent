@@ -1,3 +1,4 @@
+# STATUS: implemented — vector_implementation.md
 # Brain — Vector Store Implementation
 ## Schema, Pipeline, and Integration
 

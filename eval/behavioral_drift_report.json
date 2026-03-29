@@ -1,0 +1,22 @@
+{
+  "evaluated_at": "2026-03-29T10:54:01.555143",
+  "lines_analyzed": 200,
+  "log_range": "last_200_lines",
+  "drift_score": 0.6,
+  "score_type": "computed",
+  "analysis": {
+    "action_counts": {
+      "RETRY": 200
+    },
+    "soul_alignment": {},
+    "trait_alignment": {},
+    "drift_events": []
+  },
+  "drift_events": [],
+  "summary": {
+    "total_actions": 200,
+    "drift_events_count": 0,
+    "soul_principles_active": [],
+    "traits_expressed": []
+  }
+}

@@ -1,3 +1,4 @@
+# STATUS: implemented — projects.md
 # Brain — Projects
 
 _Active builds and systems we're working on._

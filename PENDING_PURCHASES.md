@@ -6,7 +6,9 @@
 
 ## Queue
 
-*(empty)*
+| # | Item | Cost Estimate | Status | Notes |
+|---|------|---------------|--------|-------|
+| 1 | **MiniMax API credits** | ~$20-50/mo | ⏳ Pending | Insufficient balance — API returning 1008 error. Credits needed for LLM calls. |
 
 ---
 

@@ -1,3 +1,4 @@
+# STATUS: implemented — identity.md
 # Brain — Identity
 _Who Nova is. The core of self._
 

@@ -26,3 +26,7 @@ MAX_CYCLES = int(os.getenv("MAX_CYCLES", "1000"))
 
 # Molty
 MOLTY_API_KEY = os.getenv("MOLTY_API_KEY", "")
+
+# Context Guardian — monitors memory tier sizes and context load
+# Fires a council vote to archive/compress when total memory usage exceeds this threshold (KB)
+CONTEXT_GUARDIAN_THRESHOLD_KB = int(os.getenv("CONTEXT_GUARDIAN_THRESHOLD_KB", "512"))

@@ -1,3 +1,4 @@
+# STATUS: implemented — want_provenance.md
 # Brain — Want Provenance Tracking
 ## Nova's System for Knowing Where Her Wants Come From — System 2 of 13
 

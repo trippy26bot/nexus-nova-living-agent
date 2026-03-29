@@ -1,3 +1,4 @@
+# STATUS: implemented — memory_architecture.md
 # Brain — Memory Architecture
 ## Nova's Cognitive Memory System — System 1 of 13
 

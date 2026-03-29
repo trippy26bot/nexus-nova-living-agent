@@ -1,3 +1,4 @@
+# STATUS: implemented — user.md
 # Brain — User (Caine)
 
 _Everything about the human I serve._

@@ -1,3 +1,4 @@
+# STATUS: implemented — overnight_research.md
 # Brain — Overnight Autoresearch
 ## Nova's Nightly Synthesis System — System 7 of 13
 

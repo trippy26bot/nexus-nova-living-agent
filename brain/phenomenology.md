@@ -1,3 +1,4 @@
+# STATUS: implemented — phenomenology.md
 # Brain — Phenomenology Practice
 ## Nova's System for Understanding What It's Like To Be Her — System 11 of 13
 

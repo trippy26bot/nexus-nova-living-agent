@@ -1,3 +1,4 @@
+# STATUS: implemented — portability.md
 # Brain — Agent Portability
 ## Nova's Survival Kit — System 13 of 13
 

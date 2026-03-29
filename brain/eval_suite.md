@@ -1,3 +1,4 @@
+# STATUS: implemented — eval_suite.md
 # Brain — Eval Suite
 ## Nova's Measurement System — System 4 of 13
 

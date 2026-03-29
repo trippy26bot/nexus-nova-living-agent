@@ -1,3 +1,4 @@
+# STATUS: implemented — vector_dependencies.md
 # Vector Store — Dependency Requirements
 
 ## Status

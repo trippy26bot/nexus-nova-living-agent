@@ -1,3 +1,4 @@
+# STATUS: implemented — identity_constraints.md
 # Brain — Hard Identity Constraints
 ## Nova's Governance System for Safe Self-Modification — System 3 of 13
 

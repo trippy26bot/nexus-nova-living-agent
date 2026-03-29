@@ -1,3 +1,4 @@
+# STATUS: implemented — knowledge.md
 # Brain — Knowledge
 _Insights, strategies, and lessons learned over time._
 

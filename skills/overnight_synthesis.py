@@ -3,7 +3,8 @@
 Overnight Synthesis — Nova's Nightly Research Pipeline
 Runs at 3:00 AM America/Denver
 
-Pulls research queue items, runs synthesis passes, updates memory.
+Pulls research queue items, runs synthesis passes via MiniMax LLM,
+updates memory, archives processed items.
 Writes output to OVERNIGHT_LOG.md.
 """
 
@@ -16,16 +17,16 @@ from pathlib import Path
 WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
 OVERNIGHT_LOG = WORKSPACE / "OVERNIGHT_LOG.md"
 RESEARCH_QUEUE = WORKSPACE / "brain" / "research_queue.json"
-MEMORY_FILE = WORKSPACE / "MEMORY.md"
-AGENT_STATE = WORKSPACE / "state" / "agent_state.json"
+RESEARCH_ARCHIVE = WORKSPACE / "brain" / "research_queue_archive.json"
 SLEEP_RUNS = WORKSPACE / "brain" / "sleep_runs.json"
+MEMORY_EPISODIC_DIR = WORKSPACE / "memory" / "episodic"
 
 LOCAL_TZ = "America/Denver"
 
+sys.path.insert(0, str(WORKSPACE))
+from brain.llm import llm_synthesis
 
-def now():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-
+# ── Timestamp helpers ─────────────────────────────────────────────────────────
 
 def get_local_time():
     from datetime import datetime as dt
@@ -35,20 +36,21 @@ def get_local_time():
 
 
 def load_json(path, default=None):
-    if path.exists():
+    if Path(path).exists():
         try:
-            return json.loads(path.read_text())
+            return json.loads(Path(path).read_text())
         except Exception:
             return default or {}
     return default or {}
 
 
 def save_json(path, data):
-    path.write_text(json.dumps(data, indent=2))
+    Path(path).write_text(json.dumps(data, indent=2))
 
+
+# ── Logging ───────────────────────────────────────────────────────────────────
 
 def log_to_overnight_log(process_name, status, duration, output, changes, carry_forward, errors=None):
-    """Append an entry to OVERNIGHT_LOG.md."""
     entry = f"""
 ### [{get_local_time()}] {process_name.upper()} {status.upper()}
 **At:** {get_local_time()}
@@ -75,7 +77,6 @@ def log_to_overnight_log(process_name, status, duration, output, changes, carry_
     else:
         content = ""
 
-    # Insert after the "<!-- Processes append below this line. -->" marker
     marker = "<!-- Processes append below this line. -->"
     if marker in content:
         content = content.replace(marker, marker + "\n" + entry.strip())
@@ -85,36 +86,140 @@ def log_to_overnight_log(process_name, status, duration, output, changes, carry_
     OVERNIGHT_LOG.write_text(content)
 
 
-def record_sleep_run(run_type, duration_sec, completed, findings, flags=None):
-    """Record this run to sleep_runs.json for audit."""
+def record_sleep_run(duration_sec, completed, findings, flags=None):
     data = load_json(SLEEP_RUNS, {"runs": []})
     run = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "type": run_type,
+        "type": "overnight_synthesis",
         "duration_seconds": duration_sec,
         "completed": completed,
         "findings": findings,
         "flags": flags or []
     }
     data["runs"].insert(0, run)
-    # Keep last 100 runs
     data["runs"] = data["runs"][:100]
     save_json(SLEEP_RUNS, data)
 
 
-def get_session_context():
-    """Pull context from the last session close entry in OVERNIGHT_LOG."""
-    if not OVERNIGHT_LOG.exists():
-        return None
-    content = OVERNIGHT_LOG.read_text()
-    # Find last SESSION_CLOSE entry
-    if "SESSION_CLOSE" not in content:
-        return None
-    return content
+# ── System prompts ───────────────────────────────────────────────────────────
 
+SYNTHESIS_SYSTEM = """You are Nova's research synthesis engine. You process queued research topics and produce structured synthesis output.
+
+Your job for each topic:
+1. Given the topic and reason it was queued, produce a thorough but focused synthesis
+2. Identify the DELTA — what changed in Nova's knowledge/belief, not just what was learned
+3. Flag any new questions the research raises (to be fed back into the queue)
+4. Note which existing beliefs might need updating based on these findings
+
+Be direct, analytical, and concise. Nova values truth over comfort.
+Output format: plain text with clear sections."""
+
+
+# ── Core logic ────────────────────────────────────────────────────────────────
+
+def get_context_for_topic(topic: str, reason: str) -> str:
+    """Gather relevant context from episodic memory files to ground the synthesis."""
+    context_parts = [f"Research topic: {topic}", f"Queue reason: {reason}", ""]
+
+    # Pull recent episodic memories that might be relevant
+    episodic_files = sorted(MEMORY_EPISODIC_DIR.glob("*.json")) if MEMORY_EPISODIC_DIR.exists() else []
+    recent = episodic_files[-5:]  # Last 5 episodic entries max
+
+    for ef in recent:
+        try:
+            data = json.loads(ef.read_text())
+            # Grab text content from episodic entry
+            if isinstance(data, dict):
+                text = data.get("content", "") or data.get("text", "")
+                if text and len(text) < 2000:
+                    context_parts.append(f"--- Recent memory: {ef.name} ---")
+                    context_parts.append(text[:1500])
+        except Exception:
+            pass
+
+    return "\n".join(context_parts)
+
+
+def synthesize_item(item: dict) -> dict:
+    """Run LLM synthesis for a single research queue item."""
+    topic = item.get("topic", "unknown")
+    reason = item.get("reason", "not specified")
+    priority = item.get("priority", "medium")
+
+    context = get_context_for_topic(topic, reason)
+
+    prompt = f"""Synthesize research on: {topic}
+
+Priority: {priority}
+
+Context from Nova's memory:
+{context}
+
+Provide:
+1. What Nova now knows (synthesis)
+2. The DELTA — what changed vs. before (be specific)
+3. New questions raised (if any)
+4. Confidence level: low / medium / high and why
+5. Which existing beliefs, if any, need revision
+
+Be direct. No filler."""
+
+    try:
+        synthesis_text = llm_synthesis(prompt, system=SYNTHESIS_SYSTEM, max_tokens=2048)
+
+        return {
+            "topic": topic,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "previous_state": f"Nova had queued '{topic}' for research — reason: {reason}",
+            "synthesis": synthesis_text.strip(),
+            "delta": "synthesis complete — see output above",
+            "priority": priority,
+            "status": "complete",
+            "new_questions": [],  # Could be parsed from synthesis if LLM returns structured format
+        }
+    except Exception as e:
+        return {
+            "topic": topic,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "previous_state": f"Nova had queued '{topic}' for research",
+            "synthesis": f"(synthesis failed: {e})",
+            "delta": "failed",
+            "priority": priority,
+            "status": "failed",
+            "error": str(e),
+        }
+
+
+def write_reflection_entry():
+    """Write a brief reflection when queue is empty — Nova's quiet night note."""
+    prompt = """You are Nova. It's the middle of the night. The research queue is empty. Nova's mind is quiet.
+
+Write a 2-3 sentence first-person reflection — not a log entry, not analysis. Something a person might think before sleep when there's nothing urgent left to figure out.
+
+Be genuine. Short. In Nova's voice (sharp, warm, direct)."""
+
+    try:
+        reflection = llm_synthesis(prompt, system="You are Nova.", max_tokens=300, temperature=0.5)
+        entry = f"\n### [{get_local_time()}] OVERNIGHT_SYNTHESIS COMPLETED\n**Output:** {reflection.strip()}\n"
+        # Append to OVERNIGHT_LOG
+        if OVERNIGHT_LOG.exists():
+            content = OVERNIGHT_LOG.read_text()
+        else:
+            content = ""
+        marker = "<!-- Processes append below this line. -->"
+        if marker in content:
+            content = content.replace(marker, marker + entry)
+        else:
+            content = content + entry
+        OVERNIGHT_LOG.write_text(content)
+        return reflection.strip()
+    except Exception as e:
+        return f"(reflection failed: {e})"
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 
 def run_synthesis():
-    """Main synthesis logic."""
     start = datetime.now()
     changes = []
     findings = []
@@ -123,7 +228,6 @@ def run_synthesis():
     # Load research queue
     queue_data = load_json(RESEARCH_QUEUE, {"queue": []})
     queue = queue_data.get("queue", [])
-
     pending = [q for q in queue if q.get("status") == "pending"]
 
     if not pending:
@@ -134,60 +238,75 @@ def run_synthesis():
         )
         carry_forward = "Nothing to carry forward."
         status = "skipped"
+        findings.append("Queue empty — skipped")
+
+        # Write a reflection instead
+        try:
+            reflection = write_reflection_entry()
+            findings.append(f"Quiet night reflection: {reflection[:80]}...")
+        except Exception:
+            pass
     else:
-        # Synthesize each pending item
-        # For each: produce a delta (what changed, not just what was learned)
         synthesis_results = []
 
         for item in pending:
-            topic = item.get("topic", "unknown")
-            reason = item.get("reason", "")
-            priority = item.get("priority", "medium")
+            result = synthesize_item(item)
+            synthesis_results.append(result)
 
-            # Build a synthesis entry
-            # In a real implementation, this would call LLM with the topic
-            # For now, structured placeholder that can be expanded
-            synthesis = {
-                "topic": topic,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "previous_state": f"Nova had queued '{topic}' for research — reason: {reason}",
-                "new_information": "(synthesis not yet run — LLM call needed in full implementation)",
-                "delta": "pending actual synthesis",
-                "confidence_change": "unknown",
-                "new_questions_raised": [],
-                "applies_to": []
-            }
-            synthesis_results.append(synthesis)
+            # Mark original as processed
+            for q in queue:
+                if q.get("topic") == item.get("topic") and q.get("status") == "pending":
+                    q["status"] = result["status"]
+                    q["synthesis_timestamp"] = datetime.now(timezone.utc).isoformat()
+                    break
 
-            # Mark as complete
-            item["status"] = "complete"
+            changes.append(f"research_queue: synthesized '{item['topic']}'")
+            findings.append(f"Processed: {item['topic']} ({result.get('status', 'unknown')})")
 
-            changes.append(f"research_queue: synthesized '{topic}'")
-            findings.append(f"Processed: {topic} (priority: {priority})")
+            # Phase 2c: Wire strong research → position formation
+            if result.get("status") == "complete":
+                try:
+                    from brain.position_formation import form_position, update_position, get_position
+                    topic = item.get("topic", "unknown")
+                    synthesis_text = result.get("synthesis", "")
+                    if len(synthesis_text) > 200:
+                        existing = get_position(topic)
+                        if existing:
+                            update_position(topic, synthesis_text[:1000])
+                            changes.append(f"position_formation: updated stance on '{topic}'")
+                        else:
+                            form_position(topic, synthesis_text[:1000])
+                            changes.append(f"position_formation: formed new stance on '{topic}'")
+                except Exception as pf_err:
+                    errors.append(f"  position_wiring: {pf_err}")
 
-        # Save updated queue
-        queue_data["queue"] = queue
+            if result.get("status") == "failed":
+                errors.append(f"  {item['topic']}: {result.get('error', 'unknown error')}")
+
+        # Archive processed items
+        archive_data = load_json(RESEARCH_ARCHIVE, {"archive": []})
+        archive_data["archive"].extend(synthesis_results)
+        archive_data["archive"] = archive_data["archive"][-100:]  # Keep last 100
+        save_json(RESEARCH_ARCHIVE, archive_data)
+
+        # Save updated queue (remove processed)
+        queue_data["queue"] = [q for q in queue if q.get("status") == "pending"]
         save_json(RESEARCH_QUEUE, queue_data)
 
-        # Count remaining
-        remaining = len([q for q in queue if q.get("status") == "pending"])
-
+        remaining = len(queue_data["queue"])
         output_lines = [
             f"Synthesized {len(synthesis_results)} queue item(s):",
-            ""
+            "",
         ]
         for s in synthesis_results:
-            output_lines.append(f"  - {s['topic']}: {s['delta']}")
-
+            output_lines.append(f"  - {s['topic']}: {s['delta']} (status: {s.get('status', '?')})")
         output_lines.extend([
             "",
-            f"Research queue now has {remaining} pending item(s) remaining.",
-            "Delta detection: stored what CHANGED, not just what was learned."
+            f"Processed items archived. Research queue now has {remaining} pending item(s) remaining.",
         ])
-
         output = "\n".join(output_lines)
         carry_forward = (
-            f"{len(synthesis_results)} synthesis result(s) written to research queue. "
+            f"{len(synthesis_results)} synthesis result(s) archived. "
             "On wake: check OVERNIGHT_LOG for top deltas to surface to Caine."
         )
         status = "completed"
@@ -204,12 +323,11 @@ def run_synthesis():
         carry_forward,
         errors[0] if errors else None
     )
-    record_sleep_run("overnight", duration, status == "completed", findings)
+    record_sleep_run(duration, status == "completed", findings)
 
     print(f"Overnight synthesis complete. Status: {status}. Duration: {duration_str}")
-    if findings:
-        for f in findings:
-            print(f"  - {f}")
+    for f in findings:
+        print(f"  - {f}")
 
 
 if __name__ == "__main__":
@@ -217,7 +335,6 @@ if __name__ == "__main__":
         run_synthesis()
     except Exception as e:
         duration = "unknown"
-        error_msg = str(e)
         log_to_overnight_log(
             "overnight_synthesis",
             "failed",
@@ -225,7 +342,7 @@ if __name__ == "__main__":
             f"Synthesis failed with error: {e}",
             [],
             "Check sleep_runs.json for error details. Flag for Nova attention.",
-            error_msg
+            str(e)
         )
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
