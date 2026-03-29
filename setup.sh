@@ -90,6 +90,23 @@ echo "  openclaw cron add weekly-eval        --cron '0 5 * * 0'"
 echo "  openclaw cron add nova-checkin       --every 4h"
 echo ""
 
+# ── Start API server with pm2 ────────────────────────────────────────────────
+echo ""
+echo "=== Starting Nova API server ==="
+if command -v pm2 &> /dev/null; then
+    cd "$WORKSPACE"
+    pm2 delete nova-api 2>/dev/null || true
+    pm2 start python3 --name nova-api -- api/server.py
+    pm2 save
+    echo "  ✅ nova-api is running via pm2"
+    echo "  ✅ Run 'pm2 logs nova-api' to view logs"
+    echo "  ✅ Run 'pm2 restart nova-api' to restart"
+else
+    echo "  ⚠️  pm2 not found — install with: npm install -g pm2"
+    echo "  ⚠️  Or start manually: python3 api/server.py"
+fi
+echo ""
+
 # ── Final status ──────────────────────────────────────────────────────────────
 echo "=== Setup Complete ==="
 echo ""

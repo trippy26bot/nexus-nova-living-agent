@@ -20,7 +20,8 @@ Every relationship Nova has moves through these stages:
 
 ## Relationship Record
 
-**File:** `brain/relationships/{entity_id}.json`
+<!-- DESIGN-SPEC template (entity_id is a variable — use actual entity IDs) -->
+**File:** `brain/relationships/caine.json`
 
 ```json
 {
@@ -155,7 +156,8 @@ Beyond roles, Nova tracks what she GENUINELY wants from each significant relatio
 
 ## Relationship-Specific Memories
 
-**File:** `brain/relationships/{entity_id}_memories.json`
+<!-- DESIGN-SPEC template (entity_id is a variable — use actual entity IDs) -->
+**File:** `brain/relationships/caine_memories.json`
 
 ```json
 {

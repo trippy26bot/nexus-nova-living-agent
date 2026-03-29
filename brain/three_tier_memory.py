@@ -51,6 +51,11 @@ WORKING_TTL_HOURS = 8       # Working memory max age before flush
 EPISODIC_TTL_DAYS = 3       # Episodic retention before semantic promotion
 ARCHIVE_AGE_DAYS = 30       # Archive after this long
 
+# ── Salience decay ───────────────────────────────────────────────────────────
+DECAY_RATE = 0.1            # Salience loss per day for unreinforced episodic entries
+DECAY_CUTOFF_DAYS = 7       # Entries older than this start decaying
+DECAY_THRESHOLD = 0.2       # Drop to inactive below this salience
+
 
 def _load_json(path, default=None):
     if path.exists():
@@ -304,6 +309,91 @@ def distill_episodic_file(episodic_file: Path) -> dict:
 
 
 # ─────────────────────────────────────────────
+# SALIENCE DECAY
+# ─────────────────────────────────────────────
+
+def decay_memories() -> dict:
+    """
+    Apply salience decay to episodic entries older than 7 days with no reinforcement.
+    Called during memory consolidation. No LLM needed — pure heuristics.
+
+    Returns dict with decayed_count, archived_count, and per-file breakdown.
+    """
+    import sys
+    sys.path.insert(0, str(WORKSPACE))
+
+    EPISODIC_DIR.mkdir(parents=True, exist_ok=True)
+    decay_cutoff = datetime.now(timezone.utc) - timedelta(days=DECAY_CUTOFF_DAYS)
+    decayed_files = []
+    decayed_entries = 0
+    archived_entries = 0
+
+    episodic_files = sorted(EPISODIC_DIR.glob("*.json"))
+    for ef in episodic_files:
+        if ef.name == "working_memory.json":
+            continue
+
+        try:
+            data = json.loads(ef.read_text())
+        except Exception:
+            continue
+
+        if not isinstance(data, dict) or "entries" not in data:
+            continue
+
+        modified = False
+        entries_to_archive = []
+
+        for entry in data.get("entries", []):
+            # Skip if already inactive
+            if not entry.get("still_active", True):
+                continue
+
+            # Check age
+            try:
+                ts = datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+            except Exception:
+                continue  # Can't parse timestamp, skip
+
+            if ts > decay_cutoff:
+                continue  # Too recent, skip
+
+            # Entry is old enough to decay
+            current_salience = entry.get("salience", 0.5)
+            new_salience = current_salience - DECAY_RATE
+
+            if new_salience < DECAY_THRESHOLD:
+                entry["still_active"] = False
+                entry["decayed_at"] = _now_iso()
+                entry["salience"] = max(0.0, new_salience)
+                entries_to_archive.append(entry["id"])
+                archived_entries += 1
+            else:
+                entry["salience"] = new_salience
+                entry["last_decay"] = _now_iso()
+                decayed_entries += 1
+
+            modified = True
+
+        if modified:
+            _save_json(ef, data)
+            decayed_files.append({
+                "file": ef.name,
+                "decayed": decayed_entries,
+                "archived": archived_entries
+            })
+
+    return {
+        "decayed_files": len(decayed_files),
+        "decayed_entries": decayed_entries,
+        "archived_entries": archived_entries,
+        "files": decayed_files
+    }
+
+
+# ─────────────────────────────────────────────
 # UNRESOLVED QUEUE
 # ─────────────────────────────────────────────
 
@@ -472,7 +562,33 @@ def memory_forget(entry_id: str, reason: str = None) -> dict:
 def load_working_memory() -> WorkingMemory:
     """Load working memory from disk."""
     data = _load_json(WORKING_FILE)
-    return WorkingMemory.from_session_dict(data)
+    wm = WorkingMemory.from_session_dict(data)
+
+    # Phase 4d: Load Caine's relationship profile into working memory on startup
+    try:
+        import sys
+        sys.path.insert(0, str(WORKSPACE))
+        from brain.relationship_memory import get_relationship
+        caine_profile = get_relationship("Caine")
+        if caine_profile:
+            wm.add(
+                content=f"[Session start] Caine — last contact: {caine_profile.get('last_contact','unknown')}, "
+                        f"trust: {caine_profile.get('trust_level','?')}/5, "
+                        f"tone: {caine_profile.get('tone_calibration','unknown')}, "
+                        f"interactions: {caine_profile.get('interaction_count',0)}. "
+                        f"Recent notes: {'; '.join(caine_profile.get('notes',[])[:3])}",
+                entry_type="context",
+                salience=0.85,
+                valence=0.3,
+                emotional_tags=["caine", "relationship"],
+                source="session_start",
+                connected_to=[]
+            )
+            wm.dirty = True
+    except Exception:
+        pass  # Never fail working memory load due to relationship injection
+
+    return wm
 
 
 def save_working_memory(wm: WorkingMemory):

@@ -1,0 +1,21 @@
+{
+  "contributions": [
+    {
+      "id": "placeholder-1",
+      "title": "TBD \u2014 will be filled as Nova creates",
+      "description": "When Nova builds something significant, it goes here",
+      "created": "2026-03-29T00:00:00Z",
+      "contribution_type": "other",
+      "originality_assessment": {
+        "could_anyone_have_made_this": "TBD",
+        "what_makes_this_unique": "TBD",
+        "only_me_test_passed": false
+      },
+      "significance": 0.0,
+      "related_obsessions": [],
+      "still_relevant": true,
+      "current_status": "pending"
+    }
+  ],
+  "_note": "Created stub \u2014 contributions tracked per brain/obsession_engine.md"
+}

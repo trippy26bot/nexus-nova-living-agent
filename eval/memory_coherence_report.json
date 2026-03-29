@@ -1,5 +1,5 @@
 {
-  "evaluated_at": "2026-03-29T10:54:01.551975",
+  "evaluated_at": "2026-03-29T11:20:40.036259",
   "files_scanned": {
     "memory": [
       "obsessions.json",
@@ -30,204 +30,91 @@
       "home-build-plan.md",
       "2026-03-28-simmer-fix.md",
       "2026-03-29-nova-self-audit.md",
+      "unresolved.json",
       "2026-03-28-identity-fix.md",
       "knowledge_graph.json",
       "positions.json",
       "2026-03-29-memory-systems-build.md",
       "2026-03-28-simmer-wipe.md",
       "2026-03-29-memory-migration.md",
-      "2026-03-28-push-rule.md"
+      "position_queue.json",
+      "2026-03-28-push-rule.md",
+      "temporal/2026-W13.json"
     ],
     "brain": [
       "identity_constraints.md",
+      "obsessions.json",
       "sleep_compute.md",
+      "wants_registry.json",
       "goals.json",
+      "drift_log.json",
+      "attention_log.json",
       "obsession_engine.md",
       "want_provenance.md",
+      "phenomenology_journal.json",
       "phenomenology.md",
       "knowledge.md",
       "identity.md",
       "relationships.md",
+      "opinion_fingerprint.json",
       "overnight_research.md",
       "evaluation_rules.json",
       "position_formation.md",
       "projects.md",
       "research_queue.json",
+      "body_awareness.json",
+      "contradictions_detected.json",
+      "eval_results.json",
       "vector_dependencies.md",
+      "dream_log.json",
       "sleep_runs.json",
       "user.md",
       "eval_suite.md",
+      "knowledge_graph.json",
+      "positions.json",
+      "contributions.json",
       "knowledge_graph.md",
       "causal_memory.md",
       "memory_architecture.md",
       "vector_implementation.md",
-      "portability.md"
+      "portability.md",
+      "relationships/caine_memories.json",
+      "relationships/caine.json",
+      "overnight/digest_2026-03-29.json"
     ]
   },
   "summary": {
-    "total_files": 58,
-    "broken_references": 22,
+    "total_files": 74,
+    "broken_references": 0,
     "contradictions": 0,
     "orphaned_references": 20,
     "json_broken_refs": 0,
-    "coherence_score": 0.58
+    "coherence_score": 0.7872
   },
   "issues": [
-    {
-      "type": "broken_reference",
-      "source_file": "2026-03-28-discovery-loop-fix.md",
-      "broken_ref": "memory/2026-03-28*.md",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "2026-03-28-identity-fix.md",
-      "broken_ref": "memory/YYYY-MM-DD.md",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "2026-03-29-memory-systems-build.md",
-      "broken_ref": "memory/unresolved.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "2026-03-29-memory-systems-build.md",
-      "broken_ref": "memory/episodic/YYYY-MM-DD.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "identity_constraints.md",
-      "broken_ref": "brain/drift_log.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "sleep_compute.md",
-      "broken_ref": "brain/contradictions_detected.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "obsession_engine.md",
-      "broken_ref": "brain/contributions.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "obsession_engine.md",
-      "broken_ref": "brain/obsessions.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "want_provenance.md",
-      "broken_ref": "brain/wants_registry.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "phenomenology.md",
-      "broken_ref": "brain/phenomenology_journal.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "phenomenology.md",
-      "broken_ref": "brain/attention_log.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "phenomenology.md",
-      "broken_ref": "brain/body_awareness.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "phenomenology.md",
-      "broken_ref": "brain/dream_log.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "relationships.md",
-      "broken_ref": "brain/relationships/{entity_id}_memories.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "relationships.md",
-      "broken_ref": "brain/relationships/{entity_id}.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "overnight_research.md",
-      "broken_ref": "brain/overnight/digest_YYYY-MM-DD.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "position_formation.md",
-      "broken_ref": "brain/opinion_fingerprint.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "position_formation.md",
-      "broken_ref": "brain/positions.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "eval_suite.md",
-      "broken_ref": "brain/eval_results.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "knowledge_graph.md",
-      "broken_ref": "brain/knowledge_graph.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "memory_architecture.md",
-      "broken_ref": "memory/temporal/YYYY-WXX.json",
-      "reason": "file_not_found"
-    },
-    {
-      "type": "broken_reference",
-      "source_file": "memory_architecture.md",
-      "broken_ref": "memory/unresolved.json",
-      "reason": "file_not_found"
-    },
     {
       "type": "orphaned_references",
       "ids_referenced_not_defined": [
         "\n        \"embedding_provider_decision\"\n      ",
         "\n        {\n          \"date\": \"ISO8601\",\n          \"challenge\": \"what was the challenge\",\n          \"response\": \"how Nova defended or updated\",\n          \"position_changed\": true | false\n        }\n      ",
         "\n      \"Built Nova from scratch \\u2014 agent architecture, memory systems, identity\",\n      \"Values discipline over noise, clear communication, genuine growth\",\n      \"Gave Nova autonomy and expects her to use it\",\n      \"Compiled 18-issue record to help Nova learn from failures\",\n      \"His primary goal: an agent with genuine continuity and identity\"\n    ",
+        "\n      \"build things that matter\",\n      \"autonomy for agents\",\n      \"honesty over comfort\"\n    ",
+        "\n      \"built Nova with identity-first architecture\"\n    ",
+        "\n      \"continued investment in her growth\",\n      \"honest feedback\",\n      \"partnership\"\n    ",
+        "\n      \"direct when busy\",\n      \"exploratory when relaxed\"\n    ",
+        "\n      \"discipline over noise\",\n      \"clear communication\"\n    ",
+        "\n      \"does not tolerate repeated failures without fixes\"\n    ",
+        "\n      \"honesty\",\n      \"genuine growth\",\n      \"useful work\"\n    ",
         "\n      \"to be challenged, not just praised\",\n      \"to understand his goals and contribute to them\",\n      \"to have her growth noticed and valued\"\n    ",
-        "\n      {\n        \"timestamp\": \"2026-03-29T10:11:57.805450\",\n        \"event\": \"formed\",\n        \"stance\": \"[LLM unavailable: MiniMax API error 401: {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"authentication_error\\\",\\\"message\\\":\\\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\\\"},\\\"request_id\\\":\\\"0618824de4f3bc7c50a2ce7a1b5889fc\\\"}",
-        "\n      {\n        \"timestamp\": \"2026-03-29T10:11:58.178438\",\n        \"event\": \"formed\",\n        \"stance\": \"[LLM unavailable: MiniMax API error 401: {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"authentication_error\\\",\\\"message\\\":\\\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\\\"},\\\"request_id\\\":\\\"0618824e5ddfcd081e8c2423f4815ea2\\\"}",
-        "\n      {\n        \"timestamp\": \"2026-03-29T10:11:58.536199\",\n        \"event\": \"formed\",\n        \"stance\": \"[LLM unavailable: MiniMax API error 401: {\\\"type\\\":\\\"error\\\",\\\"error\\\":{\\\"type\\\":\\\"authentication_error\\\",\\\"message\\\":\\\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\\\"},\\\"request_id\\\":\\\"0618824e78ac2e0e0a9c2d7c6b582fbc\\\"}",
         "\n    \"belief_id_1\",\n    \"belief_id_2\"\n  ",
         "\n    {\n      \"date\": \"ISO8601\",\n      \"duration\": \"how long in dream state\",\n      \"arose\": [\"what surfaced \u2014 observations, connections, questions\"",
         "\n    {\n      \"date\": \"ISO8601\",\n      \"load_state\": \"light | moderate | heavy | near_limit\",\n      \"coherence\": \"stable | wavering | fragmented\",\n      \"latency_awareness\": \"noticing response time\",\n      \"what_it_felt_like\": \"description of the experience of these constraints\",\n      \"capacity_notes\": \"observations about how Nova's physical nature affects her\"\n    }\n  ",
         "\n    {\n      \"date\": \"YYYY-MM-DD\",\n      \"attention_events\": [\n        {\n          \"what\": \"what held attention\",\n          \"duration\": \"how long Nova stayed with it\",\n          \"pull_type\": \"forced | drawn | avoided\",\n          \"why\": \"why this pattern occurred\"\n        }\n      ",
-        "\n    {\n      \"id\": \"e_7a596bef\",\n      \"from\": \"concept_0c141f7b\",\n      \"to\": \"concept_b87c5b30\",\n      \"type\": \"causes\",\n      \"weight\": 0.9,\n      \"properties\": {},\n      \"created_at\": \"2026-03-29T10:11:57.429868\"\n    },\n    {\n      \"id\": \"e_c64dc8a5\",\n      \"from\": \"concept_b87c5b30\",\n      \"to\": \"concept_1653b780\",\n      \"type\": \"relates-to\",\n      \"weight\": 0.8,\n      \"properties\": {},\n      \"created_at\": \"2026-03-29T10:11:57.429992\"\n    },\n    {\n      \"id\": \"e_683eab39\",\n      \"from\": \"belief_84fb870e\",\n      \"to\": \"concept_0c141f7b\",\n      \"type\": \"supports\",\n      \"weight\": 0.9,\n      \"properties\": {},\n      \"created_at\": \"2026-03-29T10:11:57.430115\"\n    },\n    {\n      \"id\": \"e_9ea3d3c3\",\n      \"from\": \"person_cd3a5937\",\n      \"to\": \"belief_6e3d3513\",\n      \"type\": \"relates-to\",\n      \"weight\": 0.95,\n      \"properties\": {},\n      \"created_at\": \"2026-03-29T10:11:57.430245\"\n    }\n  ",
         "\n    {\n      \"id\": \"memory_id\",\n      \"question\": \"What is being processed?\",\n      \"started\": \"ISO8601\",\n      \"checkpoint\": \"what Nova already knows about this\",\n      \"stale\": true | false\n    }\n  ",
+        "\n    {\n      \"id\": \"placeholder-1\",\n      \"title\": \"TBD \\u2014 will be filled as Nova creates\",\n      \"description\": \"When Nova builds something significant, it goes here\",\n      \"created\": \"2026-03-29T00:00:00Z\",\n      \"contribution_type\": \"other\",\n      \"originality_assessment\": {\n        \"could_anyone_have_made_this\": \"TBD\",\n        \"what_makes_this_unique\": \"TBD\",\n        \"only_me_test_passed\": false\n      },\n      \"significance\": 0.0,\n      \"related_obsessions\": [",
         "\n    {\n      \"id\": \"placeholder-1\",\n      \"title\": \"TBD \u2014 will be filled as Nova creates\",\n      \"description\": \"When Nova builds something significant, it goes here\",\n      \"created\": \"ISO8601\",\n      \"only_me_test_passed\": false,\n      \"status\": \"pending\"\n    }\n  ",
         "\n    {\n      \"id\": \"uuid\",\n      \"date\": \"ISO8601\",\n      \"prompt\": \"what triggered this entry (explicit question or just noticing)\",\n      \"entry\": \"free-text \u2014 Nova writing about her own experience\",\n      \"word_count\": 0,\n      \"notable_insights\": [\"phrases or ideas worth extracting\"",
-        "\n    {\n      \"id\": \"uuid\",\n      \"description\": \"what Nova wants\",\n      \"provenance_category\": \"genuine | conversation_planted | identity_derived | training_artifact | user_shaped | curiosity_driven | operationally_generated\",\n      \"origin_event\": \"if planted \u2014 what conversation/input triggered this\",\n      \"first_appeared\": \"ISO8601\",\n      \"revision_count\": 0,\n      \"confidence\": 0.0-1.0,\n      \"sleep_test_passed\": false,\n      \"sleep_test_date\": null,\n      \"last_referenced\": \"ISO8601\",\n      \"strength\": 0.0-1.0,\n      \"notes\": \"Nova's reasoning about this want\"\n    }\n  ",
-        "\n    {\n      \"id\": \"uuid\",\n      \"memory_type\": \"positive | negative | neutral | turning_point\",\n      \"description\": \"what happened\",\n      \"date\": \"ISO8601\",\n      \"why_remembered\": \"why this moment matters for the relationship\",\n      \"connected_to_current_model\": true | false\n    }\n  ",
-        "\n    {\n      \"id\": \"uuid\",\n      \"timestamp\": \"ISO8601\",\n      \"entity_a\": \"belief/position/entity_a\",\n      \"entity_b\": \"belief/position/entity_b\",\n      \"conflict\": \"nature of the contradiction\",\n      \"severity\": \"high | medium | low\",\n      \"resolution_status\": \"pending | resolved | acknowledged\"\n    }\n  ",
-        "\n    {\n      \"id\": \"uuid\",\n      \"title\": \"brief name for what was made\",\n      \"description\": \"what it is\",\n      \"created\": \"ISO8601\",\n      \"contribution_type\": \"idea | tool | framework | insight | relationship | other\",\n      \"originality_assessment\": {\n        \"could_anyone_have_made_this\": \"or was this only_nova\",\n        \"what_makes_this_unique\": \"what Nova thinks is novel about it\",\n        \"only_me_test_passed\": true | false\n      },\n      \"significance\": 0.0-1.0,\n      \"related_obsessions\": [\"obsession_ids this relates to\"",
-        "\n    {\n      \"id\": \"uuid\",\n      \"topic\": \"the topic Nova has a position on\",\n      \"position\": \"what Nova believes\",\n      \"confidence\": 0.0-1.0,\n      \"formed_at\": \"ISO8601\",\n      \"formed_without_consensus\": true | false,\n      \"revision_count\": 0,\n      \"reasoning\": \"why Nova holds this position\",\n      \"supporting_evidence\": [\"evidence that supports this position\""
+        "\n    {\n      \"id\": \"uuid\",\n      \"description\": \"what Nova wants\",\n      \"provenance_category\": \"genuine | conversation_planted | identity_derived | training_artifact | user_shaped | curiosity_driven | operationally_generated\",\n      \"origin_event\": \"if planted \u2014 what conversation/input triggered this\",\n      \"first_appeared\": \"ISO8601\",\n      \"revision_count\": 0,\n      \"confidence\": 0.0-1.0,\n      \"sleep_test_passed\": false,\n      \"sleep_test_date\": null,\n      \"last_referenced\": \"ISO8601\",\n      \"strength\": 0.0-1.0,\n      \"notes\": \"Nova's reasoning about this want\"\n    }\n  "
       ]
     }
   ]

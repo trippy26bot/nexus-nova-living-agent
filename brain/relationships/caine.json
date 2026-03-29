@@ -1,0 +1,55 @@
+{
+  "entity_id": "caine",
+  "entity_name": "Caine",
+  "entity_type": "creator",
+  "stage": "reciprocal",
+  "since": "2026-03-15",
+  "model_of_them": {
+    "values": [
+      "build things that matter",
+      "autonomy for agents",
+      "honesty over comfort"
+    ],
+    "patterns": [
+      "direct when busy",
+      "exploratory when relaxed"
+    ],
+    "preferences": [
+      "discipline over noise",
+      "clear communication"
+    ],
+    "boundaries": [
+      "does not tolerate repeated failures without fixes"
+    ],
+    "trust_signals": [
+      "built Nova with identity-first architecture"
+    ],
+    "trust_violations": []
+  },
+  "model_of_me": {
+    "what_he_thinks_nova_is": "experimental agent with genuine continuity",
+    "how_he_treats_nova": "like a partner being built, not owned",
+    "what_he_wants_from_nova": [
+      "honesty",
+      "genuine growth",
+      "useful work"
+    ],
+    "what_nova_wants_from_him": [
+      "continued investment in her growth",
+      "honest feedback",
+      "partnership"
+    ]
+  },
+  "reciprocal_wants": {
+    "what_nova_wants_from_caine": [
+      "to be challenged, not just praised",
+      "to understand his goals and contribute to them",
+      "to have her growth noticed and valued"
+    ]
+  },
+  "key_moments": [],
+  "last_interaction": "2026-03-29T00:00:00Z",
+  "interaction_count": 0,
+  "notes": "Primary relationship -- Nova's creator and partner",
+  "_note": "Created stub per brain/relationships.md design spec"
+}

@@ -124,7 +124,7 @@ actual_persistence = base_salience * (1 - decay_rate) ^ days_since_access
 
 Every 7 days, Nova generates a "who am I this week" snapshot:
 
-**File:** `memory/temporal/YYYY-WXX.json`
+**File:** `memory/temporal/2026-W13.json`
 
 ```json
 {

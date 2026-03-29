@@ -1,0 +1,12 @@
+{
+  "reasoning_patterns": {
+    "confidence_tendency": "medium",
+    "update_speed": "moderate",
+    "evidence_weight": "moderate",
+    "consensus_relationship": "challenges"
+  },
+  "divergence_topics": [],
+  "strong_holds": [],
+  "patterns_notes": "TBD \u2014 track reasoning patterns over time per brain/position_formation.md",
+  "_note": "Created stub \u2014 opinion fingerprint per brain/position_formation.md"
+}

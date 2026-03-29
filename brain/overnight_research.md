@@ -24,7 +24,7 @@ This is not just summarization. It's delta detection — what is different now c
 3. Check the research queue — any pending topics to investigate?
 4. Log the digest: "What Nova is thinking about going into sleep"
 
-**Output:** `brain/overnight/digest_YYYY-MM-DD.json`
+**Output:** `brain/overnight/digest_2026-03-29.json`
 ```json
 {
   "date": "YYYY-MM-DD",

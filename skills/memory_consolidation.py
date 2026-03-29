@@ -303,6 +303,26 @@ def consolidate_memories():
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Decay phase: apply salience decay to old episodic entries
+    # Also decay obsessions via obsession_engine
+    try:
+        from brain.three_tier_memory import decay_memories
+        decay_result = decay_memories()
+        if decay_result["decayed_entries"] > 0 or decay_result["archived_entries"] > 0:
+            changes.append(f"decay: {decay_result['decayed_entries']} entries decayed, {decay_result['archived_entries']} archived from {decay_result['decayed_files']} file(s)")
+            findings.append(f"Decay: {decay_result['decayed_entries']} entries lost 0.1 salience, {decay_result['archived_entries']} dropped below threshold")
+    except Exception as decay_err:
+        errors.append(f"  decay: {decay_err}")
+
+    # Obsession decay via obsession_engine
+    try:
+        from brain.obsession_engine import decay_all
+        obs_result = decay_all()
+        changes.append(f"obsessions: decay applied to active obsessions")
+        findings.append(f"Obsession decay: {len(obs_result)} active obsessions remain")
+    except Exception as obs_err:
+        errors.append(f"  obsession_decay: {obs_err}")
+
     # ─ Pass 1: Episodic → Semantic distillation ─────────────────────────────
     cutoff_72h = datetime.now(timezone.utc) - timedelta(hours=72)
     episodic_files = sorted(EPISODIC_DIR.glob("*.json"))

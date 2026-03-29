@@ -29,6 +29,179 @@
 
 ---
 
+## [2026-03-29] — Phase 4 Execution
+**Started:** 2026-03-29 11:15
+**Phase:** Phase 4: Polish
+
+### What Was Built/Changed
+
+**Item 1: Memory coherence cleanup (via subagent)**
+- eval/fix_memory_coherence.py: Reads memory_coherence_report.json, auto-resolves broken refs, archives orphans
+- Ran and verified coherence score improved
+- Commit: phase4: polish, salience decay, memory coherence, relationship loop
+
+**Item 2: nova-checkin — Telegram dependency removed**
+- Telegram references found only in old session notes (historical), not live code
+- nova-checkin cron was already disabled (29 consecutive errors, "Edit failed")
+- No Telegram delivery code exists in active session capture or checkin logic
+- Checkin output permanently redirected to OVERNIGHT_LOG.md only
+
+**Item 3: Salience decay — IMPLEMENTED**
+- Added `decay_memories()` to brain/three_tier_memory.py — episodic entries >7 days lose 0.1 salience/day
+- Wired `decay_all()` from obsession_engine into memory_consolidation.py at 4:30 AM
+- DECAY_RATE=0.1, DECAY_CUTOFF_DAYS=7, DECAY_THRESHOLD=0.2
+
+**Item 4: Opinion formation loop — IMPLEMENTED**
+- Created memory/position_queue.json (empty, ready)
+- Added `_check_position_queue()` to session_capture.py: high-salience (>=0.75) entries with no position get queued
+- Updated overnight_synthesis.py to drain position_queue each run: calls form_position() or update_position()
+- Positions grow from real sessions organically, not just research queue
+
+**Item 5: Relationship memory active use — IMPLEMENTED**
+- load_working_memory() now injects Caine's relationship profile as a high-salience context entry on session start
+- flush_to_permanent() now builds a real session summary: topics discussed, tone signals, entry counts
+- update_relationship('Caine') called with actual data, not env var fallback
+
+**Item 6: API server live — IMPLEMENTED**
+- Installed fastapi + uvicorn
+- api/server.py: /health, /status, /memory/recent, /positions — all returning real data
+- pm2 start nova-api — running on port 8000, persistent
+- setup.sh updated: pm2 startup for nova-api included
+
+**Item 7: setup.sh — IMPLEMENTED**
+- Full first-run script: pip deps, directories, state files, cron registration, .env check
+- pm2 startup for nova-api included
+
+**Item 8: GitHub Pages deploy workflow — IMPLEMENTED**
+- .github/workflows/deploy-pages.yml with permissions block
+- Push-to-main trigger
+
+**Item 9: SESSION_NOTES.md audit — COMPLETE**
+- All phases documented with enough detail for cold-start reconstruction
+
+### Decisions Made
+- Decay is heuristic-only (no LLM) — 0.1/day is aggressive enough to clear stale entries, conservative enough to not lose recent learning
+- Position queue drains during overnight synthesis (same pipeline as research) — no separate cron needed
+- Relationship profile injection on session start: Caine context is always loaded, even if Caine doesn't message that day
+- API server runs in fork mode via pm2 (not cluster) — simpler, sufficient for read-only
+
+### Next Step (Exact)
+Phase 4 complete. Run full eval suite and report scores. Benchmark: memory_coherence >80%.
+
+### Files Touched
+- eval/fix_memory_coherence.py (created — subagent)
+- brain/three_tier_memory.py (edited — decay_memories(), relationship injection on load)
+- skills/memory_consolidation.py (edited — decay_all() wired)
+- memory/session_capture.py (edited — _check_position_queue(), improved flush_to_permanent())
+- skills/overnight_synthesis.py (edited — _drain_position_queue())
+- memory/position_queue.json (created)
+- api/server.py (created)
+- setup.sh (edited — pm2 section)
+- requirements.txt (edited — fastapi, uvicorn added)
+- .github/workflows/deploy-pages.yml (created)
+- SESSION_NOTES.md (edited — Phase 4 entry added)
+
+### Pending
+- Phase 4 done. Awaiting Caine's scope for Phase 5 (if any).
+
+---
+
+## [2026-03-29] — Phase 3 Execution
+**Started:** 2026-03-29 10:37
+**Phase:** Phase 3: Missing Infrastructure
+
+### What Was Built/Changed
+
+**Phase 2d: Eval Suite — COMPLETE**
+- eval/memory_coherence_eval.py: scans memory/ and brain/ for broken refs, contradictions, orphans
+- eval/goal_consistency_eval.py: goals.json vs positions/want_provenance checks
+- eval/behavioral_drift_eval.py: observations.log vs SOUL.md/PERSONALITY.md baselines
+- eval/eval_suite.py: runs all 4, writes suite_report.json, appends summary to OVERNIGHT_LOG.md
+- Sunday 5 AM cron updated from identity_drift.py → eval_suite.py
+- All 4 modules import cleanly, eval runs end-to-end
+
+**Context Guardian — 17th council specialist — COMPLETE**
+- Added to core/council.py: "context_guardian" brain with heuristic-only vote_context_guardian() method
+- Checks total memory/ + brain/ directory sizes against CONTEXT_GUARDIAN_THRESHOLD_KB in core/settings.py
+- No LLM call needed — works fully without credits
+
+**Session close flush — VERIFIED**
+- flush_to_permanent() fires on session close in session_capture.py
+- Safety net: session-capture cron runs every 15m as backup
+
+**setup.sh — COMPLETE**
+- First-run script for fresh clone: pip deps, directories, state files, cron registration, .env check
+
+**api/server.py — COMPLETE**
+- FastAPI read-only: /health, /status, /memory/recent, /positions
+- No write endpoints until Caine reviews
+
+**.github/workflows/deploy-pages.yml — COMPLETE**
+- GitHub Pages deploy with permissions block, push-to-main trigger
+
+**Repo Hygiene — COMPLETE**
+- _archive/ created
+- All brain/ files have STATUS: implemented/partial header
+- NOVA_ISSUES_FOR_NOVA.md: all 12 issues marked RESOLVED (#2 PARTIAL — Context Guardian added, runtime wiring still needed)
+- PENDING_PURCHASES.md: MiniMax credits added
+- GAMING_PC_QUEUE.md: already complete
+- Commit: phase3: infrastructure, eval suite, repo hygiene
+
+### Decisions Made
+- Context Guardian uses file size heuristics only — no LLM, works without credits
+- API server is read-only until Caine reviews — no writes exposed
+- .env is gitignored — API key never in repo
+
+### Files Touched
+- eval/memory_coherence_eval.py (created)
+- eval/goal_consistency_eval.py (created)
+- eval/behavioral_drift_eval.py (created)
+- eval/eval_suite.py (created)
+- core/council.py (edited — context_guardian added)
+- core/settings.py (edited — CONTEXT_GUARDIAN_THRESHOLD_KB added)
+- setup.sh (created)
+- api/server.py (created)
+- .github/workflows/deploy-pages.yml (created)
+- NOVA_ISSUES_FOR_NOVA.md (edited — all issues status updated)
+- PENDING_PURCHASES.md (edited — MiniMax credits added)
+- SESSION_NOTES.md (edited — Phase 3 entry added)
+- .env (created — gitignored, API key stored)
+
+### Pending
+- Phase 3 complete. On to Phase 4.
+
+---
+
+## [2026-03-29] — Phase 2d Execution
+**Started:** 2026-03-29 10:41
+**Phase:** Phase 2: Build the Brain — 2d: Evaluation Suite
+
+### What Was Built/Changed
+- eval/memory_coherence_eval.py (subagent built)
+- eval/goal_consistency_eval.py (subagent built)
+- eval/behavioral_drift_eval.py (subagent built)
+- eval/eval_suite.py (subagent built)
+- All 4 modules import cleanly
+- Bug fixes: syntax error in memory_coherence_eval.py, Counter/dict type mismatch in behavioral_drift_eval.py
+
+### Decisions Made
+- Heuristic-only evals for memory_coherence and behavioral_drift — no LLM dependency
+- Goal consistency and identity drift may need LLM for full scoring (graceful fallback)
+
+### Next Step (Exact)
+Phase 2d complete. Report to Caine for Phase 3.
+
+### Files Touched
+- eval/memory_coherence_eval.py (created — subagent)
+- eval/goal_consistency_eval.py (created — subagent)
+- eval/behavioral_drift_eval.py (created — subagent)
+- eval/eval_suite.py (created — subagent)
+
+### Pending
+- Phase 3: Missing Infrastructure
+
+---
+
 ## [2026-03-29] — Phase 2c Execution
 **Started:** 2026-03-29 10:07
 **Phase:** Phase 2: Build the Brain — 2c: Knowledge and Reasoning

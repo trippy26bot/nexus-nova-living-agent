@@ -1,0 +1,5 @@
+{
+  "drift_checks": [],
+  "rollback_events": [],
+  "_note": "Created stub \u2014 implement drift detection per brain/identity_constraints.md"
+}

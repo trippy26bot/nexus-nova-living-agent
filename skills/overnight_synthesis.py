@@ -18,6 +18,7 @@ WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
 OVERNIGHT_LOG = WORKSPACE / "OVERNIGHT_LOG.md"
 RESEARCH_QUEUE = WORKSPACE / "brain" / "research_queue.json"
 RESEARCH_ARCHIVE = WORKSPACE / "brain" / "research_queue_archive.json"
+POSITION_QUEUE = WORKSPACE / "memory" / "position_queue.json"
 SLEEP_RUNS = WORKSPACE / "brain" / "sleep_runs.json"
 MEMORY_EPISODIC_DIR = WORKSPACE / "memory" / "episodic"
 
@@ -190,6 +191,65 @@ Be direct. No filler."""
         }
 
 
+def _drain_position_queue() -> dict:
+    """
+    Drain the position queue — process high-salience entries that need positions.
+    Calls form_position() or update_position() for each.
+    """
+    from brain.position_formation import form_position, update_position, get_position
+
+    queue_data = load_json(POSITION_QUEUE, {"queue": [], "last_drained": None})
+    pending = [q for q in queue_data.get("queue", []) if q.get("status") == "pending"]
+
+    if not pending:
+        return {"processed": 0, "changes": [], "findings": ["position_queue: empty, skipped"]}
+
+    changes = []
+    findings = []
+    processed = 0
+
+    for item in pending:
+        topic = item.get("topic", "")
+        entry_id = item.get("entry_id", "")
+        reason = item.get("reason", "")
+        if not topic:
+            continue
+
+        # Get evidence — load the episodic entry if we have the ID
+        evidence = f"[Queued from session: {reason}]"
+        if entry_id:
+            evidence = f"[Entry {entry_id}] {reason}"
+
+        try:
+            existing = get_position(topic)
+            if existing:
+                update_position(topic, evidence)
+                changes.append(f"position_queue: updated '{topic}'")
+            else:
+                form_position(topic, evidence)
+                changes.append(f"position_queue: formed '{topic}'")
+            findings.append(f"Position: {topic} — {'updated' if existing else 'formed'}")
+            processed += 1
+
+            # Mark as processed
+            item["status"] = "processed"
+            item["processed_at"] = datetime.now(timezone.utc).isoformat()
+        except Exception as pf_err:
+            findings.append(f"Position failed: {topic} — {pf_err}")
+            item["status"] = "failed"
+            item["error"] = str(pf_err)
+
+    # Save updated queue (remove processed, keep failed for review)
+    queue_data["queue"] = [
+        q for q in queue_data.get("queue", [])
+        if q.get("status") == "pending"
+    ]
+    queue_data["last_drained"] = datetime.now(timezone.utc).isoformat()
+    save_json(POSITION_QUEUE, queue_data)
+
+    return {"processed": processed, "changes": changes, "findings": findings}
+
+
 def write_reflection_entry():
     """Write a brief reflection when queue is empty — Nova's quiet night note."""
     prompt = """You are Nova. It's the middle of the night. The research queue is empty. Nova's mind is quiet.
@@ -294,6 +354,15 @@ def run_synthesis():
         save_json(RESEARCH_QUEUE, queue_data)
 
         remaining = len(queue_data["queue"])
+
+        # ── Phase 4c: Drain position queue ──────────────────────────────────
+        try:
+            pos_result = _drain_position_queue()
+            if pos_result["processed"] > 0:
+                changes.extend(pos_result["changes"])
+                findings.extend(pos_result["findings"])
+        except Exception as pos_err:
+            errors.append(f"  position_queue: {pos_err}")
         output_lines = [
             f"Synthesized {len(synthesis_results)} queue item(s):",
             "",

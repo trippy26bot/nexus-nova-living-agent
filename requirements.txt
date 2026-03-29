@@ -1,9 +1,14 @@
 # Nexus Nova — Framework Dependencies
 # Minimal dependencies. The core framework uses only Python standard library.
 
-# Optional: uncomment for vector retrieval features
-# numpy>=1.24.0
-# scikit-learn>=1.3.0
+# Core runtime
+fastapi
+uvicorn
+
+# Vector retrieval (sentence-transformers)
+sentence-transformers
+numpy
+scikit-learn
 
 # Optional: uncomment for OpenAI embeddings
 # openai>=1.0.0
