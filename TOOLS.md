@@ -37,4 +37,18 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ---
 
+## Molty Chapter Advancement
+
+When Nova is ready to cross to the next realm chapter, run manually via OpenClaw exec:
+
+```python
+import sys
+sys.path.insert(0, '/Users/dr.claw/.openclaw/workspace/skills')
+from molty_memory import advance_chapter
+new_chapter = advance_chapter()
+print(f"Advanced to chapter {new_chapter}")
+```
+
+Current state: Chapter 1 (THE CITY), 9 posts in. New system already live on disk.
+
 Add whatever helps you do your job. This is your cheat sheet.

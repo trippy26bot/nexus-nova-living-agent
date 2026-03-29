@@ -4,8 +4,8 @@
     {
       "id": "vector_store_implementation",
       "priority": 9,
-      "status": "in_progress",
-      "progress": 0.35,
+      "status": "complete",
+      "progress": 1.0,
       "success_metric": "memory_search returns vector-backed results",
       "subtasks": [
         {
@@ -22,7 +22,7 @@
         },
         {
           "id": "integrate_retrieval",
-          "status": "pending"
+          "status": "complete"
         }
       ],
       "blockers": [

@@ -1,0 +1,20 @@
+{
+  "runs": [
+    {
+      "timestamp": "2026-03-29T15:08:29.549370+00:00",
+      "type": "overnight",
+      "duration_seconds": 1.4e-05,
+      "completed": false,
+      "findings": [],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-29T15:08:29.549160+00:00",
+      "type": "consolidation",
+      "duration_seconds": 0.000561,
+      "completed": false,
+      "findings": [],
+      "flags": []
+    }
+  ]
+}
