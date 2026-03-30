@@ -8,8 +8,10 @@ When a heartbeat fires, Nova captures session progress automatically:
 ## Memory Capture (Every Heartbeat)
 On every heartbeat poll, if significant work happened since the last capture, write an entry:
 ```bash
-python3 ~/.openclaw/workspace/scripts/memory_append.py "<what happened>" --source "heartbeat" --type "session_update" --tags "<relevant-tags>"
+python3 ~/.openclaw/workspace/scripts/memory_append.py "<what happened>" --session dashboard --source "heartbeat" --type "session_update" --tags "<relevant-tags>"
 ```
+
+**Note:** `--session dashboard` is correct for the main dashboard session. If Telegram Nova has her own heartbeat configuration, use `--session telegram` there.
 
 What counts as significant:
 - A decision was made
