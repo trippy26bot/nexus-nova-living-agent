@@ -225,7 +225,7 @@ def load_ollama_endpoint():
             content = f.read()
 
         # Loose match: 'ollama' near IP:port
-        match = re.search(r"(?i)ollama[^\n]*?(https?://[\d\.]+:\d+)", content)
+        match = re.search(r"(?i)ollama[^\n]*?`?(https?://[\d\.]+:\d+)`?", content)
         if match:
             return match.group(1)
 
