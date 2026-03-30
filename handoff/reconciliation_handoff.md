@@ -99,10 +99,16 @@ response = requests.post(
 **⚠️ Runtime config — do not hardcode:** The Ollama endpoint must be read from `TOOLS.md` at runtime, not assumed from startup context. TOOLS.md is not currently in the session startup read sequence, so the reconciliation script must load it directly. Add config loading to the reconcile script:
 ```python
 def _load_ollama_endpoint() -> str:
+    """Parse TOOLS.md loosely — human-maintained markdown drifts in formatting."""
     tools_path = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "TOOLS.md")
     content = open(tools_path).read()
-    # parse "Ollama: http://192.168.0.3:11434" from TOOLS.md
-    match = re.search(r"Ollama:\s*(https?://[^\s]+)", content)
+    # Loose match: line containing "ollama" near an IP:port pattern
+    # Handles: "Ollama: http://...", "- Ollama: ...", "ollama at ..."
+    match = re.search(r"(?i)ollama[^\n]*?(https?://[\d\.]+:\d+)", content)
+    if match:
+        return match.group(1)
+    # Fallback: any IP:port that looks like an Ollama endpoint
+    match = re.search(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:11434)", content)
     return match.group(1) if match else "http://192.168.0.3:11434"
 ```
 Call this at the top of the synthesize step, not in script initialization.
