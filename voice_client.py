@@ -14,8 +14,8 @@ import soundfile as sf
 import requests
 
 PC_IP = os.environ.get("DESKTOP_IP", "192.168.0.3")
-TTS_URL = f"http://{PC_IP}:8010/tts"   # Kokoro TTS on PC (verify port)
-STT_URL = f"http://{PC_IP}:8010/stt"   # Whisper on PC (verify port)
+TTS_URL = f"http://{PC_IP}:8765/tts"   # Kokoro TTS on PC (verify port)
+STT_URL = f"http://{PC_IP}:8765/stt"   # Whisper on PC (verify port)
 API_URL = "http://localhost:8000"       # nova-api
 
 SAMPLE_RATE = 16000
