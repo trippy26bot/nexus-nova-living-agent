@@ -80,7 +80,21 @@ Produce clusters: `[{dashboard_entry, telegram_entry, or solo_entry}]`
 - **CONCORDANT:** both sessions, same emotional register → light synthesis
 - **DIVERGENT:** both sessions, different interpretation or affect → full reconciliation prompt
 
-**4. SYNTHESIZE (LLM call per DIVERGENT cluster)**
+**⚠️ LLM Configuration — Override Default:**
+The synthesis call must use **local Ollama (Qwen2.5 14B on gaming PC)** as primary, not MiniMax or any cloud API. Cloud is emergency fallback only.
+
+```python
+# Primary: local Qwen2.5 14B on gaming PC (RTX 4070 SUPER)
+response = requests.post(
+    "http://192.168.0.3:11434/api/chat",
+    json={
+        "model": "qwen2.5:14b",
+        "messages": [{"role": "user", "content": synthesis_prompt}],
+        "stream": False
+    }
+)
+# Fallback only if PC is unreachable — not the default path
+```
 
 Prompt — use **exactly as written**, do not rewrite:
 ```

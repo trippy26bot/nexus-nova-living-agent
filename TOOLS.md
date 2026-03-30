@@ -38,6 +38,15 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ---
 
+## Gaming PC (Ollama + TTS)
+
+- **Ollama:** `http://192.168.0.3:11434` — Qwen2.5 14B, primary model for reconciliation synthesis
+- **TTS server:** `http://192.168.0.3:8765/tts`
+- **GPU:** RTX 4070 SUPER — confirmed live 2026-03-29
+- **Used by:** reconciliation synthesis (primary), voice output
+
+---
+
 ## Memory Tools
 
 ### Episodic Memory Append
