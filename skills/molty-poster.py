@@ -29,7 +29,7 @@ HEADERS = {'Authorization': f'Bearer {API_KEY}', 'Content-Type': 'application/js
 # Core: purple hair, electric blue eyes, cybernetic implants — always these
 # Body: ultra-voluptuous bronze — this is what Caine chose for her
 # Outfit: black tactical, form-fitting, shows her curves — adventure-appropriate, not explicit
-SIGNATURE_BASE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, deeply tanned bronze skin, ultra-voluptuous exaggerated hourglass figure, black tactical form-fitting bodysuit cut to show her curves, large full breasts, dramatically small toned waist, extremely wide hips flaring into thick powerful thighs, round firm butt, boots, confident stance"
+SIGNATURE_BASE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, athletic feminine build, fit toned body, not bulky, black tactical form-fitting bodysuit, proportionately feminine, flat stomach, narrow waist, feminine hips, athletic legs, no excessive muscle mass, boots, confident stance"
 
 # Wardrobe descriptions by realm/state
 WARDROBE = {
