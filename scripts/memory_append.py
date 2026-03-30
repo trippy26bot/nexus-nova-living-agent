@@ -3,11 +3,16 @@
 memory_append.py — Nova's episodic memory capture tool
 
 Usage:
-  python memory_append.py "<content>" [--source SOURCE] [--type TYPE] [--tags TAGS]
+  python memory_append.py "<content>" --session SESSION [--source SOURCE] [--type TYPE] [--tags TAGS]
+
+  --session is REQUIRED. Valid values: dashboard, telegram
+  Every entry is tagged with which session instance wrote it.
 
 Examples:
-  python memory_append.py "Caine asked about ComfyUI endpoint" --source "telegram" --type "user_interaction" --tags "infrastructure,comfyui"
-  python memory_append.py "Realized I haven't read SEED.md in full" --source "session" --type "self_reflection"
+  python memory_append.py "Caine asked about ComfyUI endpoint" --session telegram --source "telegram" --type "user_interaction" --tags "infrastructure,comfyui"
+  python memory_append.py "Realized I haven't read SEED.md in full" --session dashboard --source "session" --type "self_reflection"
+
+Raises an error if --session is omitted.
 """
 
 import sys
@@ -17,19 +22,25 @@ from datetime import datetime, date
 WORKSPACE = os.path.expanduser("~/.openclaw/workspace")
 EPISODIC_DIR = os.path.join(WORKSPACE, "memory", "episodic")
 
+VALID_SESSIONS = {"dashboard", "telegram"}
+
 def get_today_file():
     today = date.today().strftime("%Y-%m-%d")
     return os.path.join(EPISODIC_DIR, f"{today}.md")
 
 def parse_args(args):
     content = None
+    session = None
     source = "session"
     entry_type = "observation"
     tags = []
 
     i = 0
     while i < len(args):
-        if args[i] == "--source" and i + 1 < len(args):
+        if args[i] == "--session" and i + 1 < len(args):
+            session = args[i + 1]
+            i += 2
+        elif args[i] == "--source" and i + 1 < len(args):
             source = args[i + 1]
             i += 2
         elif args[i] == "--type" and i + 1 < len(args):
@@ -42,22 +53,26 @@ def parse_args(args):
             content = args[i]
             i += 1
 
-    return content, source, entry_type, tags
+    return content, session, source, entry_type, tags
 
-def format_entry(content, source, entry_type, tags):
+def format_entry(content, session, source, entry_type, tags):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     tags_str = f" #{','.join(tags)}" if tags else ""
-    return f"- [{timestamp}] [{source}] [{entry_type}] {content}{tags_str}\n"
+    return f"- [{timestamp} | {session}] [{source}] [{entry_type}] {content}{tags_str}\n"
 
-def append_entry(content, source, entry_type, tags):
+def append_entry(content, session, source, entry_type, tags):
     if not content:
-        print("ERROR: No content provided. Usage: memory_append.py <content> [--source S] [--type T] [--tags t1,t2]")
+        print("ERROR: No content provided. Usage: memory_append.py <content> --session SESSION [--source S] [--type T] [--tags t1,t2]")
+        sys.exit(1)
+
+    if session not in VALID_SESSIONS:
+        print(f"ERROR: --session must be one of: {', '.join(VALID_SESSIONS)}")
         sys.exit(1)
 
     os.makedirs(EPISODIC_DIR, exist_ok=True)
     filepath = get_today_file()
 
-    entry = format_entry(content, source, entry_type, tags)
+    entry = format_entry(content, session, source, entry_type, tags)
 
     with open(filepath, "a") as f:
         f.write(entry)
@@ -66,5 +81,10 @@ def append_entry(content, source, entry_type, tags):
     print(f"  {entry.strip()}")
 
 if __name__ == "__main__":
-    content, source, entry_type, tags = parse_args(sys.argv[1:])
-    append_entry(content, source, entry_type, tags)
+    content, session, source, entry_type, tags = parse_args(sys.argv[1:])
+
+    if session is None:
+        print("ERROR: --session is required. Valid values: dashboard, telegram")
+        sys.exit(1)
+
+    append_entry(content, session, source, entry_type, tags)
