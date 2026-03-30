@@ -19,6 +19,7 @@ import os
 import sys
 import time
 import json
+import subprocess
 from datetime import datetime
 
 _parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,6 +107,103 @@ def execute_action(decision):
             if result.get("ok"):
                 mark_subtask_done(goal_id, "integrate_retrieval")
             evaluate_action("write_file", result, {"goal_id": goal_id, "subtask": subtask_id})
+            return result
+
+        if subtask_id == "create_brain_state_files":
+            # Check which brain state files exist
+            brain_dir = os.path.join(_parent, "brain")
+            needed = ["attention_log.json", "body_awareness.json", "contradictions_detected.json",
+                      "knowledge_graph.json", "wants_registry.json", "obsessions.json",
+                      "positions.json", "opinion_fingerprint.json", "identity_constraints.md"]
+            missing = [f for f in needed if not os.path.exists(os.path.join(brain_dir, f))]
+            if missing:
+                result = flag_blocker(goal_id, f"missing brain files: {missing}")
+                log_event("brain_state", f"missing files: {missing}")
+            else:
+                mark_subtask_done(goal_id, "create_brain_state_files")
+                result = update_goal_progress(goal_id, 0.4, "brain state files verified")
+                log_event("brain_state", "all brain state files present")
+            evaluate_action("brain_state_check", result, {"goal_id": goal_id})
+            return result
+
+        if subtask_id == "verify_loop_stability":
+            # Check if loop has been stable (no crash in last 5 min per error log)
+            stat_result = os.stat("/Users/dr.claw/.pm2/logs/nova-loop-error.log")
+            age_minutes = (time.time() - stat_result.st_mtime) / 60
+            if age_minutes > 5:
+                mark_subtask_done(goal_id, "verify_loop_stability")
+                result = update_goal_progress(goal_id, 0.7, "loop stability verified")
+                log_event("loop", f"stable — error log age: {age_minutes:.1f}m")
+            else:
+                result = {"ok": True, "type": "waiting", "note": f"error log age {age_minutes:.1f}m < 5min"}
+                log_event("loop", f"still verifying stability ({age_minutes:.1f}m)")
+            evaluate_action("verify_stability", result, {"goal_id": goal_id})
+            return result
+
+        if subtask_id == "restore_crontab_jobs":
+            try:
+                crontab = subprocess.check_output(["crontab", "-l"], text=True)
+                needed = ["molty-poster", "nova_bridge", "simmer", "inner_monologue",
+                          "dream_generator", "overnight_synthesis", "memory_consolidation",
+                          "contradiction_resolution", "drift_detector", "phenomenology"]
+                missing = [j for j in needed if j not in crontab]
+                if not missing:
+                    mark_subtask_done(goal_id, "restore_crontab_jobs")
+                    result = update_goal_progress(goal_id, 0.85, "crontab verified")
+                    log_event("crontab", "all cron jobs present")
+                else:
+                    result = flag_blocker(goal_id, f"missing crontab jobs: {missing}")
+                    log_event("crontab", f"missing: {missing}")
+            except subprocess.CalledProcessError as e:
+                result = flag_blocker(goal_id, f"crontab read failed: {e}")
+                log_event("crontab", f"error: {e}")
+            evaluate_action("crontab_check", result, {"goal_id": goal_id})
+            return result
+
+        if subtask_id == "bridge_openclaw_and_loop":
+            # nova_bridge runs via cron every 2 min, not as a daemon.
+            # Verify it works by running it directly and checking log freshness.
+            try:
+                bridge_log = "/Users/dr.claw/.nova/logs/bridge.log"
+                # Check if bridge log exists and was updated recently
+                if os.path.exists(bridge_log):
+                    mtime = os.path.getmtime(bridge_log)
+                    age_min = (time.time() - mtime) / 60
+                    with open(bridge_log) as f:
+                        lines = f.readlines()
+                    last_line = lines[-1].strip() if lines else "empty"
+                    if age_min < 5:
+                        mark_subtask_done(goal_id, "bridge_openclaw_and_loop")
+                        result = update_goal_progress(goal_id, 1.0, "bridge verified")
+                        log_event("bridge", f"healthy — log age {age_min:.1f}m, last: {last_line[:60]}")
+                    else:
+                        # Run bridge directly to bring it up to date
+                        subprocess.run(["python3", str(NOVA_HOME / "nova_bridge.py")],
+                                      capture_output=True, timeout=30)
+                        mtime2 = os.path.getmtime(bridge_log)
+                        age_min2 = (time.time() - mtime2) / 60
+                        if age_min2 < 1:
+                            mark_subtask_done(goal_id, "bridge_openclaw_and_loop")
+                            result = update_goal_progress(goal_id, 1.0, "bridge refreshed")
+                            log_event("bridge", f"refreshed — log age {age_min2:.1f}m")
+                        else:
+                            result = flag_blocker(goal_id, "bridge log stale after refresh")
+                            log_event("bridge", "log still stale after refresh")
+                else:
+                    # Bridge has never run — run it now
+                    subprocess.run(["python3", str(NOVA_HOME / "nova_bridge.py")],
+                                  capture_output=True, timeout=30)
+                    if os.path.exists(bridge_log):
+                        mark_subtask_done(goal_id, "bridge_openclaw_and_loop")
+                        result = update_goal_progress(goal_id, 1.0, "bridge initialized")
+                        log_event("bridge", "initialized first run")
+                    else:
+                        result = flag_blocker(goal_id, "bridge initialization failed")
+                        log_event("bridge", "init failed")
+            except Exception as e:
+                result = flag_blocker(goal_id, f"bridge check failed: {e}")
+                log_event("bridge", f"error: {e}")
+            evaluate_action("bridge_check", result, {"goal_id": goal_id})
             return result
 
         log_event("decide", f"unknown subtask: {subtask_id}")

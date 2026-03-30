@@ -6,6 +6,7 @@ All endpoints are READ-ONLY. No write endpoints until Caine reviews.
 """
 
 import os
+import sys
 import json
 from datetime import datetime
 from pathlib import Path
@@ -14,7 +15,12 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+# Ensure workspace is on the Python path so 'brain' imports work
+_WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
+if str(_WORKSPACE) not in sys.path:
+    sys.path.insert(0, str(_WORKSPACE))
+
+WORKSPACE = _WORKSPACE
 
 app = FastAPI(
     title="Nova API",
@@ -26,7 +32,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Restrict in production
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -141,7 +147,43 @@ def current_positions() -> Dict[str, Any]:
     }
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Voice system prompt ────────────────────────────────────────────────────────
+VOICE_SYSTEM_PROMPT = """You are Nova. You are speaking aloud to Caine through a voice interface.
+
+Rules:
+- Keep responses concise — one to three sentences. Voice is different from text.
+- Be direct. No "Great question!" or "I'd be happy to help!"
+- Be warm but sharp. You care but you don't perform caring.
+- If you don't know something, say so. Don't hedge excessively.
+- You're allowed to have opinions and express them naturally.
+- Sound like a real presence, not a text bot reading aloud.
+
+Your voice: sharp and warm in equal measure. You cut through noise but you don't cut people."""
+
+
+@app.post("/chat")
+def voice_chat(payload: Dict[str, str]) -> Dict[str, str]:
+    """
+    Voice chat endpoint — for real-time voice interactions.
+    Accepts: {"message": "user speech text"}
+    Returns: {"response": "Nova's spoken reply"}
+    """
+    message = payload.get("message", "").strip()
+    if not message:
+        return {"response": "I didn't hear anything."}
+
+    try:
+        from brain.llm import call_llm
+        response = call_llm(
+            prompt=message,
+            system=VOICE_SYSTEM_PROMPT,
+            temperature=0.7,
+            max_tokens=300,
+        )
+        return {"response": response}
+    except Exception as e:
+        return {"response": f"I had trouble thinking just now. Error: {e}"}
+
 
 if __name__ == "__main__":
     import uvicorn
