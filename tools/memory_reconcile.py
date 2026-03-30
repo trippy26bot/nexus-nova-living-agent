@@ -274,8 +274,8 @@ Write the unified memory entry now. No preamble, no metadata — just the memory
         try:
             resp = requests.post(
                 f"{ollama_endpoint}/api/chat",
-                json={"model": "qwen2.5:14b", "messages": [{"role": "user", "content": prompt}], "stream": False},
-                timeout=60
+                json={"model": "qwen2.5:14b-instruct-q4_K_M", "messages": [{"role": "user", "content": prompt}], "stream": False},
+                timeout=120
             )
             if resp.status_code == 200:
                 result = resp.json()
