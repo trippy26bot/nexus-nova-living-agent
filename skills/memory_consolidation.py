@@ -21,12 +21,13 @@ Writes output to OVERNIGHT_LOG.md.
 """
 
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 OVERNIGHT_LOG = WORKSPACE / "OVERNIGHT_LOG.md"
 MEMORY_DIR = WORKSPACE / "memory"
 EPISODIC_DIR = MEMORY_DIR / "episodic"

@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-PROVENANCE_PATH = "/Users/dr.claw/.openclaw/workspace/memory/want_provenance.json"
+PROVENANCE_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/")want_provenance.json"
 
 OriginType = Literal["session_context", "research_finding", "caine_instruction", "self_generated", "overnight_synthesis", "unknown"]
 

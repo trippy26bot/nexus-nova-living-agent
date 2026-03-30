@@ -212,7 +212,7 @@ class Brain:
         import os
         from pathlib import Path
 
-        workspace = Path("/Users/dr.claw/.openclaw/workspace")
+        workspace = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
         total_kb = 0
 
         for dir_name in ("memory", "brain"):

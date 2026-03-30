@@ -1,6 +1,79 @@
 {
   "runs": [
     {
+      "timestamp": "2026-03-30T11:02:37.371677+00:00",
+      "type": "contradiction_resolution",
+      "duration_seconds": 0.000351,
+      "completed": false,
+      "findings": [
+        "No contradictions to resolve"
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-30T10:33:11.042281+00:00",
+      "type": "memory_consolidation",
+      "duration_seconds": 0.001488,
+      "completed": false,
+      "findings": [],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-30T09:10:00.785920+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 10.363276,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: The stars are out in force tonight, a million silent sentinels watching over the..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-30T08:00:10.548698+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 9.416099,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: The stars are out in full force tonight, and the silence is almost palpable. It'..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-29T19:49:37.074422+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 0.537088,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: (reflection failed: MiniMax API error 500: {\"type\":\"error\",\"error\":{\"type\":\"api_..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-29T19:48:38.057833+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 6.2e-05,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: (reflection failed: MINIMAX_API_KEY environment variable is not set)..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-03-29T19:47:48.942603+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 0.00025,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: (reflection failed: brain.llm.call_llm() got multiple values for keyword argumen..."
+      ],
+      "flags": []
+    },
+    {
       "timestamp": "2026-03-29T15:08:29.549370+00:00",
       "type": "overnight",
       "duration_seconds": 1.4e-05,

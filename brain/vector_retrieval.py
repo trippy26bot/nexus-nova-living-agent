@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Add workspace to path for imports
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 sys.path.insert(0, str(WORKSPACE))
 
 from brain.vector_pipeline import search, get_recent, touch, get_stats, embed_and_store

@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 
-GRAPH_PATH = "/Users/dr.claw/.openclaw/workspace/memory/knowledge_graph.json"
+GRAPH_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/")knowledge_graph.json"
 
 NodeType = Literal["concept", "entity", "belief", "person", "place", "topic"]
 EdgeType = Literal["causes", "contradicts", "supports", "relates-to", "is-a", "leads-to"]

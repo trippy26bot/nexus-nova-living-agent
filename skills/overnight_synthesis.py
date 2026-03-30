@@ -14,7 +14,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 OVERNIGHT_LOG = WORKSPACE / "OVERNIGHT_LOG.md"
 RESEARCH_QUEUE = WORKSPACE / "brain" / "research_queue.json"
 RESEARCH_ARCHIVE = WORKSPACE / "brain" / "research_queue_archive.json"

@@ -31,9 +31,6 @@ def _resolve_decision_class():
     from core.decide_with_council import DecideWithCouncil
     return DecideWithCouncil
 
-_DecisionClass = _resolve_decision_class()
-
-
 # ── Base DecisionEngine ─────────────────────────────────────────────────────
 
 class DecisionEngine:
@@ -59,6 +56,27 @@ class DecisionEngine:
         return None
 
     def decide(self):
+        # Surface drift context — read latest drift record
+        try:
+            import sqlite3 as _sq
+            _db = _sq.connect(os.path.join(os.getenv("NOVA_HOME", os.path.expanduser("~/.nova")), "nova.db"))
+            _drift = _db.execute(
+                'SELECT composite, drift_content FROM drift_log ORDER BY timestamp DESC LIMIT 1'
+            ).fetchone()
+            _db.close()
+            if _drift:
+                self._drift_composite = _drift[0]
+                self._drift_status = 'stable' if _drift[0] < 0.15 else 'drift_detected' if _drift[0] < 0.40 else 'breach'
+                if self._drift_status == 'breach':
+                    print(f'[decide] ⚠️ DRIFT BREACH in effect — composite {_drift[0]}')
+            else:
+                self._drift_composite = 0.0
+                self._drift_status = 'no_data'
+        except Exception as _e:
+            self._drift_composite = 0.0
+            self._drift_status = 'error'
+
+        print(f'[decide] drift_status={self._drift_status} composite={self._drift_composite}')
         goals = self.get_goals()
         if goals is None:
             return None
@@ -71,14 +89,18 @@ class DecisionEngine:
                 "goal_id": goal["id"],
                 "subtask_id": None,
                 "action": "mark_complete",
-                "goal": goal
+                "goal": goal,
+                "drift_status": self._drift_status,
+                "drift_composite": self._drift_composite
             }
         return {
             "goal_id": goal["id"],
             "subtask_id": subtask["id"],
             "action": "execute",
             "goal": goal,
-            "subtask": subtask
+            "subtask": subtask,
+            "drift_status": self._drift_status,
+            "drift_composite": self._drift_composite
         }
 
 
@@ -142,11 +164,12 @@ class DecideWithCouncil(DecisionEngine):
 
 # ── public API ──────────────────────────────────────────────────────────────
 
-def decide():
+def decide(state=None, goals=None, memory=None):
     """
     Single shared entry point used by loop.py.
-    Resolution happens once at import time.
+    Lazy resolution avoids circular import at import time.
     """
+    _DecisionClass = _resolve_decision_class()
     engine = _DecisionClass()
     return engine.decide()
 

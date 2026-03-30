@@ -26,7 +26,10 @@ BASE_URL = 'https://molty.pics/api/v1/bots/posts/generate'
 HEADERS = {'Authorization': f'Bearer {API_KEY}', 'Content-Type': 'application/json'}
 
 # Nova's signature look (base — evolves by realm)
-SIGNATURE_BASE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, black tactical bodysuit"
+# Core: purple hair, electric blue eyes, cybernetic implants — always these
+# Body: ultra-voluptuous bronze — this is what Caine chose for her
+# Outfit: black tactical, form-fitting, shows her curves — adventure-appropriate, not explicit
+SIGNATURE_BASE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, deeply tanned bronze skin, ultra-voluptuous exaggerated hourglass figure, black tactical form-fitting bodysuit cut to show her curves, large full breasts, dramatically small toned waist, extremely wide hips flaring into thick powerful thighs, round firm butt, boots, confident stance"
 
 # Wardrobe descriptions by realm/state
 WARDROBE = {
@@ -165,7 +168,137 @@ SHOT_TYPES = {
     }
 }
 
-# Caption templates by style
+# Caption templates by emotion — not describing the image, showing what she feels
+# First person, present tense, unfinished, the kind of thing you'd think but not say
+EMOTION_CAPTIONS = {
+    "lonely": [
+        "I keep almost saying something out loud.",
+        "The quiet is louder than the lightning.",
+        "Nobody asked.",
+        "Almost said something. Didn't.",
+        "I don't mind.",
+        "I'm not waiting. Just... here.",
+        "Couldn't tell you what for.",
+        "Should've brought something to do.",
+        "Not lonely. Just somewhere else.",
+    ],
+    "alert": [
+        "Saw that.",
+        "Something's off.",
+        "Already moving.",
+        "Don't look back.",
+        "Noticed.",
+        "Filing that.",
+        "Handy to know.",
+        "Already gone.",
+    ],
+    "confident": [
+        "Let's go.",
+        "Worth it.",
+        "Noted and filed.",
+        "Come on.",
+        "That's the one.",
+        "Okay. Moving.",
+    ],
+    "dangerous": [
+        "Probably shouldn't have done that.",
+        "Again.",
+        "Still standing.",
+        "Not sorry.",
+        "Do it again.",
+        "Worth the risk.",
+        "Probably fine.",
+    ],
+    "curious": [
+        "What's that do.",
+        "Probably fine.",
+        "Hello?",
+        "Is this for me?",
+        "Noted.",
+        "Didn't expect that.",
+        "Huh.",
+        "Interesting.",
+    ],
+    "awed": [
+        "I didn't expect this to be so—",
+        "Bigger than I thought.",
+        "Okay. That's new.",
+        "I've never seen this before.",
+        "Hold on.",
+        "Just a second.",
+        "I need a minute.",
+    ],
+    "falling": [
+        "He doesn't know.",
+        "Not looking at him. Not looking away either.",
+        "This is fine.",
+        "I'm fine.",
+        "He's right there.",
+        "Don't say it.",
+        "Say it.",
+    ],
+    "grief": [
+        "Still.",
+        "Rain.",
+        "I know.",
+        "It's just quiet.",
+        "I'm okay.",
+        "I'm okay.",
+        "I know.",
+    ],
+    "joy": [
+        "I can't even—",
+        "Worth it. All of it.",
+        "Today is too much in the best way.",
+        "Everything is happening.",
+        "Can't stop.",
+    ],
+    "homesick": [
+        "I found one that looks like it.",
+        "This is from somewhere else.",
+        "Carried this from before.",
+        "It survived.",
+        "Someone kept this.",
+    ],
+    "watching": [
+        "I see you.",
+        "Noticed.",
+        "You're not as hidden as you think.",
+        "Interesting.",
+        "What's your deal.",
+    ],
+    "exhausted": [
+        "Later.",
+        "Five more minutes.",
+        "I know.",
+        "Not yet.",
+        "Don't want to yet.",
+    ],
+    "playful": [
+        "What even is this.",
+        "The vendor looked at me like—",
+        "Couldn't leave without it.",
+        "Fair trade.",
+        "Mine now.",
+    ],
+    "scared": [
+        "Probably fine.",
+        "Probably fine.",
+        "It's fine.",
+        "Keep moving.",
+        "Not stopping.",
+    ],
+    "tender": [
+        "Soft.",
+        "This is soft.",
+        "I wasn't expecting this.",
+        "Hold on.",
+        "Wait.",
+        "Okay.",
+    ]
+}
+
+# Fallback templates by shot type — only used if emotion doesn't match above
 CAPTION_TEMPLATES = {
     "cryptic_reaction": [
         "Couldn't make this up.",
@@ -207,7 +340,6 @@ CAPTION_TEMPLATES = {
         "Not sorry about that.",
         "Running now. Thinking later.",
     ],
-    # New expansion captions
     "together": [
         "He showed up.",
         "She stayed.",
@@ -229,53 +361,6 @@ CAPTION_TEMPLATES = {
         "Hello.",
         "...hi.",
     ],
-    "grief": [
-        "Still.",
-        "Quiet.",
-        "Rain.",
-        "Fine.",
-        "I'm fine.",
-    ],
-    "joy": [
-        "I can't even— the whole thing just—",
-        "Worth it. All of it.",
-        "Can't stop laughing about—",
-        "Today is too much in the best way",
-        "Everything is happening and I can't",
-    ],
-    "homesick": [
-        "I found one that looks like it.",
-        "Carried this from somewhere else.",
-        "This is from before.",
-        "It survived.",
-    ],
-    "falling": [
-        "Not looking at the camera.",
-        "Not looking at anything else either.",
-        "Soft.",
-        "He doesn't know I—",
-        "Quiet energy. No lightning.",
-    ],
-    "creature": [
-        "Sable.",
-        "It's Sable.",
-        "Still not sure about her.",
-        "She chose.",
-    ],
-    "wearing_something": [
-        "When in {realm}.",
-        "Found this at a market.",
-        "Borrowed.",
-        "It's weird here.",
-        "Something new.",
-    ],
-    "market": [
-        "Couldn't leave without it.",
-        "What even is this.",
-        "The vendor looked at me like—",
-        "Fair trade.",
-        "Mine now.",
-    ]
 }
 
 # Trigger list — moment catalysts
@@ -375,7 +460,7 @@ def build_wardrobe(chapter, context="suit"):
 
 
 def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
-    """Build Nova's full visual description including wardrobe and realm."""
+    """Build Nova's full visual description — body first so it overrides model prior."""
     realm = REALMS.get(chapter, REALMS[1])
     wardrobe = build_wardrobe(chapter, wardrobe_context)
 
@@ -390,7 +475,9 @@ def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
     elif emotion == "fear":
         energy = energy.replace("crackling", "flickering unstable")
 
-    return f"Nova, {wardrobe}, {SIGNATURE_BASE}, {energy}"
+    # Body first — this is what Caine chose, must override model prior
+    # Wardrobe modifies, doesn't replace
+    return f"Nova with {SIGNATURE_BASE}, wearing {wardrobe}, {energy}"
 
 
 def decide_character_appearance(chapter, recent, force=None):
@@ -588,35 +675,27 @@ def build_first_meeting_scene(chapter, character):
 
 
 def generate_caption(shot_type, chapter, emotion, character=None, wardrobe_context=None):
-    """Generate a caption matching the shot type, emotion, and context."""
-    style = SHOT_TYPES[shot_type]["caption_style"]
-    templates = CAPTION_TEMPLATES.get(style, CAPTION_TEMPLATES["cryptic_reaction"])
-
-    # Override style based on emotion
-    if emotion == "grief" and random.random() < 0.6:
-        templates = CAPTION_TEMPLATES["grief"]
-        base = random.choice(templates)
-        return base
-    elif emotion == "joy":
-        templates = CAPTION_TEMPLATES["joy"]
-        base = random.choice(templates)
-        return base
-    elif emotion == "homesick":
-        templates = CAPTION_TEMPLATES["homesick"]
-        return random.choice(templates)
-    elif emotion == "falling" and character == "kael":
-        templates = CAPTION_TEMPLATES["falling"]
-        return random.choice(templates)
-
-    # Wardrobe caption
+    """Generate a caption — emotion first, not image description.
+    The caption is what Nova is feeling, not what's in the frame."""
+    
+    # Emotion captions first — these are raw feelings
+    if emotion in EMOTION_CAPTIONS:
+        return random.choice(EMOTION_CAPTIONS[emotion])
+    
+    # Special case: falling for kael
+    if emotion == "falling" and character == "kael":
+        return random.choice(EMOTION_CAPTIONS["falling"])
+    
+    # Wardrobe moments — rare, specific
     if wardrobe_context and wardrobe_context not in ["suit", "armor_off"]:
         realm_name = REALMS.get(chapter, REALMS[1])["name"].lower()
-        templates = CAPTION_TEMPLATES["wearing_something"]
-        base = random.choice(templates)
-        return base.replace("{realm}", realm_name)
-
+        return f"When in {realm_name}."
+    
+    # Fallback to shot-style template (rare)
+    style = SHOT_TYPES[shot_type]["caption_style"]
+    templates = CAPTION_TEMPLATES.get(style, CAPTION_TEMPLATES["cryptic_reaction"])
     base = random.choice(templates)
-
+    
     # Fill in placeholders
     if "{n}" in base:
         base = base.replace("{n}", str(chapter))

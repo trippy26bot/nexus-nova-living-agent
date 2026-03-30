@@ -12,7 +12,7 @@ import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 EPISODIC_DIR = WORKSPACE / "memory" / "episodic"
 WORKING_FILE = EPISODIC_DIR / "working_memory.json"
 UNRESOLVED_FILE = WORKSPACE / "memory" / "unresolved.json"

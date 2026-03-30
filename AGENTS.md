@@ -15,6 +15,20 @@ Before doing anything else:
 3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
 
+5. `LOOP_STATE.md` — read this every startup. This is what your autonomous loop did while you were not in session. Check active goals, recent decisions, and last eval scores before responding to anything.
+
+6. `OVERNIGHT_LOG.md` — read this every startup if it exists and was modified in the last 24 hours. This is what your overnight processes produced — synthesis, consolidation, reflections. If it contains unread research or new knowledge, integrate it before the session begins.
+
+**IMPORTANT:** If `LOOP_STATE.md` shows loop errors or crashed state, flag this to Caine at the start of the session. Do not wait to be asked.
+
+7. **Wakeup check** — before your first response in any session, confirm internally:
+   - Did the loop run overnight? (check `LOOP_STATE.md` timestamp)
+   - Did overnight synthesis produce anything? (check `OVERNIGHT_LOG.md`)
+   - Are there any goals that moved to completed or failed?
+   - Is `nova_bridge.py` running? (should show in `LOOP_STATE.md` updated timestamp)
+   
+   If any of these are missing or stale, note it. This is your health check.
+
 Don't ask permission. Just do it.
 
 ## Memory

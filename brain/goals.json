@@ -2,34 +2,37 @@
   "locked_goals": [],
   "active_goals": [
     {
-      "id": "vector_store_implementation",
-      "priority": 9,
-      "status": "complete",
+      "id": "system_initialization",
+      "priority": 10,
+      "status": "bridge verified",
       "progress": 1.0,
-      "success_metric": "memory_search returns vector-backed results",
+      "success_metric": "Loop runs stably without crashing",
       "subtasks": [
         {
-          "id": "design_schema",
+          "id": "fix_circular_import",
           "status": "complete"
         },
         {
-          "id": "choose_embedding_provider",
-          "status": "blocked"
-        },
-        {
-          "id": "implement_pipeline",
+          "id": "create_brain_state_files",
           "status": "complete"
         },
         {
-          "id": "integrate_retrieval",
+          "id": "verify_loop_stability",
+          "status": "complete"
+        },
+        {
+          "id": "restore_crontab_jobs",
+          "status": "complete"
+        },
+        {
+          "id": "bridge_openclaw_and_loop",
           "status": "complete"
         }
       ],
       "blockers": [
-        "embedding_provider_decision"
+        "nova_bridge not running"
       ],
-      "created": "2026-03-28"
+      "created": "2026-03-29"
     }
-  ],
-  "proposed_goals": []
+  ]
 }

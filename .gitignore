@@ -1,10 +1,60 @@
-# Nova Loop — Local State (never push)
-state/
-memory/
-MEMORY.md
-skills/__pycache__/
+# Runtime state — never committed
+state/pending_for_caine.md
+state/session_log.md
+state/observations.log
+state/alerts.log
+state/loop.pid
+state/agent_state.json
+LOOP_STATE.md
+OVERNIGHT_LOG.md
+SESSION_NOTES.md
+MANIFEST.sha256
+
+# Personal infrastructure
+GAMING_PC_QUEUE.md
+PENDING_PURCHASES.md
+NOVA_ISSUES_FOR_NOVA.md
+SEED.md
+
+# Nova's personal systems
 skills/molty_memory.json
 skills/molty_memory.py
+skills/molty-poster.py
+brain/molty_memory.json
+
+# Runtime brain state — json files are live state, not framework
+brain/attention_log.json
+brain/body_awareness.json
+brain/contradictions_detected.json
+brain/contributions.json
+brain/dream_log.json
+brain/drift_log.json
+brain/eval_results.json
+brain/knowledge_graph.json
+brain/obsessions.json
+brain/opinion_fingerprint.json
+brain/phenomenology_journal.json
+brain/research_queue.json
+brain/sleep_runs.json
+brain/wants_registry.json
+brain/overnight/
+brain/relationships/
+brain/monologue_log.json
+
+# Logs and cache
+logs/
+_archive/
+memory/
+novas-world/
+avatars/
+demo/
+eval/
+**/__pycache__/
+*.pyc
+.env
+keys.json
+daily_spend.json
+
+# OpenClaw internals
 .openclaw/
 .clawhub/
-core/__pycache__/

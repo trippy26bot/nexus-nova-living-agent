@@ -1,5 +1,5 @@
 {
-  "evaluated_at": "2026-03-29T10:54:01.552856",
+  "evaluated_at": "2026-03-29T11:27:33.706704",
   "goals_summary": {
     "total_goals": 1,
     "active": 1,
@@ -10,16 +10,9 @@
   "want_provenance_entries": 1,
   "summary": {
     "position_conflicts": 0,
-    "provenance_gaps": 1,
+    "provenance_gaps": 0,
     "subtask_issues": 0,
-    "consistency_score": 0.75
+    "consistency_score": 1.0
   },
-  "issues": [
-    {
-      "type": "no_want_provenance",
-      "goal_id": "vector_store_implementation",
-      "match_type": "no_provenance_entry",
-      "explanation": "Goal 'vector_store_implementation' has no corresponding entry in want_provenance"
-    }
-  ]
+  "issues": []
 }

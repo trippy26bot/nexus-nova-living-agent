@@ -131,7 +131,7 @@ def speak(text):
     try:
         r = requests.post(
             TTS_URL,
-            params={"text": text, "voice": "af_heart"},
+            params={"text": text, "voice": "bf_emma"},
             timeout=15
         )
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:

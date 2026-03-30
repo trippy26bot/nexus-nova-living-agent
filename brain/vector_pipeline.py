@@ -18,7 +18,7 @@ from pathlib import Path
 _model = None
 _embed_dim = 384  # all-MiniLM-L6-v2 output dimension
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 VECTOR_DB = WORKSPACE / "memory" / "vector" / "vector_store.db"
 VECTOR_DIR = WORKSPACE / "memory" / "vector"
 

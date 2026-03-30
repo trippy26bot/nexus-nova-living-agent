@@ -10,11 +10,12 @@ Writes summary to OVERNIGHT_LOG.md.
 """
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 OVERNIGHT_LOG = WORKSPACE / "OVERNIGHT_LOG.md"
 CONTRADICTIONS_FILE = WORKSPACE / "memory" / "contradictions.json"
 PENDING_FOR_CAINE = WORKSPACE / "memory" / "pending_for_caine.md"

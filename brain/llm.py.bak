@@ -40,16 +40,6 @@ def call_llm(
     Make a synchronous MiniMax API call.
     Returns the response text, or raises an exception on failure.
     """
-    # --- Hybrid router: try local PC first at night ---
-    try:
-        from brain.llm_router import route_llm
-        result, provider = route_llm(prompt, system=system, temperature=temperature, max_tokens=max_tokens)
-        if provider == "ollama" and result:
-            return result
-    except Exception as e:
-        pass
-    # --- End hybrid router ---
-
     url = f"{MINIMAX_BASE_URL}/messages"
 
     api_key = os.environ.get("MINIMAX_API_KEY", "")

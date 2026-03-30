@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-OBSESSIONS_PATH = "/Users/dr.claw/.openclaw/workspace/memory/obsessions.json"
+OBSESSIONS_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/obsessions.json")
 DECAY_RATE = 0.05
 MAX_ACTIVE = 3
 

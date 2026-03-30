@@ -17,7 +17,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-WORKSPACE = Path("/Users/dr.claw/.openclaw/workspace")
+WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 PHENOM_JOURNAL = WORKSPACE / "memory" / "phenomenology_journal.md"
 SLEEP_RUNS = WORKSPACE / "brain" / "sleep_runs.json"
 

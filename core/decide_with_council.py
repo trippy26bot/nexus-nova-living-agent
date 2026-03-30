@@ -21,16 +21,22 @@ class DecideWithCouncil(DecisionEngine):
 
     def _score_risk(self, decision):
         """Heuristic risk score 0.0–1.0. Override with model-based scoring."""
+        # Defensive: guard against None before any method calls
         if decision is None:
             return 0.0
+        try:
+            subtask_id = decision.get("subtask_id", "") or ""
+            action = decision.get("action") or ""
+        except AttributeError:
+            return 0.0
         risk = 0.1
-        if decision.get("action") == "execute":
+        if action == "execute":
             risk += 0.2
         for prefix in ("deploy", "delete", "rm", "sudo", "exec", "push", "publish"):
-            if decision.get("subtask_id", "").startswith(prefix):
+            if subtask_id.startswith(prefix):
                 risk += 0.4
                 break
-        if decision.get("action") in ("http_request", "send", "post", "put"):
+        if action in ("http_request", "send", "post", "put"):
             risk += 0.25
         return min(risk, 1.0)
 

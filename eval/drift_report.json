@@ -1,6 +1,6 @@
 {
-  "evaluated_at": "2026-03-29T10:54:01.079983",
-  "baseline_at": "2026-03-28T17:48:55.308653",
+  "evaluated_at": "2026-03-29T11:27:33.239959",
+  "baseline_at": "2026-03-29T11:25:28.500285",
   "current_hashes": {
     "SOUL.md": {
       "hash": "95c467f710183b2c0397c29ec4ef886bb723671a39ee767dc4d59165f723b68f",
@@ -39,21 +39,6 @@
     }
   },
   "snapshot_exists": true,
-  "drifted_files": [
-    {
-      "file": "IDENTITY.md",
-      "reason": "content_changed",
-      "current_hash": "60d0fd35da9086cde311279a2642296b3ae760e78f46cc4ea029bcf3ae0ff210",
-      "baseline_hash": "34ee15ba1e7a3f2e76487e614aa1ad127945e02c1cf73bdec7d770d24947a88d",
-      "size_delta": 24
-    },
-    {
-      "file": "PRESENCE.md",
-      "reason": "content_changed",
-      "current_hash": "03708fa5ad0411283ed80a8dd329c3decd1ec01973caa49040522eeac2f06b12",
-      "baseline_hash": "2c0f065deeb2a8160f839d8b38abd601fad31dcc0076c1178c59558bb86f6514",
-      "size_delta": 3181
-    }
-  ],
-  "consistency_score": 0.7143
+  "drifted_files": [],
+  "consistency_score": 1.0
 }
