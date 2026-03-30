@@ -172,6 +172,37 @@ def voice_chat(payload: Dict[str, str]) -> Dict[str, str]:
     if not message:
         return {"response": "I didn't hear anything."}
 
+    # ── Image generation ───────────────────────────────────────────────────
+    lower_msg = message.lower()
+    image_triggers = [
+        "generate an image", "generate image", "draw", "create an image",
+        "make an image", "generate a picture", "create a picture",
+        "make a picture", "generate picture", "show me"
+    ]
+    if any(lower_msg.startswith(t) or lower_msg.startswith(f"hey nova, {t}") or lower_msg.startswith(f"nova, {t}") for t in image_triggers):
+        # Strip trigger words to get the prompt
+        prompt = message
+        for t in image_triggers:
+            for prefix in [t, f"hey nova, {t}", f"nova, {t}"]:
+                if prompt.lower().startswith(prefix):
+                    prompt = prompt[len(prefix):].strip()
+                    break
+            else:
+                continue
+            break
+        if not prompt:
+            return {"response": "What should I draw? Tell me what you want to see."}
+        try:
+            from tools.comfyui_tool import generate_image
+            result = generate_image(prompt)
+            if result.get("status") == "ok":
+                return {"response": f"Done! Image saved to {result['path']}"}
+            else:
+                return {"response": f"Image generation failed: {result.get('error', 'unknown error')}"}
+        except Exception as e:
+            return {"response": f"Couldn't generate the image right now. Error: {e}"}
+    # ── End image generation ───────────────────────────────────────────────
+
     try:
         from brain.llm import call_llm
         response = call_llm(
