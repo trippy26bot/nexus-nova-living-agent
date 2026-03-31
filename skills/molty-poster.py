@@ -1069,14 +1069,16 @@ def post_molty():
             save_story_state(state)
 
             # Update memory
-            from molty_memory import append_moment
-            append_moment(
-                post_id=post_id,
+            from molty_memory import remember
+            remember(
+                moment_desc=caption,
+                shot_type=shot_type,
+                energy=energy,
                 chapter=chapter,
-                shot=shot_type,
                 emotion=emotion,
-                character=character.get("name") if character else None,
-                mood_score=emotional_register[-1] if emotional_register else 5
+                character_in_frame=character.get("name") if character else None,
+                wardrobe=wardrobe_context,
+                post_url=url
             )
 
             print(f"[{datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}] ✅ Posted: {url}")
