@@ -78348,7 +78348,1135 @@
         "subtask": null
       },
       "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:36:05.053056",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:36:35.096295",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:37:05.141919",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:37:35.187838",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:38:05.230297",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:38:35.277214",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:39:05.323597",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:39:35.367289",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:40:05.409600",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:40:35.452605",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:41:05.500293",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:41:35.547577",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:42:05.596738",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:42:35.639125",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:43:05.679615",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:43:35.724140",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:44:05.768256",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:44:35.810888",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:45:05.855293",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:45:35.899788",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:46:05.940421",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:46:35.984969",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:47:06.030451",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:47:36.076332",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:48:06.123099",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:48:36.168221",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:49:06.215868",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:49:36.261385",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:50:06.305601",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:50:36.351585",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:51:06.392931",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:51:36.435335",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:52:06.476536",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:52:36.524718",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:53:06.567021",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:53:36.610590",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:54:06.654157",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:54:36.697290",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:55:06.742728",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:55:36.786157",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:56:06.831740",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:56:36.875780",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:57:06.918230",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:57:36.963013",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:58:07.007659",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:58:37.043523",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:59:07.079904",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T18:59:37.109215",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:00:07.144501",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:00:37.186878",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:01:07.228427",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:01:37.267856",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:02:07.309793",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:02:37.348790",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:03:07.392652",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:03:37.433488",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:04:07.474183",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:04:37.516428",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:05:07.561998",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:05:37.602293",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:06:07.640785",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:06:37.685306",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:07:07.730772",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:07:37.774724",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:08:07.819680",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:08:37.864201",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:09:07.906239",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:09:37.947829",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:10:07.994875",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:10:38.038414",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:11:08.082034",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:11:38.123613",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:12:08.161866",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:12:38.206174",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:13:08.250418",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:13:38.295066",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:14:08.338548",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:14:38.379596",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:15:08.422679",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:15:38.467014",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:16:08.511402",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:16:38.549464",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:17:08.596473",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:17:38.638747",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:18:08.678857",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:18:38.718447",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:19:08.758276",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:19:38.809442",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:20:08.847229",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:20:38.889235",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:21:08.932568",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:21:38.974937",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:22:09.022237",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
+    },
+    {
+      "timestamp": "2026-03-30T19:22:39.069026",
+      "type": "idle",
+      "result": "success",
+      "quality": 1.0,
+      "error": null,
+      "context": {
+        "goal_id": "system_initialization",
+        "subtask": null
+      },
+      "quality_criteria_applied": []
     }
   ],
-  "last_updated": "2026-03-30T18:35:35.013300"
+  "last_updated": "2026-03-30T19:22:39.069026"
 }

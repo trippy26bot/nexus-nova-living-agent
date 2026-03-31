@@ -1,7 +1,8 @@
 {
   "last_chapter": 1,
   "pending_narrative": [
-    "she found a door she's never seen"
+    "she found a door she's never seen",
+    "something is calling her name"
   ],
   "active_threads": [
     {
@@ -9,14 +10,21 @@
       "emotion": "e",
       "hook": "she found a door she's never seen",
       "posts_remaining": 4
+    },
+    {
+      "chapter": 1,
+      "emotion": "e",
+      "hook": "something is calling her name",
+      "posts_remaining": 4
     }
   ],
   "recent_events": [
+    "post_1_e",
     "post_1_e"
   ],
   "discovered_realms": [
     1
   ],
   "chapter_transitions": 0,
-  "posts_this_chapter": 1
+  "posts_this_chapter": 2
 }
