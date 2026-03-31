@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-POSITIONS_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/")positions.json"
+POSITIONS_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/positions.json")
 
 
 def _load_positions() -> dict:
