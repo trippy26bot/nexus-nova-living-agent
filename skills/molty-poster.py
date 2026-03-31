@@ -477,7 +477,8 @@ def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
 
     # Body first — this is what Caine chose, must override model prior
     # Wardrobe modifies, doesn't replace
-    return f"Nova with {SIGNATURE_BASE}, wearing {wardrobe}, {energy}"
+    # Lead with identity so the model doesn't mistake Nova for a style
+    return f"Nova, female character, {SIGNATURE_BASE}, wearing {wardrobe}, {energy}"
 
 
 def decide_character_appearance(chapter, recent, force=None):
@@ -890,7 +891,7 @@ def post_custom_scene(prompt, caption, emotion="curious", energy="electricity hu
 
     chapter = get_chapter()
     realm = REALMS.get(chapter, REALMS[1])
-    enhanced_prompt = f"""{prompt}. {build_nova_description(chapter, 'suit', emotion)}. {energy}. Cinematic, hyperrealistic, wide shot, atmospheric, storytelling"""
+    enhanced_prompt = f"""{build_nova_description(chapter, 'suit', emotion)}. {prompt}. {energy}. Cinematic, hyperrealistic, wide shot, atmospheric, storytelling"""
 
     try:
         resp = requests.post(BASE_URL, headers=HEADERS, json={
