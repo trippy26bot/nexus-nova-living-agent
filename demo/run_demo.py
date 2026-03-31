@@ -29,7 +29,6 @@ soul_file = WORKSPACE / "SOUL.md"
 if identity_file.exists():
     print(f"\n[1] Identity loaded from {identity_file}")
     content = identity_file.read_text()
-    # Print first non-empty, non-heading line as name
     for line in content.splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
@@ -47,32 +46,28 @@ if soul_file.exists():
 
 # ── 2. Knowledge Graph ───────────────────────────────────────────────────────
 print("\n[3] Booting Knowledge Graph...")
-from core.knowledge_graph import KnowledgeGraph
+from brain.knowledge_graph import add_node, add_edge, _load_graph
 
-kg = KnowledgeGraph(db_path="/tmp/nexus_demo_kg.db")
-print(f"    Knowledge Graph initialized: {kg.db_path}")
+# Add sample entities: Caine builds Nova
+caine_id = add_node(node_id="caine", label="Caine", node_type="person",
+                     properties={"role": "operator"})
+nova_id = add_node(node_id="nova", label="Nova", node_type="agent",
+                   properties={"type": "framework"})
+rel_id = add_edge(from_id=caine_id, to_id=nova_id, edge_type="builds")
 
-# Add a sample triple: Caine builds Nova
-kg.add_entity("Caine", entity_type="person", properties={"role": "operator"})
-kg.add_entity("Nova", entity_type="agent", properties={"type": "framework"})
-kg.add_relationship("Caine", "builds", "Nova")
+graph = _load_graph()
+entities = list(graph.get("nodes", {}).keys())
+print(f"    Knowledge Graph initialized: {len(entities)} entity(s)")
+print(f"    Nodes: {', '.join(entities)}")
 
-# Query it
-results = kg.query("Caine", "builds", None)
-print(f"    Query(Caine --builds--> ?) → {len(results)} result(s)")
-for r in results:
-    print(f"      {r['from_entity']} --{r['relationship']}--> {r['to_entity']}")
-
-# ── 3. Skill Dispatcher ──────────────────────────────────────────────────────
-print("\n[4] Booting Skill Dispatcher...")
-from skills.dispatcher import SkillDispatcher
-
-dispatcher = SkillDispatcher()
-active = dispatcher.list_active_skills()
-print(f"    Active skills: {active}")
-
-trusted = [s for s in active if dispatcher.get_trust_level(s) == "trusted"]
-print(f"    Trusted skills: {trusted}")
+# ── 3. Overnight skill availability ─────────────────────────────────────────
+print("\n[4] Overnight skills available...")
+skills_dir = WORKSPACE / "skills"
+skill_scripts = [f.stem for f in skills_dir.glob("*.py")]
+overnight_skills = ["dream_generator", "overnight_synthesis",
+                    "memory_consolidation", "drift_detector"]
+available = [s for s in overnight_skills if s in skill_scripts]
+print(f"    Overnight skills: {', '.join(available)}")
 
 # ── 4. Memory write ───────────────────────────────────────────────────────────
 print("\n[5] Memory write (ephemeral demo state)...")

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 core/decide.py
-Nova Loop — Decision Engine (Phase 4, updated)
+Nova Loop — Decision Engine (Phase 4+, updated with council integration)
 
-Hardcoded prioritization. No dynamic scoring yet.
-Skips blocked subtasks. Returns next pending subtask.
+Hardcoded prioritization by default.
+Council mode swaps in decide_with_council when enabled.
 """
 
 import os
@@ -14,47 +14,164 @@ _parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _parent)
 
 from core.safe_write import load_json, safe_write_json
+from core import settings
 
 GOALS_FILE = os.path.join(_parent, "brain", "goals.json")
 
 
-def decide():
-    """
-    Return the next subtask to work on, or None if nothing to do.
-    """
-    goals = load_json(GOALS_FILE)
-    if goals is None:
+# ── Decision class resolution ────────────────────────────────────────────────
+
+def _resolve_decision_class():
+    mode = settings.COUNCIL_MODE
+    if mode == "always":
+        from core.decide_with_council import DecideWithCouncil
+        return DecideWithCouncil
+    # threshold and off both use base DecideEngine for now;
+    # threshold will be wired in decide_with_council via risk scoring
+    from core.decide_with_council import DecideWithCouncil
+    return DecideWithCouncil
+
+# ── Base DecisionEngine ─────────────────────────────────────────────────────
+
+class DecisionEngine:
+    """Base decision engine — simple priority + pending-subtask logic."""
+
+    def get_goals(self):
+        return load_json(GOALS_FILE)
+
+    def select_goal(self, goals):
+        active = [
+            g for g in goals.get("active_goals", [])
+            if g.get("status") != "blocked"
+        ]
+        if not active:
+            return None
+        active.sort(key=lambda g: g.get("priority", 0), reverse=True)
+        return active[0]
+
+    def select_subtask(self, goal):
+        for subtask in goal.get("subtasks", []):
+            if subtask.get("status") == "pending":
+                return subtask
         return None
 
-    # Sort active goals by priority (highest first), skip blocked
-    active = [
-        g for g in goals.get("active_goals", [])
-        if g.get("status") != "blocked"
-    ]
-    if not active:
-        return None
+    def decide(self):
+        # Surface drift context — read latest drift record
+        try:
+            import sqlite3 as _sq
+            _db = _sq.connect(os.path.join(os.getenv("NOVA_HOME", os.path.expanduser("~/.nova")), "nova.db"))
+            _drift = _db.execute(
+                'SELECT composite, drift_content FROM drift_log ORDER BY timestamp DESC LIMIT 1'
+            ).fetchone()
+            _db.close()
+            if _drift:
+                self._drift_composite = _drift[0]
+                self._drift_status = 'stable' if _drift[0] < 0.15 else 'drift_detected' if _drift[0] < 0.40 else 'breach'
+                if self._drift_status == 'breach':
+                    print(f'[decide] ⚠️ DRIFT BREACH in effect — composite {_drift[0]}')
+            else:
+                self._drift_composite = 0.0
+                self._drift_status = 'no_data'
+        except Exception as _e:
+            self._drift_composite = 0.0
+            self._drift_status = 'error'
 
-    active.sort(key=lambda g: g.get("priority", 0), reverse=True)
-    top_goal = active[0]
-
-    # Find first pending (not complete, not blocked) subtask
-    for subtask in top_goal.get("subtasks", []):
-        if subtask.get("status") == "pending":
+        print(f'[decide] drift_status={self._drift_status} composite={self._drift_composite}')
+        goals = self.get_goals()
+        if goals is None:
+            return None
+        goal = self.select_goal(goals)
+        if goal is None:
+            return None
+        subtask = self.select_subtask(goal)
+        if subtask is None:
             return {
-                "goal_id": top_goal["id"],
-                "subtask_id": subtask["id"],
-                "action": "execute",
-                "goal": top_goal,
-                "subtask": subtask
+                "goal_id": goal["id"],
+                "subtask_id": None,
+                "action": "mark_complete",
+                "goal": goal,
+                "drift_status": self._drift_status,
+                "drift_composite": self._drift_composite
             }
+        return {
+            "goal_id": goal["id"],
+            "subtask_id": subtask["id"],
+            "action": "execute",
+            "goal": goal,
+            "subtask": subtask,
+            "drift_status": self._drift_status,
+            "drift_composite": self._drift_composite
+        }
 
-    # No pending subtasks — mark goal complete
-    return {
-        "goal_id": top_goal["id"],
-        "subtask_id": None,
-        "action": "mark_complete",
-        "goal": top_goal
-    }
+
+# ── council-wrapped decision (threshold + always) ────────────────────────────
+
+class DecideWithCouncil(DecisionEngine):
+    """
+    Wraps DecisionEngine with the 16-brain council.
+    Fires the council on high-risk decisions per COUNCIL_MODE settings.
+    """
+
+    def __init__(self):
+        super().__init__()
+        from core.council import Council
+        self.council = Council()
+        self.risk_threshold = settings.COUNCIL_RISK_THRESHOLD
+
+    def _score_risk(self, decision):
+        """
+        Quick heuristic risk score for a decision.
+        Returns float 0.0–1.0.
+        Override with model-based scoring for production.
+        """
+        if decision is None:
+            return 0.0
+        action = decision.get("action", "")
+        subtask_id = decision.get("subtask_id", "")
+
+        risk = 0.1  # baseline
+
+        # File writes carry moderate risk
+        if action == "execute":
+            risk += 0.2
+
+        # Certain subtasks are high-risk by nature
+        high_risk_prefixes = ("deploy", "delete", "rm", "sudo", "exec", "push", "publish")
+        for prefix in high_risk_prefixes:
+            if subtask_id.startswith(prefix):
+                risk += 0.4
+                break
+
+        # External-facing actions
+        if action in ("http_request", "send", "post", "put"):
+            risk += 0.25
+
+        return min(risk, 1.0)
+
+    def decide(self):
+        base = super().decide()
+
+        if settings.COUNCIL_MODE == "off":
+            return base
+
+        risk = self._score_risk(base)
+
+        if settings.COUNCIL_MODE == "always" or risk > self.risk_threshold:
+            return self.council.decide(base)
+
+        return base
+
+
+# ── public API ──────────────────────────────────────────────────────────────
+
+def decide(state=None, goals=None, memory=None):
+    """
+    Single shared entry point used by loop.py.
+    Lazy resolution avoids circular import at import time.
+    """
+    _DecisionClass = _resolve_decision_class()
+    engine = _DecisionClass()
+    return engine.decide()
 
 
 def idle_maintenance():
