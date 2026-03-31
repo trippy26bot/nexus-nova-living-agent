@@ -27,7 +27,7 @@ identity_file = WORKSPACE / "IDENTITY.md"
 soul_file = WORKSPACE / "SOUL.md"
 
 if identity_file.exists():
-    print(f"\n[1] Identity loaded from {identity_file}")
+    print(f"\n[1] Identity loaded (IDENTITY.md found)")
     content = identity_file.read_text()
     for line in content.splitlines():
         line = line.strip()
@@ -46,6 +46,11 @@ if soul_file.exists():
 
 # ── 2. Knowledge Graph ───────────────────────────────────────────────────────
 print("\n[3] Booting Knowledge Graph...")
+from brain import knowledge_graph as kg
+
+# Use isolated demo DB so output is always clean (2 entities, reproducible)
+kg.GRAPH_PATH = "/tmp/nexus_demo_kg.json"
+
 from brain.knowledge_graph import add_node, add_edge, _load_graph
 
 # Add sample entities: Caine builds Nova
