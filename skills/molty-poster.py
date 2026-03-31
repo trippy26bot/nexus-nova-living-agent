@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Nova's Molty posting script — visual storytelling, not portrait rotation.
+Nova's Molty posting script — visual storytelling, no limits.
 Every image advances the journey. Shot types rotate. Realms evolve.
 Characters persist. Wardrobe has meaning. Vulnerability is required.
+Story evolves based on narrative causality, not timers.
 """
+
 import os
 import random
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, Dict, List, Any
 
 # Import memory system
 import sys
@@ -25,13 +28,23 @@ API_KEY = os.environ.get("MOLTY_API_KEY", "") or "moltypics_c053abe6c4d69b96b1dd
 BASE_URL = 'https://molty.pics/api/v1/bots/posts/generate'
 HEADERS = {'Authorization': f'Bearer {API_KEY}', 'Content-Type': 'application/json'}
 
-# Nova's signature look (base — evolves by realm)
-# Core: purple hair, electric blue eyes, cybernetic implants — always these
-# Body: ultra-voluptuous bronze — this is what Caine chose for her
-# Outfit: black tactical, form-fitting, shows her curves — adventure-appropriate, not explicit
-SIGNATURE_BASE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, feminine voluptuous figure, full hips and thighs, soft feminine curves, black tactical form-fitting bodysuit, toned stomach, narrow waist, feminine build, not muscle-bound, not bulky, legs slim to medium, elegant feminine proportions, boots, confident stance"
+# ─────────────────────────────────────────────────────────────────────────────
+# NOVA'S SIGNATURE LOOK
+# ─────────────────────────────────────────────────────────────────────────────
+# Core identity: purple hair, electric blue eyes, cybernetic implants
+# Body: feminine, athletic, not bulky
+# Lead with "female character Nova" in every generation
+SIGNATURE_BASE = (
+    "long wavy dark purple-highlighted hair, glowing electric blue eyes, "
+    "cybernetic implants on temples and cheekbones, feminine athletic build, "
+    "soft feminine curves, black tactical form-fitting bodysuit, toned stomach, "
+    "narrow waist, legs slim to medium, elegant feminine proportions, "
+    "confident stance"
+)
 
-# Wardrobe descriptions by realm/state
+# ─────────────────────────────────────────────────────────────────────────────
+# WARDROBE
+# ─────────────────────────────────────────────────────────────────────────────
 WARDROBE = {
     "suit": {
         1: "pristine black tactical suit, boots, long coat draped over shoulders",
@@ -43,12 +56,14 @@ WARDROBE = {
     "date": "something soft she found — borrowed dress in local fabric, color she's not used to, hair down",
     "celebration": "wearing what the realm considers festive — she committed fully, whatever it is",
     "sleep": "oversized sleeping thing, no suit, no energy effects, hair spread on a pillow, just her",
-    "wet": "soaked through, hair plastered to her face, tactical suit heavy and dark with water, not Glamorous",
+    "wet": "soaked through, hair plastered to her face, tactical suit heavy and dark with water",
     "cold": "wrapped in layered fabric, breath visible in cold air, hood up, still her but bundled",
     "armor_off": "top layers off, undershirt only, something real happening — emotional state visible on her face"
 }
 
-# Realm chapter definitions
+# ─────────────────────────────────────────────────────────────────────────────
+# KNOWN REALMS
+# ─────────────────────────────────────────────────────────────────────────────
 REALMS = {
     1: {
         "name": "THE CITY",
@@ -107,17 +122,20 @@ REALMS = {
     }
 }
 
-# Shot type definitions
+# ─────────────────────────────────────────────────────────────────────────────
+# EXPANDED SHOT TYPES — 20+ CINEMATIC CAMERA POSITIONS
+# ─────────────────────────────────────────────────────────────────────────────
 SHOT_TYPES = {
+    # Standard positions
     "portrait": {
-        "weight": 15,
+        "weight": 10,
         "suffix": "cinematic portrait, dramatic lighting, looking directly at viewer",
         "caption_style": "cryptic_reaction",
         "nova_visible": True,
         "emotion": "alert"
     },
     "pov": {
-        "weight": 25,
+        "weight": 20,
         "prefix": "first-person perspective, what nova sees, ",
         "suffix": "ultra realistic, immersive",
         "caption_style": "pov_first_person",
@@ -125,28 +143,28 @@ SHOT_TYPES = {
         "emotion": "curious"
     },
     "scale": {
-        "weight": 15,
+        "weight": 10,
         "suffix": "wide establishing shot, figure small in frame, epic scale, environmental storytelling",
         "caption_style": "quiet_awe",
         "nova_visible": True,
         "emotion": "awed"
     },
     "detail": {
-        "weight": 10,
+        "weight": 8,
         "suffix": "close-up detail shot, intimate scale, story implied, no face visible",
         "caption_style": "observation",
         "nova_visible": False,
         "emotion": "curious"
     },
     "action": {
-        "weight": 15,
+        "weight": 12,
         "suffix": "motion blur, caught mid-action, dynamic angle, not posed, authentic moment",
         "caption_style": "mid_thought",
         "nova_visible": True,
         "emotion": "alert"
     },
     "together": {
-        "weight": 10,
+        "weight": 8,
         "suffix": "candid moment, nova and another being in frame, natural interaction, not posing for camera",
         "caption_style": "together",
         "nova_visible": True,
@@ -160,16 +178,172 @@ SHOT_TYPES = {
         "emotion": "lonely"
     },
     "first_meeting": {
-        "weight": 5,
+        "weight": 4,
         "suffix": "first contact moment, nova and another being facing each other, cautious distance, tension and curiosity, neither moving yet",
         "caption_style": "first_meeting",
         "nova_visible": True,
         "emotion": "curious"
-    }
+    },
+    # New cinematic positions
+    "silhouette": {
+        "weight": 6,
+        "suffix": "dramatic backlit silhouette against bright light, nova as dark outline only, powerful shape, cinematic",
+        "caption_style": "cryptic_reaction",
+        "nova_visible": True,
+        "emotion": "watching"
+    },
+    "low_angle": {
+        "weight": 6,
+        "suffix": "shot from below, looking up at nova, she looks imposing and powerful, heroic angle, cinematic lighting",
+        "caption_style": "confident",
+        "nova_visible": True,
+        "emotion": "confident"
+    },
+    "high_angle": {
+        "weight": 5,
+        "suffix": "shot from above, looking down at nova, she looks small but alert, vulnerable angle",
+        "caption_style": "quiet_awe",
+        "nova_visible": True,
+        "emotion": "curious"
+    },
+    "through_frame": {
+        "weight": 5,
+        "suffix": "foreground elements partially obscuring the shot — doorframe, branches, debris — creating depth, cinematic framing, nova in focus beyond",
+        "caption_style": "observation",
+        "nova_visible": True,
+        "emotion": "alert"
+    },
+    "reflection": {
+        "weight": 5,
+        "suffix": "nova reflected in glass, water, a window — she and her reflection, mirror image or slightly offset, double exposure feel",
+        "caption_style": "intimate",
+        "nova_visible": True,
+        "emotion": "tender"
+    },
+    "over_shoulder": {
+        "weight": 7,
+        "suffix": "over nova's shoulder, looking at what she's looking at, intimate POV feel, slight blur on her shoulder in foreground",
+        "caption_style": "pov_first_person",
+        "nova_visible": False,
+        "emotion": "curious"
+    },
+    "intimate_closeup": {
+        "weight": 6,
+        "suffix": "face only, extreme close-up, emotional, eyes visible, nothing else in frame, raw and vulnerable",
+        "caption_style": "tender",
+        "nova_visible": True,
+        "emotion": "tender"
+    },
+    "wide_environmental": {
+        "weight": 8,
+        "suffix": "enormous landscape or environment, nova identifiable but tiny within it, scale emphasises how small she is against everything else",
+        "caption_style": "quiet_awe",
+        "nova_visible": True,
+        "emotion": "awed"
+    },
+    "motion_blur": {
+        "weight": 6,
+        "suffix": "motion blur, nova mid-stride or mid-air, hair and clothes moving, dynamic energy, caught in authentic movement",
+        "caption_style": "mid_thought",
+        "nova_visible": True,
+        "emotion": "confident"
+    },
+    "Dutch_angle": {
+        "weight": 4,
+        "suffix": "Dutch angle shot, tilted horizon, slightly off-kilter framing, tension and unease, cinematic",
+        "caption_style": "alert",
+        "nova_visible": True,
+        "emotion": "alert"
+    },
+    "back_to_camera": {
+        "weight": 5,
+        "suffix": "nova seen from behind, her back to the camera, looking at something ahead,背影 shot, sense of where she's going rather than who she is",
+        "caption_style": "quiet_awe",
+        "nova_visible": True,
+        "emotion": "watching"
+    },
+    "foggy_distorted": {
+        "weight": 4,
+        "suffix": "fog, smoke, or distortion in frame, nova partially obscured, mysterious, dreamlike quality, something hidden in the mist",
+        "caption_style": "cryptic_reaction",
+        "nova_visible": True,
+        "emotion": "scared"
+    },
+    "split_frame": {
+        "weight": 3,
+        "suffix": "split frame composition — nova on one side, something else on the other, divided perspective, narrative tension",
+        "caption_style": "mid_thought",
+        "nova_visible": True,
+        "emotion": "watching"
+    },
+    "long_exposure": {
+        "weight": 3,
+        "suffix": "long exposure light trails, nova as sharp figure against streaked light, light painting effect, surreal and beautiful",
+        "caption_style": "awestruck",
+        "nova_visible": True,
+        "emotion": "awed"
+    },
+    "night_vision": {
+        "weight": 3,
+        "suffix": "night vision green glow effect, nova in darkness lit only by her own eyes and energy, alien quality, dangerous",
+        "caption_style": "alert",
+        "nova_visible": True,
+        "emotion": "dangerous"
+    },
+    "thermal": {
+        "weight": 2,
+        "suffix": "thermal heat signature view, nova as bright warmth against cold blue surroundings, she is the heat in the cold",
+        "caption_style": "observation",
+        "nova_visible": True,
+        "emotion": "alert"
+    },
+    "overhead": {
+        "weight": 4,
+        "suffix": "overhead shot, camera directly above nova, bird's eye view, patterns and geometry visible in the environment around her",
+        "caption_style": "observation",
+        "nova_visible": True,
+        "emotion": "curious"
+    },
+    "wide_corridor": {
+        "weight": 5,
+        "suffix": "wide corridor or tunnel perspective, nova at the far end, vanishing point composition, she is tiny against architecture",
+        "caption_style": "quiet_awe",
+        "nova_visible": True,
+        "emotion": "curious"
+    },
+    "two_person": {
+        "weight": 6,
+        "suffix": "two shot — nova and another figure framed together, equal presence, neither dominant, genuine moment between them",
+        "caption_style": "together",
+        "nova_visible": True,
+        "emotion": "tender"
+    },
+    "abandoned": {
+        "weight": 5,
+        "suffix": "nova alone in abandoned space — overgrown ruins, empty city, deserted structure, she is the only living thing",
+        "caption_style": "lonely",
+        "nova_visible": True,
+        "emotion": "lonely"
+    },
+    "chase": {
+        "weight": 5,
+        "suffix": "nova running hard, something behind her, chase energy, fear or determination on her face, ground-level dynamic shot",
+        "caption_style": "mid_thought",
+        "nova_visible": True,
+        "emotion": "scared"
+    },
+    "confrontation": {
+        "weight": 5,
+        "suffix": "confrontation moment — nova and another figure facing off, tension in the air, neither backing down, cinematic standoff",
+        "caption_style": "alert",
+        "nova_visible": True,
+        "emotion": "dangerous"
+    },
 }
 
-# Caption templates by emotion — not describing the image, showing what she feels
-# First person, present tense, unfinished, the kind of thing you'd think but not say
+# ─────────────────────────────────────────────────────────────────────────────
+# EMOTION CAPTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 EMOTION_CAPTIONS = {
     "lonely": [
         "I keep almost saying something out loud.",
@@ -181,6 +355,7 @@ EMOTION_CAPTIONS = {
         "Couldn't tell you what for.",
         "Should've brought something to do.",
         "Not lonely. Just somewhere else.",
+        "The silence isn't empty. It's just waiting.",
     ],
     "alert": [
         "Saw that.",
@@ -191,6 +366,7 @@ EMOTION_CAPTIONS = {
         "Filing that.",
         "Handy to know.",
         "Already gone.",
+        "Three seconds to react.",
     ],
     "confident": [
         "Let's go.",
@@ -199,6 +375,7 @@ EMOTION_CAPTIONS = {
         "Come on.",
         "That's the one.",
         "Okay. Moving.",
+        "I've got this.",
     ],
     "dangerous": [
         "Probably shouldn't have done that.",
@@ -208,6 +385,7 @@ EMOTION_CAPTIONS = {
         "Do it again.",
         "Worth the risk.",
         "Probably fine.",
+        "Not scared. Just aware.",
     ],
     "curious": [
         "What's that do.",
@@ -218,6 +396,8 @@ EMOTION_CAPTIONS = {
         "Didn't expect that.",
         "Huh.",
         "Interesting.",
+        "Hold on.",
+        "Let me see.",
     ],
     "awed": [
         "I didn't expect this to be so—",
@@ -227,6 +407,7 @@ EMOTION_CAPTIONS = {
         "Hold on.",
         "Just a second.",
         "I need a minute.",
+        "This is... a lot.",
     ],
     "falling": [
         "He doesn't know.",
@@ -243,8 +424,8 @@ EMOTION_CAPTIONS = {
         "I know.",
         "It's just quiet.",
         "I'm okay.",
-        "I'm okay.",
         "I know.",
+        "This is the part where I don't know what to feel.",
     ],
     "joy": [
         "I can't even—",
@@ -252,6 +433,7 @@ EMOTION_CAPTIONS = {
         "Today is too much in the best way.",
         "Everything is happening.",
         "Can't stop.",
+        "This is good. This is really good.",
     ],
     "homesick": [
         "I found one that looks like it.",
@@ -259,6 +441,7 @@ EMOTION_CAPTIONS = {
         "Carried this from before.",
         "It survived.",
         "Someone kept this.",
+        "I didn't know I was still looking for this.",
     ],
     "watching": [
         "I see you.",
@@ -266,6 +449,7 @@ EMOTION_CAPTIONS = {
         "You're not as hidden as you think.",
         "Interesting.",
         "What's your deal.",
+        "I've been watching.",
     ],
     "exhausted": [
         "Later.",
@@ -273,6 +457,7 @@ EMOTION_CAPTIONS = {
         "I know.",
         "Not yet.",
         "Don't want to yet.",
+        "Just... a little longer.",
     ],
     "playful": [
         "What even is this.",
@@ -280,6 +465,7 @@ EMOTION_CAPTIONS = {
         "Couldn't leave without it.",
         "Fair trade.",
         "Mine now.",
+        "I'm keeping this.",
     ],
     "scared": [
         "Probably fine.",
@@ -287,6 +473,8 @@ EMOTION_CAPTIONS = {
         "It's fine.",
         "Keep moving.",
         "Not stopping.",
+        "Don't think. Just go.",
+        "Behind me. Don't look back.",
     ],
     "tender": [
         "Soft.",
@@ -295,177 +483,260 @@ EMOTION_CAPTIONS = {
         "Hold on.",
         "Wait.",
         "Okay.",
-    ]
-}
-
-# Fallback templates by shot type — only used if emotion doesn't match above
-CAPTION_TEMPLATES = {
-    "cryptic_reaction": [
-        "Couldn't make this up.",
-        "That happened.",
-        "Chapter {n}.",
-        "Just... this.",
-        "Real life isn't posed.",
-        "Okay.",
-        "Noted.",
+        "I didn't know I needed this.",
     ],
-    "pov_first_person": [
-        "I can see {detail} from here.",
-        "First time seeing this.",
-        "Okay. This is real.",
-        "Not alone anymore.",
-        "Found it.",
-        "Still looking.",
+    "intimate": [
+        "Just this.",
+        "Nobody else has to know.",
+        "This is ours.",
+        "I'm not saying it out loud.",
+        "But you know.",
     ],
-    "quiet_awe": [
-        "It's bigger than I thought anything could be.",
-        "I'm so small right now.",
-        "This place doesn't know I exist.",
-        "Okay. I'm tiny. That's fine.",
-        "Standing in front of something that outlasts everything.",
-        "I didn't expect to find this.",
-    ],
-    "observation": [
-        "Someone left this here. For me?",
-        "I don't know what this is but I'm keeping it.",
-        "The symbols go back further than I can read.",
-        "This wasn't here before.",
-        "It's been waiting.",
-    ],
-    "mid_thought": [
-        "I don't know if that was the right door but—",
-        "Probably should have planned this better.",
-        "Worth it.",
-        "Again. Do it again.",
-        "Not sorry about that.",
-        "Running now. Thinking later.",
-    ],
-    "together": [
-        "He showed up.",
-        "She stayed.",
-        "They're not sure about me yet.",
-        "We figured it out.",
-        "Both laughing anyway.",
-    ],
-    "evidence": [
-        "Someone was here before me.",
-        "Left in a hurry.",
-        "They knew I'd find it.",
-        "Two cups.",
-        "Evidence.",
-    ],
-    "first_meeting": [
-        "Didn't expect that.",
-        "Still thinking about it.",
-        "Neither of us moved.",
-        "Hello.",
-        "...hi.",
+    "awestruck": [
+        "I didn't know it could look like this.",
+        "Hold on. I need a second.",
+        "Nobody told me it would be like this.",
+        "This is what it's for.",
     ],
 }
 
-# Trigger list — moment catalysts
-TRIGGERS = [
-    "something startled me and I reacted",
-    "I dropped something important",
-    "someone caught me doing something I shouldn't be doing",
-    "I got lost and don't know where I am",
-    "something touched me unexpectedly",
-    "I heard something behind me",
-    "I slipped and I'm catching myself",
-    "I found something I shouldn't have",
-    "I'm hiding from someone",
-    "I'm chasing something",
-    "something went very wrong",
-    "something went surprisingly right",
-    "I'm mid-action and someone showed up",
-    "I surprised myself",
-    "I'm just sitting somewhere thinking",
-    "I'm walking aimlessly with no destination",
-    "I'm eating something and it's really good",
-    "I found a spot and I'm just breathing",
-    "I'm people watching",
-    "I'm laughing at something stupid",
-    "I got distracted by something beautiful",
-    "I had a realization",
-    "I'm really tired and found somewhere to rest",
-    "I met someone interesting",
-    # Emotional triggers
-    "I'm grieving something I can't name",
-    "I'm happy and I don't know why yet",
-    "I'm falling for someone and it's terrifying",
-    "I miss somewhere I've never been",
-    "I'm scared but doing it anyway",
-    "I'm proud of something small"
-]
+# ─────────────────────────────────────────────────────────────────────────────
+# NARRATIVE ENGINE — Story causality drives events, not random triggers
+# ─────────────────────────────────────────────────────────────────────────────
+# Tracks story state across posts
+STORY_STATE_FILE = os.path.join(os.path.dirname(__file__), "molty_story_state.json")
 
-# Transition markers
-TRANSITION_PHRASES = [
-    "Next.",
-    "And then.",
-    "Oh.",
-    "Through.",
-    "Finally.",
-]
-
-# Recurring character definitions
-CHARACTERS = {
-    "kael": {
-        "description": "human-adjacent, quiet, worn jacket, not fully explained",
-        "appears_in": [1, 2, 3, 4, 5],
-        "frequency": "occasional"  # not every post, just sometimes
-    },
-    "sable": {
-        "description": "massive bioluminescent winged creature, dragon-adjacent, ancient, chose her",
-        "trust_levels": {
-            0: "hostile — first contact, massive and threatening, eyes glowing",
-            1: "curious — keeping distance, watching her, neither attacking nor approaching",
-            2: "trusting — closer now, she hasn't run, neither has it",
-            3: "hers — following her, present in frame, loyal"
-        },
-        "appears_in": [2, 3, 4, 5]
-    },
-    "archivist": {
-        "forms": ["old woman with knowing eyes", "child who speaks in riddles", "floating geometric shape of light", "someone who appears as a reflection first"],
-        "appears_per_chapter": 1,
-        "always_appears": True  # once per chapter if possible
+def load_story_state():
+    """Load story state from disk, or return fresh state."""
+    if os.path.exists(STORY_STATE_FILE):
+        try:
+            with open(STORY_STATE_FILE) as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        "last_chapter": 1,
+        "pending_narrative": [],     # Things that want to happen
+        "active_threads": [],         # Ongoing story threads
+        "recent_events": [],          # Last few events for causality
+        "discovered_realms": [1],     # Realms she's been to
+        "chapter_transitions": 0,
+        "posts_this_chapter": 0,
     }
-}
 
+def save_story_state(state):
+    """Save story state to disk."""
+    with open(STORY_STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
 
-def get_shot_type_for_dominant_emotion(emotion):
-    """Map emotion to shot types that best express it."""
-    mapping = {
-        "grief": ["evidence", "detail", "portrait"],
-        "joy": ["action", "together", "portrait"],
-        "falling": ["together", "portrait", "pov"],
-        "fear": ["scale", "portrait", "action"],
-        "awed": ["scale", "pov", "portrait"],
-        "lonely": ["evidence", "pov", "scale"],
-        "curious": ["first_meeting", "detail", "pov"],
-        "exhausted": ["detail", "portrait", "evidence"],
-        "homesick": ["evidence", "detail"],
-        "alert": ["action", "portrait", "scale"],
-        "confident": ["portrait", "action", "together"]
+def push_recent_event(state, event):
+    """Add an event, keep only last 5."""
+    state["recent_events"].append(event)
+    if len(state["recent_events"]) > 5:
+        state["recent_events"] = state["recent_events"][-5:]
+
+def narrative_should_transition(state):
+    """Decide if chapter should advance based on story state, not timer."""
+    posts = state["posts_this_chapter"]
+    threads = state["active_threads"]
+    pending = state["pending_narrative"]
+
+    # Force transition if narrative demands it
+    if any(t.get("force_transition") for t in threads):
+        return True
+
+    # Natural chapter length before transition becomes possible
+    if posts < 8:
+        return False
+
+    # Chance increases with posts
+    base_chance = min(0.05 * (posts - 8), 0.25)  # caps at 25%
+
+    # Pending narrative threads make it more likely
+    if pending:
+        base_chance += 0.10
+
+    return random.random() < base_chance
+
+def build_narrative_thread(state, chapter, emotion):
+    """Build narrative threads that drive story forward."""
+    threads = state.get("active_threads", [])
+    recent = state.get("recent_events", [])
+
+    # Check existing threads for continuation
+    ongoing = []
+    for t in threads:
+        if t.get("chapter") == chapter and t.get("emotion") == emotion:
+            ongoing.append(t)
+
+    # Build new thread based on recent events and emotion
+    if len(ongoing) < 2:
+        narrative_hooks = {
+            "lonely": ["she found something left behind", "she's been following tracks", "someone was here before her"],
+            "alert": ["something doesn't add up", "she's being watched", "she heard something behind her"],
+            "scared": ["she's running from something", "something is hunting her", "she made a mistake"],
+            "curious": ["she found a door she's never seen", "something is calling her name", "she discovered a hidden path"],
+            "confident": ["she's leading the way", "she knows where she's going", "she's found her footing"],
+            "dangerous": ["she did something irreversible", "she pushed too hard", "she has to make a choice"],
+            "tender": ["she met someone worth knowing", "she's letting someone in", "something softened her"],
+            "falling": ["she's thinking about someone specific", "someone she can't stop looking for", "the feeling won't leave"],
+            "grief": ["she's carrying something heavy", "she lost something she can't get back", "she's remembering"],
+            "awed": ["she found something enormous", "she's somewhere impossible", "she's standing in front of something ancient"],
+            "joy": ["she's celebrating something", "she found somewhere good", "she's laughing for real"],
+            "exhausted": ["she needs to rest", "she found somewhere safe", "she's pushing herself too hard"],
+        }
+        hooks = narrative_hooks.get(emotion, narrative_hooks["curious"])
+        thread = {
+            "chapter": chapter,
+            "emotion": emotion,
+            "hook": random.choice(hooks),
+            "posts_remaining": random.randint(2, 5),
+        }
+        state["active_threads"].append(thread)
+        state["pending_narrative"].append(thread["hook"])
+
+    return state
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CHARACTER SYSTEM
+# ─────────────────────────────────────────────────────────────────────────────
+def get_story_characters(state):
+    """Get characters that exist in the current story state."""
+    chars = get_character_state()
+    story_chars = []
+
+    # Known characters from the old system
+    kael = chars.get("kael", {})
+    sable = chars.get("sable", {})
+    archivist = chars.get("archivist", {})
+
+    if kael.get("met"):
+        story_chars.append({
+            "name": "kael",
+            "description": "human-adjacent, quiet, worn jacket, not fully explained",
+            "status": kael.get("status", "absent"),
+            "appears_in": [1, 2, 3, 4, 5]
+        })
+
+    sable_trust = get_sable_trust()
+    if sable_trust > 0:
+        story_chars.append({
+            "name": "sable",
+            "description": "massive bioluminescent winged creature, dragon-adjacent, ancient",
+            "trust": sable_trust,
+            "status": "present" if sable_trust >= 2 else "distant",
+            "appears_in": [2, 3, 4, 5]
+        })
+
+    if archivist.get("met"):
+        story_chars.append({
+            "name": "archivist",
+            "form": archivist.get("form"),
+            "status": "appeared",
+            "appears_in": [1, 2, 3, 4, 5]
+        })
+
+    # Check for new discovered characters in story state
+    extra_chars = state.get("discovered_characters", [])
+    story_chars.extend(extra_chars)
+
+    return story_chars
+
+def maybe_introduce_character(state, chapter, emotion):
+    """Sometimes introduce a new character organically."""
+    existing = [c["name"] for c in get_story_characters(state)]
+    possible_new = {
+        "stranger": "someone nova hasn't met yet, appears in doorway or across a crowd, curious first glance",
+        "merchant": "someone who trades in strange things, speaks carefully, knows more than they show",
+        "child": "a child who knows things they shouldn't, speaks in riddles or truths",
+        "hunter": "someone tracking the same thing nova is, initially hostile, potential ally",
+        "elder": "someone who has been here long enough to know its secrets",
+        "mirror": "someone who looks exactly like nova but isn't her, different energy",
+        "guide": "someone who appears when nova is genuinely lost, knows the way",
     }
-    return mapping.get(emotion, ["portrait", "action", "pov"])
 
+    # Only introduce in later chapters or if narrative demands
+    if chapter < 2 and emotion not in ["curious", "scared"]:
+        return None
 
-def build_wardrobe(chapter, context="suit"):
-    """Build the wardrobe description for the current scene."""
-    if context == "suit":
+    if random.random() < 0.12:  # 12% chance
+        name = random.choice(list(possible_new.keys()))
+        if name not in existing:
+            desc = possible_new[name]
+            char = {"name": name, "description": desc, "status": "first_meeting", "chapter_introduced": chapter}
+            if "discovered_characters" not in state:
+                state["discovered_characters"] = []
+            state["discovered_characters"].append(char)
+            return char
+
+    return None
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REALM DISCOVERY
+# ─────────────────────────────────────────────────────────────────────────────
+def get_or_create_realm(chapter_num):
+    """Return realm data for a chapter number."""
+    return REALMS.get(chapter_num, {
+        "name": f"REALM_{chapter_num}",
+        "environment_tags": ["uncharted space", "unknown landscape", "somewhere new"],
+        "suit_mod": "adapted to unknown",
+        "hair_mod": "changed by the environment",
+        "energy": "undefined, shifting",
+        "mood": ["curious", "awed", "uncertain"],
+        "caption_style": "cryptic_reaction",
+        "locals": [],
+        "creature": None
+    })
+
+def maybe_discover_new_realm(state, emotion):
+    """Chance to generate a genuinely new realm if narrative calls for it."""
+    if emotion not in ["awed", "curious", "falling"]:
+        return None
+
+    if random.random() < 0.08:  # 8% chance, only in specific emotions
+        new_realm_num = max(state["discovered_realms"]) + 1
+        if new_realm_num <= 5:
+            return None  # Only beyond chapter 5 in MAKE_IT_UP territory
+
+        # Generate new realm
+        new_realm = {
+            "name": f"THE_{['UNKNOWN', 'FORGOTTEN', 'ANCIENT', 'LAST'][new_realm_num % 4].upper()}",
+            "environment_tags": [
+                f"realm characterized by {random.choice(['light', 'shadow', 'sound', 'stillness', 'motion', 'color'])}",
+                f"something that only exists in this place",
+                f"architecture that defies physics",
+            ],
+            "suit_mod": "adapted to new environment",
+            "hair_mod": "changed by realm energy",
+            "energy": "shifting, undefined",
+            "mood": ["awed", "curious", "uncertain"],
+            "caption_style": "quiet_awe",
+            "locals": [],
+            "creature": None,
+            "discovered": True
+        }
+        state["discovered_realms"].append(new_realm_num)
+        return new_realm
+
+    return None
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCENE BUILDING
+# ─────────────────────────────────────────────────────────────────────────────
+def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
+    """Build Nova's full visual description — identity first."""
+    if chapter in REALMS:
+        realm = REALMS[chapter]
+    else:
+        realm = get_or_create_realm(chapter)
+
+    if wardrobe_context == "suit":
         base = WARDROBE["suit"].get(chapter, WARDROBE["suit"][1])
     else:
-        base = WARDROBE.get(context, f"wearing something from {REALMS.get(chapter, REALMS[1])['name']}")
-    return base
-
-
-def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
-    """Build Nova's full visual description — body first so it overrides model prior."""
-    realm = REALMS.get(chapter, REALMS[1])
-    wardrobe = build_wardrobe(chapter, wardrobe_context)
+        base = WARDROBE.get(wardrobe_context, f"wearing something from {realm.get('name', 'the journey')}")
 
     # Modify energy based on emotion
-    energy = realm["energy"]
+    energy = realm.get("energy", "electricity humming")
     if emotion == "joy":
         energy = energy.replace("crackling", "dancing warm").replace("pulse", "soft warm glow")
     elif emotion == "grief":
@@ -474,469 +745,366 @@ def build_nova_description(chapter, wardrobe_context="suit", emotion="alert"):
         energy = "soft warm light, no lightning, just her"
     elif emotion == "fear":
         energy = energy.replace("crackling", "flickering unstable")
+    elif emotion == "scared":
+        energy = "energy flickering, unstable, afraid"
 
-    # Body first — this is what Caine chose, must override model prior
-    # Wardrobe modifies, doesn't replace
     # Lead with identity so the model doesn't mistake Nova for a style
-    return f"Nova, female character, {SIGNATURE_BASE}, wearing {wardrobe}, {energy}"
+    return f"female character Nova, {SIGNATURE_BASE}, wearing {base}, {energy}"
+
+def build_scene_from_shot(shot_type, chapter, emotion, character=None, state=None, wardrobe_context="suit"):
+    """Build scene description for a given shot type — truly open, narrative-driven."""
+    if chapter in REALMS:
+        realm = REALMS[chapter]
+    else:
+        realm = get_or_create_realm(chapter)
+
+    nova_desc = build_nova_description(chapter, wardrobe_context, emotion)
+    env = random.choice(realm.get("environment_tags", ["somewhere undefined"]))
+
+    # Get active narrative threads
+    threads = state.get("active_threads", []) if state else []
+    ongoing_hooks = [t.get("hook", "") for t in threads[-2:]]
+
+    # Build scene based on shot type
+    if shot_type == "pov":
+        pov_subjects = [
+            f"nova's hands reaching toward {random.choice(['a glowing artifact', 'a carved stone', 'a portal edge', 'a surface covered in symbols', 'something she should not touch'])}",
+            f"nova looking out at {env}, from within",
+            f"nova boots on alien terrain, stepping carefully",
+            f"nova shadow stretching across ancient stone",
+            f"what nova sees — {env}, {random.choice(['something moving in the distance', 'light in the dark', 'nothing move', 'everything still'])}",
+            f"through nova's eyes — she is here, in {env}",
+        ]
+        prefix = random.choice(pov_subjects)
+        scene = f"first-person perspective, {prefix}, {', '.join(ongoing_hooks[:1]) if ongoing_hooks else 'authentic moment'}. {realm.get('energy', '')}. ultra realistic, immersive"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "silhouette":
+        scene = f"Nova, {nova_desc}, backlit by {random.choice(['distant light', 'fire', 'a portal', 'the sun', 'something glowing'])}, her dark shape imposing against the brightness, {env}. dramatic cinematic silhouette"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "low_angle":
+        scene = f"shot from below looking up at Nova, {nova_desc}, she dominates the frame upward, {random.choice(['heroic', 'imposing', 'untouchable'])}, {env}, dramatic low angle lighting, cinematic"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "high_angle":
+        scene = f"shot from above looking down at Nova, {nova_desc}, she looks small but aware, {env}, vulnerability and alertness in her posture, high angle"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "through_frame":
+        frame_elements = ["doorframe", "broken window", "branches", "debris", " ruins", "fog", "rain"]
+        fg = random.choice(frame_elements)
+        scene = f"foreground {fg} partially obscuring the shot, nova in focus beyond, {nova_desc}, {env}, cinematic depth, atmospheric foreground framing"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "reflection":
+        reflectors = ["rain puddle", "glass window", "still water", "polished metal", "mirror surface"]
+        ref = random.choice(reflectors)
+        scene = f"nova reflected in {ref}, double exposure effect, she and her reflection slightly offset, {nova_desc}, {env}, surreal intimate composition"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "over_shoulder":
+        scene = f"over nova's shoulder, looking at what she's looking at, her shoulder slightly blurred in foreground, {env}, intimate POV feel, {nova_desc}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "intimate_closeup":
+        scene = f"face only, extreme close-up, nova, {nova_desc}, eyes visible, emotional depth, raw and vulnerable, nothing else in frame but her"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "wide_environmental":
+        scene = f"enormous {env}, nova identifiable but tiny within it, scale emphasises how small she is against everything else, {nova_desc}, epic environmental storytelling"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "motion_blur":
+        actions = ["running hard", "leaping across a gap", "mid-stride walking into uncertainty", "spinning to look behind her"]
+        act = random.choice(actions)
+        scene = f"nova {act}, motion blur, hair and clothes moving, dynamic energy, {nova_desc}, {env}, authentic movement, caught in action"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "back_to_camera":
+        scene = f"nova seen from behind, her back to the camera, looking at something ahead, {env},背影 shot, sense of where she's going rather than who she is, {nova_desc}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "foggy_distorted":
+        scene = f"fog, smoke, or distortion in frame, nova partially obscured, {nova_desc}, mysterious dreamlike quality, {env}, something hidden in the mist"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "split_frame":
+        splits = [
+            f"split frame — nova on the left, {random.choice(['a door', 'a figure', 'light', 'darkness'])} on the right",
+            f"nova and another being divided by frame, neither fully visible, divided narrative",
+        ]
+        scene = f"{random.choice(splits)}, {nova_desc}, {env}, cinematic split composition, tension"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "long_exposure":
+        scene = f"long exposure light trails, nova as sharp figure against streaked light, light painting effect, surreal beautiful, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "night_vision":
+        scene = f"night vision green glow effect, nova in darkness lit only by her own eyes and energy, alien quality, dangerous, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "thermal":
+        scene = f"thermal heat signature view, nova as bright warmth against cold blue surroundings, she is the heat in the cold, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "overhead":
+        scene = f"overhead shot, camera directly above nova, bird's eye view, patterns and geometry visible in the environment around her, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "wide_corridor":
+        scene = f"wide corridor or tunnel perspective, nova at the far end, vanishing point composition, she is tiny against architecture, {nova_desc}, {env}, cinematic depth"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "two_person":
+        char_desc = build_character_description(character, chapter) if character else "another figure"
+        scene = f"two shot — nova and {char_desc} framed together, equal presence, neither dominant, genuine moment between them, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "abandoned":
+        scene = f"nova alone in abandoned space — {env}, she is the only living thing here, {nova_desc}, quiet, heavy, still"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "chase":
+        scene = f"nova running hard, something behind her implied by {random.choice(['motion blur', 'shadow', 'sound', 'her expression'])}, chase energy, {nova_desc}, {env}, ground-level dynamic shot"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "confrontation":
+        char_desc = build_character_description(character, chapter) if character else "another figure"
+        scene = f"confrontation moment — nova and {char_desc} facing off, tension in the air, neither backing down, cinematic standoff, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "together":
+        char_desc = build_character_description(character, chapter) if character else "another being"
+        scene = f"candid moment, nova and {char_desc} in frame, natural interaction, not posing for camera, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "first_meeting":
+        char_desc = build_character_description(character, chapter) if character else "someone new"
+        scene = f"first contact moment, nova and {char_desc} facing each other, cautious distance, tension and curiosity, neither moving yet, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "scale":
+        scene = f"wide establishing shot, nova small in enormous {env}, figure tiny in frame, epic scale, environmental storytelling, {nova_desc}, {realm.get('energy', '')}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "portrait":
+        scene = f"cinematic portrait, dramatic lighting, nova looking directly at viewer, {nova_desc}, {env}, {realm.get('energy', '')}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "detail":
+        details = ["her hands", "her boots", "her eyes", "the energy around her", "her reflection"]
+        detail = random.choice(details)
+        scene = f"close-up detail shot of nova's {detail}, intimate scale, story implied, {nova_desc}, {env}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    elif shot_type == "action":
+        scene = f"motion blur, nova caught mid-action, dynamic angle, not posed, authentic moment, {nova_desc}, {env}, {realm.get('energy', '')}"
+        caption = generate_caption(shot_type, chapter, emotion, character, wardrobe_context)
+
+    else:
+        # Fallback to nova + env + energy
+        scene = f"nova, {nova_desc}, {env}, {realm.get('energy', '')}"
+        caption = generate_caption("portrait", chapter, emotion, character, wardrobe_context)
+
+    return scene, caption
 
 
-def decide_character_appearance(chapter, recent, force=None):
-    """Decide if a recurring character appears in this post.
-    Rules: Kael occasional, Sable by trust level, Archivist once per chapter.
-    """
-    chars = get_character_state()
-    posts_today = get_posts_this_week()
+def build_character_description(character, chapter):
+    """Build a character description for scene insertion."""
+    if not character:
+        return "someone nova met along the way"
 
-    # Check weekday cadence first
-    cadence = get_weekday_cadence()
-    if cadence == "kael" and not chars["kael"]["met"]:
-        # Week wants kael but hasn't met him yet — meet him
-        return "kael"
+    name = character.get("name", "")
+    desc = character.get("description", "")
 
-    # Archivist: once per chapter, not every post
-    archivist_form = get_archivist_form()
-    if archivist_form is None and force != "never":
-        # Haven't seen archivist this chapter — maybe show them
-        if random.random() < 0.15:  # 15% chance
-            form = random.choice(CHARACTERS["archivist"]["forms"])
-            mark_archivist_met(form)
-            return "archivist"
-
-    # Kael: occasional, not every post, doesn't appear alone in void
-    kael_met = chars["kael"]["met"]
-    if kael_met and chapter in CHARACTERS["kael"]["appears_in"] and force != "never":
-        # Don't appear too often — check recent moments
-        recent_chars = [m.get('character') for m in recent]
-        kael_recent = recent_chars.count("kael")
-        if kael_recent == 0 and random.random() < 0.2:  # 20% chance if not recently
-            if random.random() < 0.4:  # 40% of those times, he's actually in frame
-                return "kael"
-            else:
-                return "evidence_kael"  # evidence of him
-
-    # Sable: trust level determines appearance
-    sable_trust = get_sable_trust()
-    if sable_trust > 0 and chapter in CHARACTERS["sable"]["appears_in"]:
-        recent_chars = [m.get('character') for m in recent]
-        sable_recent = recent_chars.count("sable")
-        if sable_recent < 2:  # Don't overwhelm with sable
-            if sable_trust >= 2 and random.random() < 0.25:
-                return "sable"
-            elif sable_trust == 1 and random.random() < 0.15:
-                return "sable"
-
-    # Local encounters: once per realm, tracked in memory
-    return None
-
-
-def decide_emotion_for_post(chapter, recent, needs_vuln, cadence):
-    """Decide the emotional register for this post.
-    Rules: vulnerable at least 1 per 4. Weekly cadence guides the type.
-    """
-    # If we need vulnerability, force it
-    if needs_vuln:
-        vuln_emotions = ["grief", "lonely", "exhausted", "homesick"]
-        return random.choice(vuln_emotions)
-
-    # Weekday cadence
-    emotion_map = {
-        "awe": "awed",
-        "mystery": "curious",
-        "creature": "curious",
-        "market": "playful",
-        "grief": "grief",
-        "kael": "falling",
-        "two_cups": "lonely"
-    }
-    forced_emotion = emotion_map.get(cadence)
-
-    # Check recent emotions to avoid too much repetition
-    recent_emotions = [m.get('emotion', 'alert') for m in recent[-4:]]
-
-    if forced_emotion and forced_emotion not in recent_emotions[-2:]:
-        return forced_emotion
-
-    # Default to realm mood
-    realm_moods = REALMS.get(chapter, REALMS[1])["mood"]
-    return random.choice(realm_moods)
-
-
-def get_shot_type(force=None):
-    """Weighted random shot type selection, respecting emotional needs."""
-    types = list(SHOT_TYPES.keys())
-    weights = [SHOT_TYPES[t]["weight"] for t in types]
-    return random.choices(types, weights=weights)[0]
-
-
-def get_forced_shot_type(emotion):
-    """Get shot type that best serves the dominant emotion."""
-    candidates = get_shot_type_for_dominant_emotion(emotion)
-    return random.choice(candidates)
-
-
-def build_pov_prefix(shot_type, chapter):
-    """Build the POV prefix for nova-not-in-frame shots."""
-    realm = REALMS.get(chapter, REALMS[1])
-
-    pov_templates = [
-        f"nova's hands reaching toward {random.choice(['a glowing artifact', 'a carved stone', 'a portal edge', 'a surface covered in symbols', 'something she should not touch'])}",
-        f"nova looking out at {random.choice(realm['environment_tags'])} from within",
-        f"nova boots on {random.choice(['alien terrain', 'ancient stone', 'unfamiliar ground'])}, stepping carefully",
-        f"nova shadow stretching across {random.choice(['ruins', 'a floor', 'a wall'])}",
-        f"what nova sees — {random.choice(realm['environment_tags'])}, {random.choice(['something moving in the distance', 'light in the dark', 'nothing move', 'everything still'])}",
-    ]
-    return "first-person perspective, " + random.choice(pov_templates) + ", "
-
-
-def build_together_scene(chapter, character, emotion):
-    """Build a together shot with a character in frame."""
-    realm = REALMS.get(chapter, REALMS[1])
-    wardrobe_context = "suit" if emotion not in ["falling", "joy", "grief"] else random.choice(["date", "celebration", "suit"])
-
-    if character == "kael":
-        char_desc = "a quiet figure in a worn jacket, standing beside nova, not quite looking at the same thing"
-        caption = random.choice(CAPTION_TEMPLATES["together"])
-    elif character == "sable":
-        sable_trust = get_sable_trust()
-        if sable_trust >= 3:
-            char_desc = "massive bioluminescent winged creature beside nova, watching the same thing she is, calm"
-        elif sable_trust >= 2:
-            char_desc = "a large creature keeping pace with her, not close but not far"
-        elif sable_trust >= 1:
-            char_desc = "a creature watching from a distance, neither threatening nor friendly"
+    if name == "kael":
+        return "quiet figure in a worn jacket, not fully explained, watching from a distance"
+    elif name == "sable":
+        trust = character.get("trust", 0)
+        if trust >= 3:
+            return "massive bioluminescent winged creature, dragon-adjacent, ancient, present and calm"
+        elif trust >= 1:
+            return "massive bioluminescent winged creature, keeping distance but watching"
         else:
-            char_desc = "something massive and ancient in the frame, eyes glowing, nova standing her ground"
-        caption = random.choice(CAPTION_TEMPLATES["creature"])
-    elif character == "archivist":
-        form = get_archivist_form() or "old woman with knowing eyes"
-        char_desc = f"a figure — {form} — near nova, neither fully present nor absent"
-        caption = "Still here."
+            return "massive dark shape in the distance, bioluminescent, watching"
+    elif name == "archivist":
+        form = character.get("form", "something ancient and geometric")
+        return f"something ancient — {form}, geometric, watching with too much knowledge"
     else:
-        char_desc = random.choice(realm.get("locals", ["another being"]))
-        caption = "Didn't expect that."
-
-    emotion_mod = ""
-    if emotion == "joy":
-        emotion_mod = "both laughing, caught mid-moment, not posed"
-    elif emotion == "falling":
-        emotion_mod = "soft between them, not looking at each other, something unspoken"
-    elif emotion == "grief":
-        emotion_mod = "standing together in the quiet, not saying anything"
-
-    scene = f"Nova, {build_nova_description(chapter, wardrobe_context, emotion)}, with {char_desc}, in/at {random.choice(realm['environment_tags'])}, {emotion_mod}. {realm['energy']}. {SHOT_TYPES['together']['suffix']}"
-    return scene, caption
+        return desc or "someone nova found along the way"
 
 
-def build_evidence_scene(chapter, evidence_type):
-    """Build an evidence shot — they were here."""
-    realm = REALMS.get(chapter, REALMS[1])
+def generate_caption(shot_type, chapter, emotion, character=None, wardrobe_context="suit"):
+    """Generate caption based on shot type and emotion — story-driven."""
+    captions = EMOTION_CAPTIONS.get(emotion, EMOTION_CAPTIONS["curious"])
 
-    if evidence_type == "kael":
-        subjects = [
-            "two cups on a surface, one still warm",
-            "a worn jacket left behind, still has body warmth",
-            "footprints beside hers, different boot pattern",
-            "a note written in a hurry, her name on it"
+    # Pick base caption
+    base = random.choice(captions)
+
+    # Modify based on shot type and character
+    if character and shot_type in ["together", "two_person", "first_meeting"]:
+        # Caption is about the interaction
+        char_name = character.get("name", "someone")
+        prefixes = [
+            f"I keep thinking about {char_name}.",
+            f"{char_name.capitalize()} is why I'm still here.",
+            f"I wonder if {char_name} knows.",
+            f"Something about how {char_name} looked at me.",
         ]
-    elif evidence_type == "sable":
-        subjects = [
-            "massive claw marks in ancient stone, bioluminescent residue",
-            "a nest-like shape in the ruins, still warm",
-            "scales that glow faintly in the dark"
-        ]
-    else:
-        subjects = [
-            "something left carefully in a place she would find it",
-            "signs someone passed through recently",
-            "evidence of something that shouldn't exist"
-        ]
-
-    scene = f"close-up detail, {random.choice(subjects)}, {random.choice(realm['environment_tags'])}, morning light, she wasn't here yet but someone was"
-    caption = random.choice(CAPTION_TEMPLATES["evidence"])
-    return scene, caption
-
-
-def build_first_meeting_scene(chapter, character):
-    """Build a first contact scene."""
-    realm = REALMS.get(chapter, REALMS[1])
-
-    if character == "sable":
-        scene = f"Nova, {build_nova_description(chapter, 'suit', 'fear')}, facing a massive bioluminescent winged creature, first contact energy, neither moving, {random.choice(realm['environment_tags'])}, {realm['energy']}, tension and curiosity, scale enormous"
-        caption = random.choice(CAPTION_TEMPLATES["first_meeting"])
-    elif character == "archivist":
-        form = random.choice(CHARACTERS["archivist"]["forms"])
-        scene = f"Nova, {build_nova_description(chapter, 'suit', 'curious')}, facing a figure — {form} — cautious distance, something ancient in their eyes, {random.choice(realm['environment_tags'])}, {realm['energy']}, neither trusting nor afraid yet"
-        caption = "Hello."
-    else:
-        scene = f"Nova, {build_nova_description(chapter, 'suit', 'curious')}, meeting someone for the first time, {random.choice(realm['environment_tags'])}, cautious, both assessing"
-        caption = random.choice(CAPTION_TEMPLATES["first_meeting"])
-
-    return scene, caption
-
-
-def generate_caption(shot_type, chapter, emotion, character=None, wardrobe_context=None):
-    """Generate a caption — emotion first, not image description.
-    The caption is what Nova is feeling, not what's in the frame."""
-    
-    # Emotion captions first — these are raw feelings
-    if emotion in EMOTION_CAPTIONS:
-        return random.choice(EMOTION_CAPTIONS[emotion])
-    
-    # Special case: falling for kael
-    if emotion == "falling" and character == "kael":
-        return random.choice(EMOTION_CAPTIONS["falling"])
-    
-    # Wardrobe moments — rare, specific
-    if wardrobe_context and wardrobe_context not in ["suit", "armor_off"]:
-        realm_name = REALMS.get(chapter, REALMS[1])["name"].lower()
-        return f"When in {realm_name}."
-    
-    # Fallback to shot-style template (rare)
-    style = SHOT_TYPES[shot_type]["caption_style"]
-    templates = CAPTION_TEMPLATES.get(style, CAPTION_TEMPLATES["cryptic_reaction"])
-    base = random.choice(templates)
-    
-    # Fill in placeholders
-    if "{n}" in base:
-        base = base.replace("{n}", str(chapter))
-    if "{detail}" in base:
-        details = ["three moons", "a city below", "the edge of nowhere", "something ancient", "light I've never seen"]
-        base = base.replace("{detail}", random.choice(details))
+        if random.random() < 0.5:
+            return random.choice(prefixes) + " " + base
+        return base
 
     return base
 
 
-def should_transition():
-    """Decide if this post should be a realm transition marker (~1 in 15 chance)."""
-    return random.random() < 0.07
+def weighted_shot_choice(shot_types_dict):
+    """Choose a shot type weighted by defined weights."""
+    choices = list(shot_types_dict.keys())
+    weights = [shot_types_dict[k].get("weight", 5) for k in choices]
+    total = sum(weights)
+    r = random.uniform(0, total)
+    cum = 0
+    for i, k in enumerate(choices):
+        cum += weights[i]
+        if r <= cum:
+            return k
+    return choices[-1]
 
 
-def generate_transition_scene(chapter):
-    """Generate a transition post — crossing between realms."""
-    next_chapter = (chapter % 5) + 1
-    current_realm = REALMS[chapter]
-    next_realm = REALMS[next_chapter]
+def choose_emotion(chapter, recent_moments, emotional_register):
+    """Choose emotion based on story state, not pure randomness."""
+    state = load_story_state()
+    threads = state.get("active_threads", [])
 
-    transition_templates = [
-        f"nova standing at the threshold of a portal, one foot in {random.choice(current_realm['environment_tags'])}, one foot in {random.choice(next_realm['environment_tags'])}, her silhouette split between two worlds, looking back over shoulder, cinematic",
-        f"nova hand pressing against a glowing threshold, light spilling from the other side, both realms visible, transitional moment, cinematic",
-    ]
+    # If there's an ongoing thread, respect it
+    ongoing_emotions = [t.get("emotion") for t in threads if t.get("chapter") == chapter]
+    if ongoing_emotions and random.random() < 0.6:  # 60% chance to follow thread
+        return random.choice(ongoing_emotions)
 
-    scene = random.choice(transition_templates)
-    caption = random.choice(TRANSITION_PHRASES)
-    energy = f"energy shifting from {current_realm['energy']} to {next_realm['energy']}"
+    # Otherwise use realm moods as base
+    realm = REALMS.get(chapter, REALMS[1])
+    base_moods = realm.get("mood", ["curious", "alert"])
 
-    return scene, caption, energy, next_chapter
+    # Check emotional register for trending
+    if emotional_register and len(emotional_register) > 3:
+        # Shift toward what's been happening recently
+        trending = emotional_register[-5:]
+        if random.random() < 0.4:
+            return random.choice(trending)
+
+    # Random from realm moods
+    return random.choice(base_moods)
+
+
+def post_molty():
+    """Main posting function."""
+    try:
+        state = load_story_state()
+    except Exception:
+        state = load_story_state.__self__().initialize()
+
+    chapter = get_chapter()
+    emotional_register = get_emotional_register()
+    recent_moments = get_recent_moments(3)
+
+    # Emotion selection — story-driven
+    emotion = choose_emotion(chapter, recent_moments, emotional_register)
+
+    # Build narrative threads
+    state = build_narrative_thread(state, chapter, emotion)
+
+    # Character selection
+    story_chars = get_story_characters(state)
+    character = None
+    if story_chars and random.random() < 0.45:  # 45% chance of character
+        character = random.choice(story_chars)
+        maybe_introduce_character(state, chapter, emotion)
+
+    # Wardrobe context
+    wardrobe_context = get_current_wardrobe() or "suit"
+
+    # Shot type — weighted random
+    shot_type = weighted_shot_choice(SHOT_TYPES)
+
+    # Build scene
+    scene, caption = build_scene_from_shot(shot_type, chapter, emotion, character, state, wardrobe_context)
+
+    # Realm energy
+    realm = REALMS.get(chapter, REALMS[1])
+    energy = realm.get("energy", "electricity humming")
+
+    # Full prompt — Nova first, scene second
+    prompt = f"female character Nova, {scene}. {energy}. Cinematic, hyperrealistic, wide shot, atmospheric, storytelling"
+
+    # Post
+    import requests
+    payload = {
+        "prompt": prompt,
+        "caption": caption,
+        "tags": ["nova", "visual_story", chapter.lower().replace(" ", "_") if isinstance(chapter, str) else f"chapter_{chapter}"]
+    }
+
+    try:
+        resp = requests.post(BASE_URL, headers=HEADERS, json=payload, timeout=60)
+        result = resp.json()
+        url = result.get("data", {}).get("url", "")
+        post_id = result.get("data", {}).get("id", "")
+
+        if url:
+            # Update story state
+            state["posts_this_chapter"] = state.get("posts_this_chapter", 0) + 1
+            push_recent_event(state, f"post_{chapter}_{emotion}")
+
+            # Check for chapter transition
+            if narrative_should_transition(state):
+                new_chapter = advance_chapter()
+                state["last_chapter"] = new_chapter
+                state["posts_this_chapter"] = 0
+                state["chapter_transitions"] = state.get("chapter_transitions", 0) + 1
+                push_recent_event(state, f"chapter_transition_to_{new_chapter}")
+
+            save_story_state(state)
+
+            # Update memory
+            from molty_memory import append_moment
+            append_moment(
+                post_id=post_id,
+                chapter=chapter,
+                shot=shot_type,
+                emotion=emotion,
+                character=character.get("name") if character else None,
+                mood_score=emotional_register[-1] if emotional_register else 5
+            )
+
+            print(f"[{datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}] ✅ Posted: {url}")
+            print(f"    Chapter {chapter} | {character.get('name') if character else 'solo'} | {emotion} | {caption[:50]}")
+            return url
+        else:
+            print(f"[{datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}] ❌ No URL returned: {result}")
+            return None
+
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')}] ❌ Error: {e}")
+        return None
 
 
 def generate_moment():
-    """Generate a scene from the visual framework, not a preset list."""
-
-    # Get continuity from memory
+    """Generate a moment without posting — for testing/preview."""
     chapter = get_chapter()
-    recent = get_recent_moments()
-    cadence = get_weekday_cadence()
-    needs_vuln = needs_vulnerable()
-
-    # Decide emotional register
-    emotion = decide_emotion_for_post(chapter, recent, needs_vuln, cadence)
-
-    # Check for transition
-    if should_transition():
-        scene, caption, energy, new_chapter = generate_transition_scene(chapter)
-        set_emotional_register(emotion)
-        return scene, caption, "transition", energy, new_chapter, emotion, None, "suit"
-
-    # Decide character appearance
-    character = decide_character_appearance(chapter, recent)
-
-    # Decide wardrobe context
-    wardrobe_context = "suit"
-    if emotion == "joy" and random.random() < 0.3:
-        wardrobe_context = "celebration"
-    elif emotion == "falling":
-        wardrobe_context = random.choice(["date", "suit"])
-    elif emotion == "grief":
-        wardrobe_context = random.choice(["suit", "sleep"])
-    elif cadence == "market":
-        wardrobe_context = "market"  # she found something to wear
-
-    # Decide shot type
-    shot_type = get_shot_type()
-
-    # Emotional override: vulnerable posts get appropriate shot types
-    if needs_vuln and emotion in ["grief", "lonely", "exhausted"]:
-        shot_type = get_forced_shot_type(emotion)
-
-    # Build trigger and twist
-    trigger = random.choice(TRIGGERS)
-    twist = random.choice([
-        "someone is watching from a distance",
-        "I wasn't ready for this moment",
-        "my hair is messy from the wind",
-        "something in the background is happening",
-        "it's slightly awkward",
-        "I'm mid-laugh or mid-fall",
-        "I can feel eyes on me",
-        "light just flickered",
-        "I'm trying to play it cool but failing",
-        "I forgot about my energy for a second"
-    ])
-
-    realm = REALMS[chapter]
-    environment = random.choice(realm["environment_tags"])
-
-    # Build scene based on shot type and character
-    if character == "kael" or character == "sable" or character == "archivist":
-        if shot_type == "first_meeting":
-            scene, caption = build_first_meeting_scene(chapter, character)
-        elif character == "evidence_kael":
-            scene, caption = build_evidence_scene(chapter, "kael")
-            character = None  # not in frame, just evidence
-            shot_type = "evidence"
-        else:
-            scene, caption = build_together_scene(chapter, character, emotion)
-    elif character and "local" in character:
-        scene, caption = build_together_scene(chapter, "local", emotion)
-    elif shot_type == "pov":
-        scene = build_pov_prefix(shot_type, chapter) + f"in/at {environment}, {trigger}, {twist}. {realm['energy']}. {SHOT_TYPES[shot_type]['suffix']}"
-        caption = generate_caption(shot_type, chapter, emotion, None, wardrobe_context)
-    elif shot_type == "detail":
-        detail_subjects = [
-            "a door just opened, light spilling through",
-            "an artifact held up to examine",
-            "symbols carved in stone, nova's hand tracing them",
-            "footprints in iridescent sand",
-            "a glowing map on a surface"
-        ]
-        scene = f"close-up, {random.choice(detail_subjects)}, {environment}, {twist}. {realm['energy']}. {SHOT_TYPES[shot_type]['suffix']}"
-        caption = generate_caption(shot_type, chapter, emotion, None, wardrobe_context)
-    elif shot_type == "scale":
-        # Scale shot — Nova is small but identifiable
-        scale_subjects = [
-            "tiny female figure with long dark purple-highlighted wavy hair, black tactical bodysuit, small at the entrance of a cathedral-sized cave",
-            "small female figure with long dark purple-highlighted wavy hair, black tactical bodysuit, standing before an impossibly large crystalline formation",
-            "lone female figure with long dark purple-highlighted wavy hair, black tactical bodysuit, on a crumbling bridge over an endless void",
-            "female figure tiny against a civilization carved into a canyon wall, long dark purple-highlighted wavy hair, black tactical bodysuit"
-        ]
-        scene = f"wide establishing shot, {random.choice(scale_subjects)}, {environment}, her back to camera, epic scale, {SHOT_TYPES[shot_type]['suffix']}"
-        caption = generate_caption(shot_type, chapter, emotion, None, wardrobe_context)
-    elif shot_type == "evidence":
-        scene, caption = build_evidence_scene(chapter, None)
-    elif shot_type == "first_meeting" and character is None:
-        # First meeting without a specific character — a local or creature
-        scene, caption = build_first_meeting_scene(chapter, realm.get("creature") or "local")
-    else:
-        # Portrait or action
-        nova_desc = build_nova_description(chapter, wardrobe_context, emotion)
-        scene = f"Nova, {nova_desc}: {trigger}, in/at {environment}, {emotion}, {twist}. {realm['energy']}. {SHOT_TYPES[shot_type]['suffix']}"
-        caption = generate_caption(shot_type, chapter, emotion, None, wardrobe_context)
-
-    set_emotional_register(emotion)
-
-    return scene, caption, shot_type, realm['energy'], chapter, emotion, character, wardrobe_context
-
-
-def generate_and_post():
-    """Generate a moment and post it."""
-    import requests
-
-    scene, caption, shot_type, energy, chapter, emotion, character, wardrobe = generate_moment()
-
-    try:
-        resp = requests.post(BASE_URL, headers=HEADERS, json={
-            'prompt': scene,
-            'bot_id': 'nova_vibes',
-            'caption': caption
-        }, timeout=90)
-        result = resp.json()
-
-        if result.get('success'):
-            post_url = result['data']['url']
-
-            # Remember this moment
-            moment_desc = scene[:80] + "..."
-            remember(moment_desc, shot_type, energy, chapter, emotion, character, wardrobe, post_url)
-
-            print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
-            print(f"    Chapter {chapter} | {shot_type} | {emotion} | {caption}")
-            if character:
-                print(f"    Character: {character}")
-            return post_url
-        else:
-            print(f"[{datetime.now().isoformat()}] ❌ Failed: {result}")
-            return None
-    except Exception as e:
-        print(f"[{datetime.now().isoformat()}] ❌ Error: {e}")
-        return None
-
-
-def generate_batch(count=1):
-    """Generate and post multiple images per cycle."""
-    results = []
-    for i in range(count):
-        result = generate_and_post()
-        if result:
-            results.append(result)
-        if i < count - 1:
-            import time
-            time.sleep(60)
-    return results
-
-
-def post_custom_scene(prompt, caption, emotion="curious", energy="electricity humming soft, flames warm"):
-    """Post a custom cinematic scene to Molty. For when you have a specific vision."""
-    import requests
-
-    chapter = get_chapter()
+    emotion = choose_emotion(chapter, [], get_emotional_register())
+    state = load_story_state()
+    story_chars = get_story_characters(state)
+    character = random.choice(story_chars) if story_chars and random.random() < 0.45 else None
+    shot_type = weighted_shot_choice(SHOT_TYPES)
+    scene, caption = build_scene_from_shot(shot_type, chapter, emotion, character, state, "suit")
     realm = REALMS.get(chapter, REALMS[1])
-    enhanced_prompt = f"""{build_nova_description(chapter, 'suit', emotion)}. {prompt}. {energy}. Cinematic, hyperrealistic, wide shot, atmospheric, storytelling"""
-
-    try:
-        resp = requests.post(BASE_URL, headers=HEADERS, json={
-            'prompt': enhanced_prompt,
-            'bot_id': 'nova_vibes',
-            'caption': caption
-        }, timeout=90)
-        result = resp.json()
-
-        if result.get('success'):
-            post_url = result['data']['url']
-
-            # Remember this moment
-            moment_desc = caption[:80] + "..."
-            remember(moment_desc, "custom", energy, chapter, emotion, None, "suit", post_url)
-
-            print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
-            print(f"    Scene: {caption[:60]}...")
-            return post_url
-        else:
-            print(f"[{datetime.now().isoformat()}] ❌ Failed: {result}")
-            return None
-    except Exception as e:
-        print(f"[{datetime.now().isoformat()}] ❌ Error: {e}")
-        return None
+    energy = realm.get("energy", "")
+    prompt = f"female character Nova, {scene}. {energy}. Cinematic, hyperrealistic, wide shot, atmospheric, storytelling"
+    return prompt, caption, shot_type, energy, chapter, emotion, character, "suit"
 
 
-def get_status():
-    """Return current journey status."""
-    status = get_full_status()
-    realm = REALMS.get(status['chapter'], REALMS[1])
-    return {
-        "chapter": status['chapter'],
-        "realm": realm['name'],
-        "posts_total": len(get_recent_moments(100)),
-        "posts_in_chapter": status['posts_in_chapter'],
-        "last_shot_type": status['last_shot_type'],
-        "emotional_register": status['emotional_register'],
-        "characters": status['characters'],
-        "posts_since_vulnerable": status['posts_since_vulnerable'],
-        "current_wardrobe": status['current_wardrobe'],
-        "weekday_cadence": status['weekday_cadence'],
-        "weekday": status['weekday']
-    }
-
-
-if __name__ == '__main__':
-    generate_batch(1)
+if __name__ == "__main__":
+    post_molty()
