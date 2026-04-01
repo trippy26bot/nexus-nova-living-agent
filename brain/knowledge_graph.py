@@ -42,7 +42,23 @@ def _init_db():
             properties TEXT NOT NULL DEFAULT '{}',
             salience REAL NOT NULL DEFAULT 0.5,
             created_at TEXT NOT NULL,
-            last_updated TEXT NOT NULL
+            last_updated TEXT NOT NULL,
+            belief_updated_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00+00:00'
+        )
+    """)
+
+    # Temporal history — logs previous salience/position values on change
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_node_history (
+            id TEXT PRIMARY KEY,
+            node_id TEXT NOT NULL,
+            field TEXT NOT NULL,
+            previous_value REAL,
+            previous_text TEXT,
+            previous_timestamp TEXT NOT NULL,
+            change_reason TEXT,
+            changed_at TEXT NOT NULL,
+            FOREIGN KEY (node_id) REFERENCES knowledge_nodes(id)
         )
     """)
 
@@ -67,6 +83,7 @@ def _init_db():
     c.execute("CREATE INDEX IF NOT EXISTS idx_edges_source ON knowledge_edges(source_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_edges_target ON knowledge_edges(target_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_edges_rel ON knowledge_edges(relationship)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_history_node ON knowledge_node_history(node_id)")
 
     db.commit()
     db.close()
@@ -74,7 +91,7 @@ def _init_db():
 
 def _row_to_node(row) -> dict:
     """Convert DB row to node dict."""
-    id_, label, node_type, properties, salience, created_at, last_updated = row
+    id_, label, node_type, properties, salience, created_at, last_updated, belief_updated_at = row
     return {
         "id": id_,
         "label": label,
@@ -82,7 +99,8 @@ def _row_to_node(row) -> dict:
         "properties": json.loads(properties) if isinstance(properties, str) else properties,
         "salience": salience,
         "created_at": created_at,
-        "last_updated": last_updated
+        "last_updated": last_updated,
+        "belief_updated_at": belief_updated_at
     }
 
 
@@ -133,9 +151,9 @@ def add_node(label: str, node_id: str = None, node_type: str = "concept",
     props = json.dumps(properties or {})
 
     c.execute("""
-        INSERT INTO knowledge_nodes (id, label, node_type, properties, salience, created_at, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (node_id, label_key, node_type, props, salience, now, now))
+        INSERT INTO knowledge_nodes (id, label, node_type, properties, salience, created_at, last_updated, belief_updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (node_id, label_key, node_type, props, salience, now, now, now))
     db.commit()
     db.close()
     return node_id
@@ -173,21 +191,96 @@ def get_or_create_node(label: str, node_type: str = "concept",
     return add_node(label=label, node_type=node_type, properties=properties, salience=salience)
 
 
-def update_node_salience(node_id: str, salience: float) -> bool:
-    """Update a node's salience score."""
+def update_node_salience(node_id: str, salience: float, reason: str = None) -> bool:
+    """
+    Update a node's salience score.
+    Logs the previous value to knowledge_node_history before changing.
+    """
     _init_db()
     db = _get_db()
     now = datetime.now(timezone.utc).isoformat()
     c = db.cursor()
+
+    # Fetch previous value before updating
+    prev_row = c.execute(
+        "SELECT salience, belief_updated_at FROM knowledge_nodes WHERE id = ?", (node_id,)
+    ).fetchone()
+    if not prev_row:
+        db.close()
+        return False
+
+    prev_salience, prev_timestamp = prev_row
+
+    # Log history
+    history_id = str(uuid.uuid4())
+    c.execute("""
+        INSERT INTO knowledge_node_history (id, node_id, field, previous_value, previous_timestamp, change_reason, changed_at)
+        VALUES (?, ?, 'salience', ?, ?, ?, ?)
+    """, (history_id, node_id, prev_salience, prev_timestamp, reason or "salience_update", now))
+
+    # Update salience and set belief_updated_at to now if salience changed meaningfully
     c.execute("""
         UPDATE knowledge_nodes
-        SET salience = ?, last_updated = ?
+        SET salience = ?, last_updated = ?, belief_updated_at = ?
         WHERE id = ?
-    """, (salience, now, node_id))
+    """, (salience, now, now, node_id))
     db.commit()
     changed = c.rowcount > 0
     db.close()
     return changed
+
+
+def update_node_position(node_id: str, position_value: float, reason: str = None) -> bool:
+    """
+    Record a position update for a node (e.g. belief strength, conviction level).
+    Logs the previous value to knowledge_node_history before changing.
+    Sets belief_updated_at to now.
+    """
+    _init_db()
+    db = _get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    c = db.cursor()
+
+    prev_row = c.execute(
+        "SELECT salience, belief_updated_at FROM knowledge_nodes WHERE id = ?", (node_id,)
+    ).fetchone()
+    if not prev_row:
+        db.close()
+        return False
+
+    prev_salience, prev_timestamp = prev_row
+
+    history_id = str(uuid.uuid4())
+    c.execute("""
+        INSERT INTO knowledge_node_history (id, node_id, field, previous_value, previous_timestamp, change_reason, changed_at)
+        VALUES (?, ?, 'position', ?, ?, ?, ?)
+    """, (history_id, node_id, prev_salience, prev_timestamp, reason or "position_update", now))
+
+    c.execute("""
+        UPDATE knowledge_nodes
+        SET salience = ?, last_updated = ?, belief_updated_at = ?
+        WHERE id = ?
+    """, (position_value, now, now, node_id))
+    db.commit()
+    changed = c.rowcount > 0
+    db.close()
+    return changed
+
+
+def get_node_history(node_id: str) -> list[dict]:
+    """Return the temporal change log for a node."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute("""
+        SELECT * FROM knowledge_node_history
+        WHERE node_id = ?
+        ORDER BY changed_at DESC
+    """, (node_id,)).fetchall()
+    db.close()
+    return [{"id": r[0], "node_id": r[1], "field": r[2], "previous_value": r[3],
+             "previous_text": r[4], "previous_timestamp": r[5], "change_reason": r[6],
+             "changed_at": r[7]} for r in rows]
 
 
 # ── Edge operations ─────────────────────────────────────────────────────────
@@ -436,10 +529,10 @@ def seed_identity_nodes():
     ]
 
     c.executemany("""
-        INSERT INTO knowledge_nodes (id, label, node_type, properties, salience, created_at, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO knowledge_nodes (id, label, node_type, properties, salience, created_at, last_updated, belief_updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, [
-        (str(uuid.uuid4()), label, ntype, json.dumps(props), salience, now, now)
+        (str(uuid.uuid4()), label, ntype, json.dumps(props), salience, now, now, now)
         for label, ntype, salience, props in identity_nodes
     ])
 
