@@ -10,7 +10,10 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-PROVENANCE_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/")want_provenance.json"
+PROVENANCE_PATH = os.path.join(
+    os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")),
+    "memory/want_provenance.json"
+)
 
 OriginType = Literal["session_context", "research_finding", "caine_instruction", "self_generated", "overnight_synthesis", "unknown"]
 
@@ -93,3 +96,18 @@ def wire_goal_logging(goal_id: str, origin_type: OriginType, origin_context: str
     Wires provenance tracking into the goal-setting path.
     """
     log_want(goal_id, origin_type, origin_context)
+
+
+def get_untraced_wants(limit: int = 10) -> list[dict]:
+    """
+    Get wants that have not been traced to their origin.
+    These are potential curiosity engine sources.
+    """
+    entries = _load_provenance()
+    # Untraced = origin_type is unknown or origin_context is empty
+    untraced = [
+        e for e in entries
+        if e.get("still_active", True) and
+        (e.get("origin_type") == "unknown" or not e.get("origin_context"))
+    ]
+    return untraced[:limit]
