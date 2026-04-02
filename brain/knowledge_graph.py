@@ -11,7 +11,7 @@ a web of understanding rather than isolated entries.
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -978,6 +978,186 @@ def get_belief_erosion_candidates(threshold: float = 0.6) -> list:
     """, (threshold,)).fetchall()
     db.close()
     return [_row_to_belief(tuple(r)) for r in rows]
+
+
+# ── Tier 5: Memory Ancestry Tree ─────────────────────────────────────────────
+
+def add_ancestry_to_memory(node_id: str, parent_ids: list, lineage_depth: int = 0):
+    """
+    Add or update ancestry_parent_ids and lineage_depth on a knowledge node.
+    Every consolidated memory or belief gets:
+    - ancestry_parent_ids: list of memory/belief ids it descended from
+    - lineage_depth: how many synthesis steps from original source
+
+    During memory_consolidation (3am): when distilling memories into
+    semantic clusters, explicitly record which source memories contributed.
+    """
+    _init_db()
+    db = _get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    c = db.cursor()
+
+    c.execute("SELECT id FROM knowledge_nodes WHERE id = ?", (node_id,)).fetchone()
+    if not c.fetchone():
+        db.close()
+        return None
+
+    # Update the node with ancestry info
+    # We store ancestry in properties JSON since adding columns is disruptive
+    # lineage_depth goes in a dedicated column if possible
+    try:
+        c.execute("ALTER TABLE knowledge_nodes ADD COLUMN lineage_depth INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    try:
+        c.execute("ALTER TABLE knowledge_nodes ADD COLUMN ancestry_parent_ids TEXT DEFAULT '[]'")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
+    c.execute("""
+        UPDATE knowledge_nodes
+        SET ancestry_parent_ids = ?,
+            lineage_depth = ?,
+            last_updated = ?
+        WHERE id = ?
+    """, (json.dumps(parent_ids), lineage_depth, now, node_id))
+
+    db.commit()
+    db.close()
+    return node_id
+
+
+def get_node_ancestry(node_id: str) -> dict:
+    """Get ancestry info for a node."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+
+    try:
+        rows = c.execute("""
+            SELECT lineage_depth, ancestry_parent_ids
+            FROM knowledge_nodes WHERE id = ?
+        """, (node_id,)).fetchone()
+    except sqlite3.OperationalError:
+        db.close()
+        return {"lineage_depth": 0, "ancestry_parent_ids": []}
+
+    db.close()
+
+    if not rows:
+        return {"lineage_depth": 0, "ancestry_parent_ids": []}
+
+    lineage_depth = rows[0] or 0
+    ancestry_ids = json.loads(rows[1]) if rows[1] else []
+
+    return {
+        "lineage_depth": lineage_depth,
+        "ancestry_parent_ids": ancestry_ids
+    }
+
+
+def trace_ancestry(node_id: str, depth: int = 5) -> list:
+    """
+    Returns a readable lineage path:
+    "This stance descended from [memory A] via [synthesis on date]
+     via [belief B] — lineage depth 3."
+
+    Used by phenomenology journal and Nova's self-reflection.
+    """
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+
+    lineage = []
+    current_id = node_id
+    visited = set()
+
+    for _ in range(depth):
+        if current_id in visited:
+            break
+        visited.add(current_id)
+
+        try:
+            row = c.execute("""
+                SELECT n.id, n.label, n.node_type, n.ancestry_parent_ids,
+                       n.lineage_depth, n.created_at,
+                       b.belief_text
+                FROM knowledge_nodes n
+                LEFT JOIN belief_nodes b ON b.id = n.id
+                WHERE n.id = ?
+            """, (current_id,)).fetchone()
+        except sqlite3.OperationalError:
+            # ancestry columns don't exist yet
+            break
+
+        if not row:
+            break
+
+        node_id_col, label, node_type, ancestry_ids, lineage_depth, created_at, belief_text = row
+        parent_ids = json.loads(ancestry_ids) if ancestry_ids else []
+
+        label_str = label or belief_text or node_id_col[:8]
+        lineage.append({
+            "id": node_id_col,
+            "label": label_str,
+            "type": node_type,
+            "depth_from_here": len(lineage),
+            "created_at": created_at,
+            "parents": parent_ids
+        })
+
+        # Move to first parent
+        if parent_ids:
+            current_id = parent_ids[0]
+        else:
+            break
+
+    db.close()
+    return lineage
+
+
+def find_orphaned_nodes(age_threshold_days: int = 14) -> list:
+    """
+    Nodes with no ancestry_parent_ids and lineage_depth 0
+    that are older than age_threshold_days.
+
+    Flagged for self-repair: reconnect or mark as origin memories.
+    """
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=age_threshold_days)).isoformat()
+
+    try:
+        rows = c.execute("""
+            SELECT id, label, node_type, created_at, salience
+            FROM knowledge_nodes
+            WHERE (ancestry_parent_ids IS NULL
+                   OR ancestry_parent_ids = '[]'
+                   OR lineage_depth = 0)
+            AND created_at < ?
+            AND node_type NOT IN ('identity', 'core')
+            ORDER BY created_at ASC
+            LIMIT 20
+        """, (cutoff,)).fetchall()
+    except sqlite3.OperationalError:
+        # Columns don't exist yet
+        db.close()
+        return []
+
+    db.close()
+
+    return [
+        {
+            "id": r[0],
+            "label": r[1],
+            "node_type": r[2],
+            "created_at": r[3],
+            "salience": r[4]
+        }
+        for r in rows
+    ]
 
 
 if __name__ == "__main__":

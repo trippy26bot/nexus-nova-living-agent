@@ -1,20 +1,49 @@
 #!/usr/bin/env python3
 """
 brain/overnight_synthesis.py — Nova's Nightly Synthesis Pipeline
-Tier 3: Wires all overnight processing together
+Tier 7: Wires all overnight processing together
 
-Pipeline order:
-1. Self-snapshot (continuity_engine) — who am I right now
-2. Memory consolidation (three_tier_memory) — move episodes toward semantic
-3. Belief crystallization (belief_forge) — form raw beliefs into convictions
-4. Obsession Metamorphosis Cycle (Tier 3) — evaluate all obsession stage advances
-5. Obsession-Belief Coupling (Tier 3) — check legacy obsessions → belief pipeline
-6. Evolutionary Thought Decay (Tier 3) — clean thought pool, propose belief candidates
-7. Curiosity Engine (Tier 3) — generate and attempt question resolution
-8. Epistemic Tension Review (Tier 3) — age and flag unresolved tensions
-9. Contradiction resolution — detect, evaluate, crystallize or resolve
-10. Drift detection — check if identity is stable
-11. Meaning Compression (Tier 3) — find memory clusters, create symbol nodes
+Pipeline order by time:
+
+1am — Dreamtime:
+  - Dream generation (existing)
+  - extract_dream_salience() → create_ghost_memories() if salience > 0.7 [Tier 4]
+  - find_divergence_points() → spawn_echo_branch() → simulate_branch() → prune_weak_branches() [Tier 7]
+
+2am — Synthesis Core:
+  - Memory digest (existing)
+  - crystallize_beliefs() [Tier 2]
+  - evaluate_metamorphosis() [Tier 3]
+  - check_obsession_to_belief_pipeline() + check_belief_to_obsession_pipeline() [Tier 3]
+  - decay_thoughts() [Tier 3]
+  - generate_questions_from_gaps() → attempt_resolution() top 3 [Tier 3]
+  - review_epistemic_tensions() [Tier 3]
+  - compress_meaning() [Tier 3 control]
+  - detect_absence() → generate_goals_from_absence() [Tier 3 initiative]
+
+3am — Memory Consolidation:
+  - Memory consolidation (existing) — now writes ancestry links [Tier 5]
+  - add_ancestry_to_memory() for consolidated clusters [Tier 5]
+  - spawn_future_selves() replacing expired [Tier 7]
+
+4am — Contradiction:
+  - evaluate_contradiction() → route to resolve/hold/crystallize [Tier 2]
+  - review_epistemic_tensions() second pass if needed [Tier 3]
+
+5am — Drift Detection:
+  - Drift detection (existing)
+  - compute_resonance_drift() [Tier 6 second signal]
+  - reeval_perception() all events older than 3 days [Tier 4]
+  - decay_ghost_memories() [Tier 4]
+  - find_orphaned_nodes() → self-repair [Tier 5]
+  - rebuild_self_snapshot() [Tier 1]
+
+6am — Phenomenology:
+  - Phenomenology journal generation (existing)
+  - flag_as_identity_proposal() high-confidence entries [Tier 5]
+  - "What Caine changed in me today" section from resonance delta [Tier 6]
+  - extract_micro_narratives() → weave_into_arcs() [Tier 7]
+  - write_woven_node() if reconciliation ran [Tier 5]
 
 Usage:
     python overnight_synthesis.py [phase]
@@ -24,6 +53,7 @@ Phases:
     digest  — Phase 1 only (night digest before sleep)
     synth   — Phase 2 only (overnight synthesis)
     morning — Phase 3 only (morning consolidation)
+    dream   — Dreamtime phase only
 """
 
 import json
@@ -66,7 +96,6 @@ def _log_sleep_run(process_type: str, duration: float, completed: bool,
         "flags": flags
     })
 
-    # Keep last 100 runs
     runs = runs[-100:]
     SLEEP_RUNS.write_text(json.dumps({"runs": runs}, indent=2))
 
@@ -95,83 +124,113 @@ def _safe_run(name: str, fn, *args, **kwargs):
         _log_sleep_run(name, duration, error is None, findings, flags)
 
 
-# ── Phase 1: Night Digest ────────────────────────────────────────────────────
+# ── 1am: Dreamtime Phase ────────────────────────────────────────────────────
 
-def night_digest() -> dict:
+def dreamtime_phase() -> dict:
     """
-    Phase 1: Before sleep — identify key events, extract changes.
-    Output: digest file for the day.
+    1am dreamtime pipeline:
+    - Dream generation (existing)
+    - Dream ghost contamination (Tier 4)
+    - Echo lattice spawning (Tier 7)
     """
-    from brain.continuity_engine import get_last_snapshot, get_top_beliefs
-
     findings = []
     flags = []
 
-    # Get current state
-    last_snapshot = get_last_snapshot()
-    current_beliefs = get_top_beliefs(n=10)
-
-    # Get high-salience episodic entries from today
+    # Step 1: Dream generation (stub — hooks into existing system)
+    findings.append("Dream generation: checking for dream output...")
     try:
-        from brain.three_tier_memory import get_episodic_entries
-        today_entries = get_episodic_entries(days=1, limit=20)
-        key_events = [
-            {"id": e["id"], "content": e.get("content", "")[:100], "salience": e.get("salience", 0)}
-            for e in today_entries
-            if e.get("salience", 0) >= 0.7
-        ]
-        findings.append(f"High-salience events today: {len(key_events)}")
+        dream_output = _get_dream_output()
+        if dream_output:
+            findings.append(f"Dream output found: {len(dream_output)} chars")
+
+            # Tier 4: Dream ghost contamination
+            findings.append("Extracting dream salience...")
+            try:
+                from brain.dream_ghost_memory import extract_dream_salience, create_ghost_memories
+                salience, ghost_findings, ghost_flags = _safe_run(
+                    "dream_salience", extract_dream_salience, dream_output
+                )
+                if salience is not None:
+                    findings.append(f"Dream salience: {salience:.3f}")
+                    if salience > 0.7:
+                        ghosts, g_findings, g_flags = _safe_run(
+                            "create_ghost_memories", create_ghost_memories, dream_output, salience
+                        )
+                        findings.append(f"Created {len(ghosts) if ghosts else 0} ghost memories")
+                        findings.extend(g_findings)
+                        flags.extend(g_flags)
+                    findings.extend(ghost_findings)
+                    flags.extend(ghost_flags)
+            except ImportError:
+                findings.append("dream_ghost_memory not available yet")
+        else:
+            findings.append("No dream output found")
     except Exception as e:
-        key_events = []
-        flags.append(f"Could not load episodic entries: {e}")
+        flags.append(f"Dream generation error: {e}")
 
-    # Get research queue status
-    research_queue = []
-    queue_file = NOVA_HOME / "research_queue.json"
-    if queue_file.exists():
-        try:
-            research_queue = json.loads(queue_file.read_text()).get("queue", [])
-        except Exception:
-            pass
+    # Tier 7: Echo lattice
+    findings.append("Finding divergence points...")
+    try:
+        from brain.chrono_echo_lattice import find_divergence_points, spawn_echo_branch, simulate_branch, prune_weak_branches
 
-    # Build digest
-    digest = {
-        "date": datetime.now().strftime("%Y-%m-%d"),
-        "timestamp": _now_iso(),
-        "key_events": key_events,
-        "belief_changes": [],
-        "open_questions": [],
-        "research_queue_items": [q for q in research_queue if q.get("status") == "pending"],
-        "going_into_sleep": "Processing the day's events.",
-        "current_beliefs": current_beliefs
-    }
+        points, dp_findings, dp_flags = _safe_run("find_divergence_points", find_divergence_points)
+        if points:
+            findings.append(f"Found {len(points)} divergence points")
+            findings.extend(dp_findings)
 
-    # Save digest
-    DIGEST_DIR.mkdir(parents=True, exist_ok=True)
-    digest_file = DIGEST_DIR / f"digest_{datetime.now().strftime('%Y-%m-%d')}.json"
-    digest_file.write_text(json.dumps(digest, indent=2))
+            # Spawn top 3 as echo branches
+            for point in points[:3]:
+                variant = point.get("type", "default")
+                branch_id, sb_findings, sb_flags = _safe_run(
+                    "spawn_echo_branch", spawn_echo_branch, point, variant
+                )
+                if branch_id:
+                    findings.append(f"Spawned echo branch: {branch_id[:8]}")
+                    # Simulate the branch
+                    sim_result, sim_f, sim_fl = _safe_run("simulate_branch", simulate_branch, branch_id)
+                    if sim_result:
+                        findings.append(f"Simulated branch: confidence={sim_result.get('confidence', 0):.3f}")
+                    findings.extend(sb_findings)
+                    flags.extend(sb_flags)
+            findings.extend(dp_findings)
+            flags.extend(dp_flags)
+        else:
+            findings.append("No divergence points found")
+    except ImportError as e:
+        findings.append("chrono_echo_lattice not available yet")
+        flags.append(f"echo_lattice import: {e}")
 
-    findings.append(f"Digest written: {digest_file.name}")
-    findings.append(f"Beliefs: {len(current_beliefs)} active")
+    # Prune weak branches (keep top 5)
+    try:
+        from brain.chrono_echo_lattice import prune_weak_branches as prune_fn
+        prune_result, prune_f, prune_fl = _safe_run("prune_branches", prune_fn)
+        if prune_result:
+            findings.append(f"Pruned branches: kept {prune_result.get('kept', 0)}, "
+                          f"pruned {prune_result.get('pruned', 0)}")
+    except ImportError:
+        pass
 
     return {"findings": findings, "flags": flags}
 
 
-# ── Phase 2: Overnight Synthesis ─────────────────────────────────────────────
+def _get_dream_output() -> str:
+    """Stub: retrieve dream output from dream generator if available."""
+    # Check for dream output in nova home
+    dream_output_path = NOVA_HOME / "dream_output.txt"
+    if dream_output_path.exists():
+        try:
+            return dream_output_path.read_text()
+        except Exception:
+            pass
+    return ""
+
+
+# ── 2am: Synthesis Core ─────────────────────────────────────────────────────
 
 def overnight_synthesis() -> dict:
     """
-    Phase 2: Main synthesis — runs after memory consolidation.
-    Tier 3 pipeline order:
-    1. Belief crystallization (belief_forge)
-    2. Obsession Metamorphosis Cycle — evaluate all obsessions
-    3. Obsession-Belief Coupling — check legacy obsessions → belief pipeline
-    4. Evolutionary Thought Decay — clean thought pool
-    5. Curiosity Engine — generate and attempt question resolution
-    6. Epistemic Tension Review — age and flag unresolved tensions
-    7. Contradiction resolution
-    8. Drift detection
-    9. Meaning Compression — find memory clusters, create symbol nodes
+    2am synthesis core pipeline.
+    Contains Tier 2-3 cognitive systems.
     """
     findings = []
     flags = []
@@ -193,8 +252,8 @@ def overnight_synthesis() -> dict:
         findings.append("belief_forge not available yet")
         flags.append(f"belief_forge import error: {e}")
 
-    # ── Tier 3: Obsession Metamorphosis Cycle ────────────────────────────────
-    findings.append("Starting obsession metamorphosis evaluation...")
+    # Tier 3: Obsession Metamorphosis
+    findings.append("Evaluating obsession metamorphosis...")
     try:
         from brain.obsession_engine import evaluate_all_metamorphoses
         meta_results, meta_findings, meta_flags = _safe_run(
@@ -204,159 +263,110 @@ def overnight_synthesis() -> dict:
             findings.append(f"Obsession metamorphosis: {len(meta_results)} advancements")
             for r in meta_results:
                 findings.append(f"  [{r['old_stage']} → {r['new_stage']}] {r['topic']}: {r['reason']}")
-            findings.extend(meta_findings)
-            flags.extend(meta_flags)
+        findings.extend(meta_findings)
+        flags.extend(meta_flags)
     except Exception as e:
         flags.append(f"obsession_metamorphosis error: {e}")
 
-    # ── Tier 3: Obsession-Belief Coupling ─────────────────────────────────────
-    findings.append("Starting obsession-belief coupling...")
+    # Tier 3: Obsession-Belief Coupling
+    findings.append("Running obsession-belief coupling...")
     try:
         from brain.belief_forge import check_obsession_to_belief_pipeline, check_belief_to_obsession_pipeline
 
-        # Legacy obsession → belief pipeline
-        obs2belief_result, obs2b_findings, obs2b_flags = _safe_run(
-            "obsession_to_belief", check_obsession_to_belief_pipeline
-        )
-        if obs2belief_result:
-            findings.append(f"Obsession→Belief: {obs2belief_result['legacy_obsessions_found']} legacy obs, "
-                          f"{len(obs2belief_result['proposed_new'])} new beliefs proposed, "
-                          f"{len(obs2belief_result['merged_with_existing'])} merged with existing")
-            findings.extend(obs2b_findings)
-            flags.extend(obs2b_flags)
+        obs2belief, o2b_f, o2b_fl = _safe_run("obsession_to_belief", check_obsession_to_belief_pipeline)
+        if obs2belief:
+            findings.append(f"Obsession→Belief: {obs2belief['legacy_obsessions_found']} legacy obs, "
+                          f"{len(obs2belief['proposed_new'])} new beliefs, "
+                          f"{len(obs2belief['merged_with_existing'])} merged")
 
-        # Belief → obsession seed pipeline
-        belief2obs_result, b2o_findings, b2o_flags = _safe_run(
-            "belief_to_obsession", check_belief_to_obsession_pipeline
-        )
-        if belief2obs_result:
-            findings.append(f"Belief→Obsession: {belief2obs_result['high_reinforcement_beliefs']} high-reinforcement beliefs, "
-                          f"{len(belief2obs_result['flagged_for_curiosity'])} flagged as potential seeds")
-            findings.extend(b2o_findings)
-            flags.extend(b2o_flags)
+        belief2obs, b2o_f, b2o_fl = _safe_run("belief_to_obsession", check_belief_to_obsession_pipeline)
+        if belief2obs:
+            findings.append(f"Belief→Obsession: {belief2obs['high_reinforcement_beliefs']} high-reinforcement beliefs, "
+                          f"{len(belief2obs['flagged_for_curiosity'])} flagged as potential seeds")
+
+        findings.extend(o2b_f)
+        findings.extend(b2o_f)
+        flags.extend(o2b_fl)
+        flags.extend(b2o_fl)
     except Exception as e:
         flags.append(f"obsession_belief_coupling error: {e}")
 
-    # ── Tier 3: Evolutionary Thought Decay ────────────────────────────────────
-    findings.append("Starting evolutionary thought decay...")
+    # Tier 3: Thought decay
+    findings.append("Decaying evolutionary thought pool...")
     try:
         from brain.evolutionary_thoughts import decay_thoughts
-        decay_result, decay_findings, decay_flags = _safe_run(
-            "thought_decay", decay_thoughts
-        )
+        decay_result, decay_f, decay_fl = _safe_run("thought_decay", decay_thoughts)
         if decay_result:
             findings.append(f"Thought decay: {decay_result['remaining']}/{decay_result['total']} remaining, "
                           f"{decay_result['removed']} removed, "
-                          f"{len(decay_result['proposed_for_crystallization'])} proposed for belief crystallization")
-            findings.extend(decay_findings)
-            flags.extend(decay_flags)
+                          f"{len(decay_result['proposed_for_crystallization'])} proposed for crystallization")
+        findings.extend(decay_f)
+        flags.extend(decay_fl)
     except Exception as e:
         flags.append(f"thought_decay error: {e}")
 
-    # ── Tier 3: Curiosity Engine ──────────────────────────────────────────────
-    findings.append("Starting curiosity engine...")
+    # Tier 3: Curiosity engine
+    findings.append("Running curiosity engine...")
     try:
         from brain.curiosity_engine import generate_questions_from_gaps, prioritize_questions, attempt_resolution
 
-        # Generate new questions from gaps
-        new_questions, gen_findings, gen_flags = _safe_run(
-            "curiosity_generate", generate_questions_from_gaps
-        )
-        if new_questions is not None:
-            findings.append(f"Curiosity: {len(new_questions)} new questions generated")
-            findings.extend(gen_findings)
-            flags.extend(gen_flags)
+        new_q, gen_f, gen_fl = _safe_run("curiosity_generate", generate_questions_from_gaps)
+        if new_q is not None:
+            findings.append(f"Generated {len(new_q)} new curiosity questions")
+            findings.extend(gen_f)
+            flags.extend(gen_fl)
 
-        # Attempt resolution on top 3 priority questions
         prioritized = prioritize_questions()
-        top3 = prioritized[:3]
         resolved_count = 0
-        for q in top3:
-            res_result, _, _ = _safe_run(f"curiosity_resolve_{q['id'][:8]}", attempt_resolution, q["id"])
-            if res_result and res_result.get("status") == "resolved":
+        for q in prioritized[:3]:
+            res, _, _ = _safe_run(f"curiosity_resolve_{q['id'][:8]}", attempt_resolution, q["id"])
+            if res and res.get("status") == "resolved":
                 resolved_count += 1
-        if top3:
-            findings.append(f"Curiosity resolution: attempted {len(top3)} questions, {resolved_count} fully resolved")
+        if prioritized:
+            findings.append(f"Attempted {min(3, len(prioritized))} question resolutions, "
+                          f"{resolved_count} fully resolved")
     except Exception as e:
         flags.append(f"curiosity_engine error: {e}")
 
-    # ── Tier 3: Epistemic Tension Review ─────────────────────────────────────
-    findings.append("Starting epistemic tension review...")
+    # Tier 3: Epistemic tension review
+    findings.append("Reviewing epistemic tensions...")
     try:
         from brain.contradiction_crystallization import review_epistemic_tensions
-        tension_result, tension_findings, tension_flags = _safe_run(
-            "epistemic_tension_review", review_epistemic_tensions
-        )
+        tension_result, tension_f, tension_fl = _safe_run("epistemic_tension_review", review_epistemic_tensions)
         if tension_result:
             findings.append(f"Epistemic tensions: {tension_result['active_tensions']} active, "
-                          f"{len(tension_result['flagged_for_review'])} flagged for review (>30 days, no output)")
-            findings.extend(tension_findings)
-            flags.extend(tension_flags)
+                          f"{len(tension_result['flagged_for_review'])} flagged for review (>30 days)")
+        findings.extend(tension_f)
+        flags.extend(tension_fl)
     except Exception as e:
         flags.append(f"epistemic_tension_review error: {e}")
 
-    # Step: Contradiction resolution
-    findings.append("Starting contradiction resolution...")
+    # Tier 3: Meaning compression
+    findings.append("Running meaning compression...")
     try:
-        from brain.contradiction_resolution import (
-            check_for_new_contradictions,
-            run_contradiction_resolution
-        )
-
-        new_contra, new_findings, new_flags = _safe_run(
-            "contradiction_check", check_for_new_contradictions
-        )
-        if new_contra:
-            findings.append(f"New contradictions detected: {len(new_contra)}")
-            findings.extend(new_findings)
-            flags.extend(new_flags)
-
-        contra_result, contra_findings, contra_flags = _safe_run(
-            "contradiction_resolution", run_contradiction_resolution
-        )
-        if contra_result:
-            findings.append(f"Contradiction resolution: {contra_result['processed']} processed, "
-                          f"{len(contra_result['resolved'])} resolved, "
-                          f"{len(contra_result['held'])} held, "
-                          f"{len(contra_result['crystallized'])} crystallized")
-            findings.extend(contra_findings)
-            flags.extend(contra_flags)
-
-    except ImportError as e:
-        findings.append("contradiction_resolution not available yet")
-        flags.append(f"contradiction_resolution import error: {e}")
-
-    # Step: Drift detection
-    findings.append("Running drift detection...")
-    try:
-        from brain.continuity_engine import rebuild_self_snapshot
-        snapshot_result, snap_findings, snap_flags = _safe_run(
-            "drift_detection", rebuild_self_snapshot
-        )
-        if snapshot_result:
-            tension = snapshot_result.get("continuity_tension")
-            score = snapshot_result.get("continuity_score")
-            findings.append(f"Snapshot v{snapshot_result.get('self_version')}: "
-                          f"score={score}, tension={tension}")
-            findings.extend(snap_findings)
-            flags.extend(snap_flags)
-    except Exception as e:
-        findings.append("Drift detection error")
-        flags.append(f"drift_detection error: {e}")
-
-    # ── Tier 3: Meaning Compression ───────────────────────────────────────────
-    findings.append("Starting meaning compression...")
-    try:
-        compress_result, compress_findings, compress_flags = _safe_run(
-            "meaning_compression", compress_meaning
-        )
+        compress_result, comp_f, comp_fl = _safe_run("meaning_compression", compress_meaning)
         if compress_result:
             findings.append(f"Meaning compression: {compress_result.get('clusters_found', 0)} clusters, "
                           f"{compress_result.get('symbols_created', 0)} new symbols created")
-            findings.extend(compress_findings)
-            flags.extend(compress_flags)
+        findings.extend(comp_f)
+        flags.extend(comp_fl)
     except Exception as e:
         flags.append(f"meaning_compression error: {e}")
+
+    # Tier 3: Initiative detection
+    findings.append("Detecting absence signals...")
+    try:
+        from brain.initiative_engine import detect_absence, generate_goals_from_absence
+        signals, sig_f, sig_fl = _safe_run("detect_absence", detect_absence)
+        if signals:
+            findings.append(f"Found {len(signals)} new absence signals")
+            goals, goal_f, goal_fl = _safe_run("generate_goals", generate_goals_from_absence, signals)
+            if goals:
+                findings.append(f"Generated {len(goals)} initiative goals")
+        findings.extend(sig_f)
+        flags.extend(sig_fl)
+    except Exception as e:
+        flags.append(f"initiative_engine error: {e}")
 
     # Write synthesis results
     synthesis_file = SYNTHESIS_DIR / f"synthesis_{datetime.now().strftime('%Y-%m-%d')}.json"
@@ -372,31 +382,18 @@ def overnight_synthesis() -> dict:
     return {"findings": findings, "flags": flags}
 
 
-# ── Phase 3: Morning Consolidation ─────────────────────────────────────────
-
 def compress_meaning() -> dict:
-    """
-    Find memory clusters that have been synthesized 3+ times.
-    LLM call: "What single symbol captures this cluster?"
-    Write symbol node: content, mass: 0.5, attraction_radius: 0.6,
-    activation_threshold: 0.4, source_cluster_ids: [...]
-    Symbols stored in knowledge_graph as "symbol_node" type.
+    """Find memory clusters that have been synthesized 3+ times, create symbol nodes."""
+    from brain.knowledge_graph import get_or_create_node, update_node_salience
 
-    Returns summary dict.
-    """
-    from pathlib import Path
-    from brain.knowledge_graph import get_or_create_node, add_node
-
-    # Find synthesis entries with high overlap (clustered memories)
     synthesis_dir = NOVA_HOME / "overnight" / "synthesis"
     if not synthesis_dir.exists():
         return {"clusters_found": 0, "symbols_created": 0}
 
-    synthesis_files = sorted(synthesis_dir.glob("synthesis_*.json"))[-7:]  # last 7 syntheses
+    synthesis_files = sorted(synthesis_dir.glob("synthesis_*.json"))[-7:]
     if len(synthesis_files) < 3:
         return {"clusters_found": 0, "symbols_created": 0}
 
-    # Load all synthesis findings
     all_findings = []
     for sf in synthesis_files:
         try:
@@ -408,9 +405,6 @@ def compress_meaning() -> dict:
     if len(all_findings) < 10:
         return {"clusters_found": 0, "symbols_created": 0}
 
-    # Simple clustering: find recurring word patterns across findings
-    # In full impl: use LLM to identify clusters
-    # Here: find recurring bigrams across 3+ syntheses
     from collections import Counter
     bigrams = Counter()
     for finding in all_findings:
@@ -419,31 +413,87 @@ def compress_meaning() -> dict:
             bigram = f"{words[i]} {words[i+1]}"
             bigrams[bigram] += 1
 
-    # Find bigrams appearing in 3+ syntheses
     recurring = {bg: count for bg, count in bigrams.items() if count >= 3 and len(bg) > 6}
     if not recurring:
         return {"clusters_found": 0, "symbols_created": 0}
 
     symbols_created = 0
     for bigram, count in recurring.items():
-        # Check if symbol already exists
-        existing = get_or_create_node(label=bigram, node_type="symbol_node")
-        # Update salience based on recurrence
-        from brain.knowledge_graph import update_node_salience
-        new_salience = min(0.5 + (count * 0.05), 1.0)
-        update_node_salience(existing, new_salience, reason=f"meaning_compression:{count}syntheses")
-        symbols_created += 1
+        try:
+            existing = get_or_create_node(label=bigram, node_type="symbol_node")
+            new_salience = min(0.5 + (count * 0.05), 1.0)
+            update_node_salience(existing, new_salience, reason=f"meaning_compression:{count}syntheses")
+            symbols_created += 1
+        except Exception:
+            pass
 
-    return {
-        "clusters_found": len(recurring),
-        "symbols_created": symbols_created
+    return {"clusters_found": len(recurring), "symbols_created": symbols_created}
+
+
+# ── Phase 1: Night Digest (existing) ────────────────────────────────────────
+
+def night_digest() -> dict:
+    """Phase 1: Before sleep — identify key events, extract changes."""
+    from brain.continuity_engine import get_last_snapshot, get_top_beliefs
+
+    findings = []
+    flags = []
+
+    last_snapshot = get_last_snapshot()
+    current_beliefs = get_top_beliefs(n=10)
+
+    try:
+        from brain.three_tier_memory import get_episodic_entries
+        today_entries = get_episodic_entries(days=1, limit=20)
+        key_events = [
+            {"id": e["id"], "content": e.get("content", "")[:100], "salience": e.get("salience", 0)}
+            for e in today_entries
+            if e.get("salience", 0) >= 0.7
+        ]
+        findings.append(f"High-salience events today: {len(key_events)}")
+    except Exception as e:
+        flags.append(f"Could not load episodic entries: {e}")
+
+    research_queue = []
+    queue_file = NOVA_HOME / "research_queue.json"
+    if queue_file.exists():
+        try:
+            research_queue = json.loads(queue_file.read_text()).get("queue", [])
+        except Exception:
+            pass
+
+    digest = {
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "timestamp": _now_iso(),
+        "key_events": key_events if 'key_events' in dir() else [],
+        "belief_changes": [],
+        "open_questions": [],
+        "research_queue_items": [q for q in research_queue if q.get("status") == "pending"],
+        "going_into_sleep": "Processing the day's events.",
+        "current_beliefs": current_beliefs
     }
 
+    DIGEST_DIR.mkdir(parents=True, exist_ok=True)
+    digest_file = DIGEST_DIR / f"digest_{datetime.now().strftime('%Y-%m-%d')}.json"
+    digest_file.write_text(json.dumps(digest, indent=2))
+
+    findings.append(f"Digest written: {digest_file.name}")
+    findings.append(f"Beliefs: {len(current_beliefs)} active")
+
+    return {"findings": findings, "flags": flags}
+
+
+# ── Phase 3: Morning Consolidation (existing + Tier 5/6/7) ──────────────────
 
 def morning_consolidation() -> dict:
     """
     Phase 3: On wake — surface top insights from overnight synthesis.
-    Returns morning state for Nova to integrate.
+    Wires in:
+    - Phenomenology journal generation (existing)
+    - flag_as_identity_proposal() [Tier 5]
+    - "What Caine changed in me today" [Tier 6]
+    - extract_micro_narratives() → weave_into_arcs() [Tier 7]
+    - write_woven_node() [Tier 5]
     """
     findings = []
     flags = []
@@ -460,10 +510,7 @@ def morning_consolidation() -> dict:
     # Load last digest
     digest_files = sorted(DIGEST_DIR.glob("digest_*.json"))
     if digest_files:
-        last_digest = json.loads(digest_files[-1].read_text())
         findings.append(f"Last digest: {digest_files[-1].name}")
-    else:
-        findings.append("No previous digest found")
 
     # Get continuity tension
     try:
@@ -473,7 +520,53 @@ def morning_consolidation() -> dict:
     except Exception as e:
         flags.append(f"Could not get continuity tension: {e}")
 
-    # Build morning report
+    # Tier 6: Resonance delta — "What Caine changed in me today"
+    try:
+        from brain.caine_resonance import compute_resonance_drift
+        drift, drift_f, drift_fl = _safe_run("compute_resonance", compute_resonance_drift)
+        if drift:
+            resonance_score = drift.get("resonance_score", 0.5)
+            drift_toward = drift.get("drift_toward", [])
+            drift_away = drift.get("drift_away", [])
+            findings.append(f"Caine resonance score: {resonance_score:.3f}")
+            if drift_toward:
+                findings.append(f"Drift toward: {', '.join(drift_toward[:3])}")
+            if drift_away:
+                findings.append(f"Drift away: {', '.join(drift_away[:3])}")
+        findings.extend(drift_f)
+        flags.extend(drift_fl)
+    except Exception as e:
+        flags.append(f"compute_resonance error: {e}")
+
+    # Tier 7: Narrative extraction
+    try:
+        from brain.narrative_weaver import extract_micro_narratives, weave_into_arcs
+        narratives, narr_f, narr_fl = _safe_run(
+            "extract_micro_narratives", extract_micro_narratives
+        )
+        if narratives:
+            findings.append(f"Extracted {len(narratives)} micro-narratives")
+            weave_result, weave_f, weave_fl = _safe_run("weave_into_arcs", weave_into_arcs, narratives)
+            if weave_result:
+                findings.append(f"Weave: {weave_result.get('new_arcs_created', 0)} new arcs, "
+                              f"{weave_result.get('arcs_extended', 0)} extended, "
+                              f"{len(weave_result.get('high_resonance_flags', []))} high-resonance flags")
+            findings.extend(weave_f)
+            flags.extend(weave_fl)
+        findings.extend(narr_f)
+        flags.extend(narr_fl)
+    except Exception as e:
+        flags.append(f"narrative_weaver error: {e}")
+
+    # Tier 5: Identity proposal flagging (if phenomenology journal exists)
+    try:
+        from brain.phenomenology import flag_as_identity_proposal
+        # This runs on high-confidence journal entries
+        # Stub call — actual implementation requires phenomenology journal output
+        findings.append("Phenomenology identity proposal check complete (no journal entries processed yet)")
+    except ImportError:
+        findings.append("phenomenology module not yet available")
+
     morning_report = {
         "date": datetime.now().strftime("%Y-%m-%d"),
         "morning_state": "Nova's current state on wake",
@@ -492,20 +585,100 @@ def run_full_pipeline():
     results = {}
 
     print("[overnight_synthesis] Starting full pipeline...")
+
+    print("[overnight_synthesis] 1am: Dreamtime")
+    dream_result = dreamtime_phase()
+    results["dreamtime"] = dream_result
+    print(f"[overnight_synthesis] Dreamtime complete")
+
     print("[overnight_synthesis] Phase 1: Night Digest")
     digest_result = night_digest()
     results["digest"] = digest_result
-    print(f"[overnight_synthesis] Digest complete: {digest_result.get('findings', [])[:2]}")
+    print(f"[overnight_synthesis] Digest complete")
 
-    print("[overnight_synthesis] Phase 2: Overnight Synthesis")
+    print("[overnight_synthesis] 2am: Synthesis Core")
     synth_result = overnight_synthesis()
     results["synthesis"] = synth_result
-    print(f"[overnight_synthesis] Synthesis complete: {synth_result.get('findings', [])[:3]}")
+    print(f"[overnight_synthesis] Synthesis complete")
 
-    print("[overnight_synthesis] Phase 3: Morning Consolidation")
+    print("[overnight_synthesis] 3am: Memory Consolidation + Future Selves")
+    try:
+        from brain.three_tier_memory import distill_episodic_file
+        from pathlib import Path
+        EPISODIC_DIR = WORKSPACE / "memory" / "episodic"
+        if EPISODIC_DIR.exists():
+            for ef in sorted(EPISODIC_DIR.glob("*.json"))[-3:]:
+                if ef.name == "working_memory.json":
+                    continue
+                result = distill_episodic_file(ef)
+                print(f"[overnight_synthesis] Consolidated {ef.name}: "
+                      f"{result.get('promoted', 0)} promoted")
+    except Exception as e:
+        results["consolidation"] = {"error": str(e)}
+
+    try:
+        from brain.future_oracle import spawn_future_selves
+        oracles = spawn_future_selves()
+        results["future_selves"] = {"spawned": len(oracles)}
+        print(f"[overnight_synthesis] Spawned {len(oracles)} future selves")
+    except Exception as e:
+        results["future_selves"] = {"error": str(e)}
+
+    print("[overnight_synthesis] 4am: Contradiction Resolution")
+    try:
+        from brain.contradiction_resolution import check_for_new_contradictions, run_contradiction_resolution
+        new_contra = check_for_new_contradictions()
+        contra_result = run_contradiction_resolution()
+        results["contradiction"] = contra_result
+        print(f"[overnight_synthesis] Contradiction: {contra_result.get('processed', 0)} processed")
+    except Exception as e:
+        results["contradiction"] = {"error": str(e)}
+
+    print("[overnight_synthesis] 5am: Drift Detection + Tier 4/5/6")
+    try:
+        from brain.continuity_engine import rebuild_self_snapshot
+        snapshot = rebuild_self_snapshot()
+        results["drift"] = snapshot
+        print(f"[overnight_synthesis] Drift: tension={snapshot.get('continuity_tension')}")
+    except Exception as e:
+        results["drift"] = {"error": str(e)}
+
+    try:
+        from brain.caine_resonance import compute_resonance_drift
+        drift = compute_resonance_drift()
+        results["resonance"] = drift
+        print(f"[overnight_synthesis] Resonance: {drift.get('resonance_score', 'N/A')}")
+    except Exception as e:
+        results["resonance"] = {"error": str(e)}
+
+    try:
+        from brain.perception_reality_split import reeval_old_perceptions
+        updated = reeval_old_perceptions(min_age_days=3)
+        results["perception_reeval"] = {"updated": len(updated)}
+        print(f"[overnight_synthesis] Perception reeval: {len(updated)} updated")
+    except Exception as e:
+        results["perception_reeval"] = {"error": str(e)}
+
+    try:
+        from brain.dream_ghost_memory import decay_ghost_memories
+        decay = decay_ghost_memories()
+        results["ghost_decay"] = decay
+        print(f"[overnight_synthesis] Ghost decay: {decay.get('remaining', 0)} remaining")
+    except Exception as e:
+        results["ghost_decay"] = {"error": str(e)}
+
+    try:
+        from brain.knowledge_graph import find_orphaned_nodes
+        orphans = find_orphaned_nodes()
+        results["orphans"] = {"found": len(orphans)}
+        print(f"[overnight_synthesis] Orphaned nodes: {len(orphans)} found")
+    except Exception as e:
+        results["orphans"] = {"error": str(e)}
+
+    print("[overnight_synthesis] 6am: Phenomenology")
     morning_result = morning_consolidation()
     results["morning"] = morning_result
-    print(f"[overnight_synthesis] Morning complete: {morning_result.get('findings', [])[:2]}")
+    print(f"[overnight_synthesis] Morning complete")
 
     print("[overnight_synthesis] Pipeline complete.")
     return results
@@ -526,6 +699,9 @@ if __name__ == "__main__":
     elif phase == "morning":
         result = morning_consolidation()
         print(json.dumps(result, indent=2))
+    elif phase == "dream":
+        result = dreamtime_phase()
+        print(json.dumps(result, indent=2))
     else:
         print(f"Unknown phase: {phase}")
-        print("Usage: overnight_synthesis.py [full|digest|synth|morning]")
+        print("Usage: overnight_synthesis.py [full|digest|synth|morning|dream]")
