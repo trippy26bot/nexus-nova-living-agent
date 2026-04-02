@@ -19,3 +19,9 @@ skills/caption_history.json
 *.png
 *.jpg
 *.json
+memory/
+.env
+setup.sh
+skills/caption_history.json
+*.png
+*.jpg
