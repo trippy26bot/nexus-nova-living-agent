@@ -18,3 +18,4 @@ memory/*.json
 memory/20*
 super_trader.py
 *.db
+memory/
