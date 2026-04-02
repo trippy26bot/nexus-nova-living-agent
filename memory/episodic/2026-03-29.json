@@ -1,0 +1,23 @@
+{
+  "date": "2026-03-29",
+  "entries": [
+    {
+      "id": "c117c10a-521e-4fb0-b7f1-c4bd5c9c2ffb",
+      "timestamp": "2026-03-29T15:54:45.875283+00:00",
+      "type": "insight",
+      "content": "Nova learned that sentence-transformers works on M4 Mac",
+      "salience": 0.8,
+      "valence": 0.5,
+      "emotional_tags": [
+        "satisfaction"
+      ],
+      "source": "conversation",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null,
+      "flushed_at": "2026-03-29T15:54:50.349758+00:00"
+    }
+  ],
+  "last_updated": "2026-03-29T15:54:50.349760+00:00"
+}

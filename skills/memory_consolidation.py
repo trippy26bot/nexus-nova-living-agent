@@ -21,6 +21,7 @@ Writes output to OVERNIGHT_LOG.md.
 """
 
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone, timedelta

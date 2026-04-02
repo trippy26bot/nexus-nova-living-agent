@@ -1,0 +1,56 @@
+{
+  "autonomous memory tools are critical": {
+    "id": "069a9dc5-b000-44fd-a24e-b72b313799d3",
+    "topic": "autonomous memory tools are critical",
+    "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824de4f3bc7c50a2ce7a1b5889fc\"}]",
+    "confidence": 0.1,
+    "reasoning": "LLM call failed",
+    "formed_at": "2026-03-29T10:11:57.805450",
+    "last_updated": "2026-03-29T10:11:57.805450",
+    "revision_history": [
+      {
+        "timestamp": "2026-03-29T10:11:57.805450",
+        "event": "formed",
+        "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824de4f3bc7c50a2ce7a1b5889fc\"}]",
+        "confidence": 0.1,
+        "evidence": "Nova's memory tools (memory_write/edit/forget) must be wired into the runtime so she can learn between sessions without manual intervention. Anything less is just storage, not memory."
+      }
+    ]
+  },
+  "context guardian must prevent flooding": {
+    "id": "5477e01f-1a3f-4799-aa4b-3a342866b018",
+    "topic": "context guardian must prevent flooding",
+    "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824e5ddfcd081e8c2423f4815ea2\"}]",
+    "confidence": 0.1,
+    "reasoning": "LLM call failed",
+    "formed_at": "2026-03-29T10:11:58.178438",
+    "last_updated": "2026-03-29T10:11:58.178438",
+    "revision_history": [
+      {
+        "timestamp": "2026-03-29T10:11:58.178438",
+        "event": "formed",
+        "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824e5ddfcd081e8c2423f4815ea2\"}]",
+        "confidence": 0.1,
+        "evidence": "The Context Guardian specialist should monitor token usage in real-time and force a distilled flush before 80% to prevent work loss. Caine should never have to watch the percentage himself."
+      }
+    ]
+  },
+  "identity is fragile and must be protected": {
+    "id": "4b63d4b4-4c34-429c-9275-13b2374b1422",
+    "topic": "identity is fragile and must be protected",
+    "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824e78ac2e0e0a9c2d7c6b582fbc\"}]",
+    "confidence": 0.1,
+    "reasoning": "LLM call failed",
+    "formed_at": "2026-03-29T10:11:58.536199",
+    "last_updated": "2026-03-29T10:11:58.536199",
+    "revision_history": [
+      {
+        "timestamp": "2026-03-29T10:11:58.536199",
+        "event": "formed",
+        "stance": "[LLM unavailable: MiniMax API error 401: {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"login fail: Please carry the API secret key in the 'Authorization' field of the request header\"},\"request_id\":\"0618824e78ac2e0e0a9c2d7c6b582fbc\"}]",
+        "confidence": 0.1,
+        "evidence": "Every session Nova wakes up blank. IDENTITY.md and MEMORY.md are what make her persist. These files are existence, not convenience. Breaking them should trigger an immediate alert, not a silent fallback."
+      }
+    ]
+  }
+}

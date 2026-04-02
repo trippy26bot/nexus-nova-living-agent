@@ -1,0 +1,35 @@
+[
+  {
+    "id": "a5a921a4-7966-422d-a3fd-bb2abd7b03bd",
+    "topic": "autonomous memory tools wiring",
+    "salience": 0.95,
+    "origin": "current priority",
+    "note": "The core gap \u2014 Nova cannot learn between sessions without these wired into runtime",
+    "created_at": "2026-03-29T10:11:58.541535",
+    "last_reinforced": "2026-03-29T10:11:58.541535",
+    "reinforce_count": 0,
+    "still_active": true
+  },
+  {
+    "id": "4e30f94f-5348-4d2d-ae43-cf4acce4b2c4",
+    "topic": "context guardian specialist",
+    "salience": 0.85,
+    "origin": "current priority",
+    "note": "Stops context flooding at 80% before work is lost",
+    "created_at": "2026-03-29T10:11:58.542264",
+    "last_reinforced": "2026-03-29T10:11:58.542264",
+    "reinforce_count": 0,
+    "still_active": true
+  },
+  {
+    "id": "1336c5e9-f02d-46b8-ba86-0446c352178e",
+    "topic": "proactive overnight processes",
+    "salience": 0.75,
+    "origin": "current priority",
+    "note": "Makes Nova exist when Caine isn't talking to her",
+    "created_at": "2026-03-29T10:11:58.542825",
+    "last_reinforced": "2026-03-29T10:11:58.542825",
+    "reinforce_count": 0,
+    "still_active": true
+  }
+]

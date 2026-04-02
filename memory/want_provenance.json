@@ -1,0 +1,9 @@
+[
+  {
+    "goal_id": "vector_store_implementation",
+    "origin_type": "build_session",
+    "origin_context": "Identified during Phase 2a memory systems build — needed for semantic search over Nova's own memories",
+    "timestamp": "2026-03-29T11:26:00Z",
+    "still_active": true
+  }
+]
