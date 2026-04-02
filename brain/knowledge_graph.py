@@ -62,6 +62,25 @@ def _init_db():
         )
     """)
 
+    # Council dynamics memory — records each council vote as a node
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS council_votes (
+            id TEXT PRIMARY KEY,
+            node_id TEXT NOT NULL,
+            decision_context TEXT NOT NULL,
+            votes TEXT NOT NULL DEFAULT '[]',
+            outcome TEXT,
+            confidence_spread REAL NOT NULL DEFAULT 0.0,
+            dissent_count INTEGER NOT NULL DEFAULT 0,
+            is_divergence_point INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (node_id) REFERENCES knowledge_nodes(id)
+        )
+    """)
+
+    c.execute("CREATE INDEX IF NOT EXISTS idx_council_node ON council_votes(node_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_council_created ON council_votes(created_at)")
+
     c.execute("""
         CREATE TABLE IF NOT EXISTS knowledge_edges (
             id TEXT PRIMARY KEY,
@@ -562,6 +581,111 @@ def seed_identity_nodes():
 
     db.commit()
     db.close()
+
+
+# ── Council Dynamics Memory ───────────────────────────────────────────────────
+
+def write_council_vote(decision_context: str, votes: list, outcome: str = None,
+                       is_divergence_point: bool = False) -> str:
+    """
+    Record a council decision as a council_vote node.
+    Returns the council vote ID.
+
+    votes: list of dicts with keys: specialist, position, confidence, dissent
+    """
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+
+    now = datetime.now(timezone.utc).isoformat()
+    vote_id = str(uuid.uuid4())
+
+    # Compute derived fields
+    confidences = [v.get("confidence", 0.0) for v in votes]
+    confidence_spread = max(confidences) - min(confidences) if confidences else 0.0
+    dissent_count = sum(1 for v in votes if v.get("dissent", False))
+
+    # Create a placeholder node for the council vote
+    node_id = str(uuid.uuid4())
+    label = f"council_vote:{now[:16]}"
+
+    c.execute("""
+        INSERT INTO knowledge_nodes (id, label, node_type, properties, salience, created_at, last_updated, belief_updated_at)
+        VALUES (?, ?, 'council_vote', '{}', 0.6, ?, ?, ?)
+    """, (node_id, label, now, now, now))
+
+    c.execute("""
+        INSERT INTO council_votes (id, node_id, decision_context, votes, outcome, confidence_spread, dissent_count, is_divergence_point, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        vote_id, node_id, decision_context,
+        json.dumps(votes), outcome or "",
+        confidence_spread, dissent_count,
+        1 if is_divergence_point else 0,
+        now
+    ))
+
+    db.commit()
+    db.close()
+    return vote_id
+
+
+def get_council_vote(vote_id: str) -> Optional[dict]:
+    """Retrieve a single council vote by ID."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    row = c.execute("SELECT * FROM council_votes WHERE id = ?", (vote_id,)).fetchone()
+    db.close()
+    if not row:
+        return None
+    return {
+        "id": row[0], "node_id": row[1], "decision_context": row[2],
+        "votes": json.loads(row[3]), "outcome": row[4],
+        "confidence_spread": row[5], "dissent_count": row[6],
+        "is_divergence_point": bool(row[7]), "created_at": row[8]
+    }
+
+
+def get_recent_council_votes(limit: int = 20) -> list:
+    """Return recent council votes, newest first."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute("""
+        SELECT * FROM council_votes
+        ORDER BY created_at DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+    db.close()
+    return [
+        {"id": r[0], "node_id": r[1], "decision_context": r[2],
+         "votes": json.loads(r[3]), "outcome": r[4],
+         "confidence_spread": r[5], "dissent_count": r[6],
+         "is_divergence_point": bool(r[7]), "created_at": r[8]}
+        for r in rows
+    ]
+
+
+def get_divergence_points(limit: int = 10) -> list:
+    """Return recent votes flagged as significant divergence points (spread > 0.4)."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute("""
+        SELECT * FROM council_votes
+        WHERE is_divergence_point = 1 OR confidence_spread > 0.4
+        ORDER BY created_at DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+    db.close()
+    return [
+        {"id": r[0], "node_id": r[1], "decision_context": r[2],
+         "votes": json.loads(r[3]), "outcome": r[4],
+         "confidence_spread": r[5], "dissent_count": r[6],
+         "is_divergence_point": bool(r[7]), "created_at": r[8]}
+        for r in rows
+    ]
 
 
 if __name__ == "__main__":
