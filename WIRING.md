@@ -673,4 +673,4 @@ Fix: `session_active` is written by `nova_bridge.py` based on `build_mode`. If t
 
 ---
 
-*WIRING.md — v13.0 — Nexus Nova Living Agent Framework*
+*WIRING.md — v14.0 — Nexus Nova Living Agent Framework*
