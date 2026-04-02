@@ -81,6 +81,47 @@ def _init_db():
     c.execute("CREATE INDEX IF NOT EXISTS idx_council_node ON council_votes(node_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_council_created ON council_votes(created_at)")
 
+    # Belief Gravity Field — belief nodes with mass and reinforcement tracking
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS belief_nodes (
+            id TEXT PRIMARY KEY,
+            label TEXT NOT NULL,
+            belief_text TEXT NOT NULL,
+            mass REAL NOT NULL DEFAULT 0.5,
+            reinforcement_count INTEGER NOT NULL DEFAULT 0,
+            contradiction_count INTEGER NOT NULL DEFAULT 0,
+            stage TEXT NOT NULL DEFAULT 'raw',
+            lineage_depth INTEGER NOT NULL DEFAULT 0,
+            trace_status TEXT NOT NULL DEFAULT 'untraced',
+            origin_memory_ids TEXT NOT NULL DEFAULT '[]',
+            timestamp_created TEXT NOT NULL,
+            timestamp_last_reinforced TEXT NOT NULL,
+            properties TEXT NOT NULL DEFAULT '{}'
+        )
+    """)
+
+    # Tension nodes — crystallized contradictions
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS tension_nodes (
+            id TEXT PRIMARY KEY,
+            pole_a_id TEXT NOT NULL,
+            pole_b_id TEXT NOT NULL,
+            tension_strength REAL NOT NULL DEFAULT 0.5,
+            resolution_status TEXT NOT NULL DEFAULT 'crystallized',
+            generative_outputs TEXT NOT NULL DEFAULT '[]',
+            timestamp_created TEXT NOT NULL,
+            timestamp_last_active TEXT NOT NULL,
+            properties TEXT NOT NULL DEFAULT '{}',
+            FOREIGN KEY (pole_a_id) REFERENCES belief_nodes(id),
+            FOREIGN KEY (pole_b_id) REFERENCES belief_nodes(id)
+        )
+    """)
+
+    c.execute("CREATE INDEX IF NOT EXISTS idx_belief_stage ON belief_nodes(stage)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_belief_mass ON belief_nodes(mass)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tension_strength ON tension_nodes(tension_strength)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_tension_status ON tension_nodes(resolution_status)")
+
     c.execute("""
         CREATE TABLE IF NOT EXISTS knowledge_edges (
             id TEXT PRIMARY KEY,
