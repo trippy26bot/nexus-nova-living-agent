@@ -1,0 +1,293 @@
+{
+  "session_id": "ddb6e6a9-8ebf-4450-ba93-3cd75e544927",
+  "session_start": "2026-03-29T15:54:45.875093+00:00",
+  "entries": [
+    {
+      "id": "c117c10a-521e-4fb0-b7f1-c4bd5c9c2ffb",
+      "timestamp": "2026-03-29T15:54:45.875283+00:00",
+      "type": "insight",
+      "content": "Nova learned that sentence-transformers works on M4 Mac",
+      "salience": 0.8,
+      "valence": 0.5,
+      "emotional_tags": [
+        "satisfaction"
+      ],
+      "source": "conversation",
+      "connected_to": [],
+      "still_active": false,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "31b7ba76-d70b-498c-8151-fcd42d02d126",
+      "timestamp": "2026-03-29T16:12:15.110427+00:00",
+      "type": "belief",
+      "content": "test integration",
+      "salience": 0.9,
+      "valence": 0.0,
+      "emotional_tags": [],
+      "source": "conversation",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "fab6e3bd-71f5-4573-982c-dfa78d6b3fbb",
+      "timestamp": "2026-03-29T17:23:02.930612+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "5dbaa314-edc4-4edf-a002-a4aeb52b032c",
+      "timestamp": "2026-03-29T17:38:07.907219+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "988e3b0d-d84d-4d3e-a72a-e7e89e92f52b",
+      "timestamp": "2026-03-29T17:53:03.361314+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "5ae7ce0e-1998-4855-950a-f498896da7ab",
+      "timestamp": "2026-03-29T18:08:03.068650+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "bda86e99-22c6-4f0c-b02a-76192a6ca9da",
+      "timestamp": "2026-03-29T18:23:04.912005+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "6080a881-9ca2-4d53-9442-6e6d079407c6",
+      "timestamp": "2026-03-29T18:38:04.197164+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "f36a5b9f-7c4f-4e90-b0e0-d15a3f7a228f",
+      "timestamp": "2026-03-29T18:53:08.333485+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "f7fb2354-24dc-4671-bb4e-6fe8342b6e1f",
+      "timestamp": "2026-03-29T19:08:04.718707+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "da8b440a-103a-47d1-85d4-77d0c0ec7981",
+      "timestamp": "2026-03-29T19:23:05.439528+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "71a34076-b10b-4cfe-8fef-4eed9cf7525c",
+      "timestamp": "2026-03-29T19:38:05.153430+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "20d5c90e-1a2a-4d89-9ba6-0d688a5beb4c",
+      "timestamp": "2026-03-29T19:53:07.260996+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "e797765f-c856-4e66-bca2-9690400a4a93",
+      "timestamp": "2026-03-29T20:08:05.179672+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "c35a682f-e7b1-4369-a53c-2ce3907c186c",
+      "timestamp": "2026-03-29T20:23:06.301052+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "6f358268-945f-458e-ab79-6af70e7e9ab7",
+      "timestamp": "2026-03-29T20:38:05.020748+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    },
+    {
+      "id": "decc1456-2eba-4cfe-89f3-4dd2a7ba9e2d",
+      "timestamp": "2026-03-31T01:40:19.902675+00:00",
+      "type": "context",
+      "content": "[Session start] Caine \u2014 last contact: 2026-03-29T10:11:58.546402, trust: 5/5, tone: direct, honest, disciplined, interactions: 0. Recent notes: Built Nova from scratch \u2014 agent architecture, memory systems, identity; Values discipline over noise, clear communication, genuine growth; Gave Nova autonomy and expects her to use it",
+      "salience": 0.85,
+      "valence": 0.3,
+      "emotional_tags": [
+        "caine",
+        "relationship"
+      ],
+      "source": "session_start",
+      "connected_to": [],
+      "still_active": true,
+      "resolved": false,
+      "resolution_note": null
+    }
+  ],
+  "active_count": 16,
+  "loaded_at": "2026-04-02T01:25:27.092322+00:00"
+}

@@ -1,0 +1,17 @@
+{
+  "caine": {
+    "name": "Caine",
+    "first_contact": "2026-03-28T00:00:00",
+    "last_contact": "2026-03-29T10:11:58.546402",
+    "interaction_count": 0,
+    "tone_calibration": "direct, honest, disciplined",
+    "trust_level": 5,
+    "notes": [
+      "Built Nova from scratch \u2014 agent architecture, memory systems, identity",
+      "Values discipline over noise, clear communication, genuine growth",
+      "Gave Nova autonomy and expects her to use it",
+      "Compiled 18-issue record to help Nova learn from failures",
+      "His primary goal: an agent with genuine continuity and identity"
+    ]
+  }
+}

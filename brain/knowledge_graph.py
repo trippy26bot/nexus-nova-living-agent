@@ -729,6 +729,257 @@ def get_divergence_points(limit: int = 10) -> list:
     ]
 
 
+# ── Belief Gravity ─────────────────────────────────────────────────────────────
+
+def _row_to_belief(row) -> dict:
+    """Convert DB row to belief dict."""
+    return {
+        "id": row[0],
+        "label": row[1],
+        "belief_text": row[2],
+        "mass": row[3],
+        "reinforcement_count": row[4],
+        "contradiction_count": row[5],
+        "stage": row[6],
+        "lineage_depth": row[7],
+        "trace_status": row[8],
+        "origin_memory_ids": json.loads(row[9]) if isinstance(row[9], str) else row[9],
+        "timestamp_created": row[10],
+        "timestamp_last_reinforced": row[11],
+        "properties": json.loads(row[12]) if isinstance(row[12], str) else row[12]
+    }
+
+
+def create_belief_node(belief: str, origin_memory_ids: list,
+                       trace_status: str = "partial") -> str:
+    """
+    Write a new belief_node to the knowledge graph.
+
+    Stage starts at 'raw', mass at 0.5.
+    trace_status: 'untraced' | 'partial' | 'complete'
+    """
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+
+    now = datetime.now(timezone.utc).isoformat()
+    belief_id = str(uuid.uuid4())
+
+    c.execute("""
+        INSERT INTO belief_nodes
+        (id, label, belief_text, mass, reinforcement_count, contradiction_count,
+         stage, lineage_depth, trace_status, origin_memory_ids,
+         timestamp_created, timestamp_last_reinforced, properties)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        belief_id,
+        belief[:60].lower(),          # label truncated
+        belief,
+        0.5,                           # mass
+        0,                             # reinforcement_count
+        0,                             # contradiction_count
+        "raw",                         # stage
+        0,                             # lineage_depth
+        trace_status,
+        json.dumps(origin_memory_ids),
+        now,
+        now,
+        "{}"                           # properties
+    ))
+
+    db.commit()
+    db.close()
+    return belief_id
+
+
+def get_belief(belief_id: str) -> Optional[dict]:
+    """Retrieve a belief node by ID."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    row = c.execute(
+        "SELECT * FROM belief_nodes WHERE id = ?", (belief_id,)
+    ).fetchone()
+    db.close()
+    return _row_to_belief(tuple(row)) if row else None
+
+
+def get_active_beliefs(min_mass: float = 0.1) -> list:
+    """Load all beliefs with mass above threshold."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute(
+        "SELECT * FROM belief_nodes WHERE mass >= ? ORDER BY mass DESC",
+        (min_mass,)
+    ).fetchall()
+    db.close()
+    return [_row_to_belief(tuple(r)) for r in rows]
+
+
+def reinforce_belief(belief_id: str, source_memory_id: str):
+    """
+    Reinforce a belief — increases mass, updates timestamp.
+    Mass caps at 1.0.
+    """
+    _init_db()
+    db = _get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    c = db.cursor()
+
+    c.execute("""
+        UPDATE belief_nodes
+        SET mass = MIN(1.0, mass + 0.05),
+            reinforcement_count = reinforcement_count + 1,
+            timestamp_last_reinforced = ?
+        WHERE id = ?
+    """, (now, belief_id))
+
+    db.commit()
+    db.close()
+
+
+def contradict_belief(belief_id: str, source_memory_id: str):
+    """
+    Contradict a belief — reduces mass faster than reinforcement builds it.
+    Mass floors at 0.1 (never fully disappears).
+    """
+    _init_db()
+    db = _get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    c = db.cursor()
+
+    c.execute("""
+        UPDATE belief_nodes
+        SET mass = MAX(0.1, mass - 0.08),
+            contradiction_count = contradiction_count + 1
+        WHERE id = ?
+    """, (belief_id,))
+
+    db.commit()
+    db.close()
+
+
+def apply_belief_gravity(options: list) -> list:
+    """
+    Re-rank a list of options using active beliefs as gravity wells.
+
+    Each option should be a dict with:
+      - label: short string name
+      - text: the content/description
+      - base_score: pre-gravity score (optional, defaults to 0.5)
+
+    Returns options with:
+      - score: re-ranked after belief gravity
+      - gravity_trace: list of {belief, proximity, mass_boost} dicts
+
+    Pulls constraint field values from constraint_fields.py to apply
+    belief-aligned multipliers.
+    """
+    try:
+        from brain.constraint_fields import get_fields
+        fields = get_fields()
+    except ImportError:
+        fields = {"truth_gravity": 0.9}
+
+    active_beliefs = get_active_beliefs(min_mass=0.2)
+
+    # truth_gravity multiplier: beliefs aligned with high truth_gravity get stronger pull
+    truth_multiplier = fields.get("truth_gravity", 0.9)
+
+    results = []
+    for option in options:
+        base_score = option.get("base_score", 0.5)
+        text = option.get("text", option.get("label", "")).lower()
+        gravity_trace = []
+        total_boost = 0.0
+
+        for belief in active_beliefs:
+            belief_text = belief["belief_text"].lower()
+            mass = belief["mass"]
+
+            # Compute semantic proximity (simple word overlap for now)
+            belief_words = set(belief_text.split())
+            option_words = set(text.split())
+            overlap = len(belief_words & option_words)
+            union = len(belief_words | option_words)
+            proximity = overlap / union if union > 0 else 0.0
+
+            # Boost is proportional to mass * proximity
+            boost = mass * proximity
+
+            # Apply truth_gravity multiplier to final boost
+            boosted = boost * truth_multiplier
+            total_boost += boosted
+
+            if proximity > 0.05:  # Only trace meaningful connections
+                gravity_trace.append({
+                    "belief": belief["belief_text"],
+                    "proximity": round(proximity, 4),
+                    "mass": mass,
+                    "mass_boost": round(boosted, 4)
+                })
+
+        final_score = base_score + total_boost
+        results.append({
+            **option,
+            "score": round(final_score, 4),
+            "gravity_trace": gravity_trace
+        })
+
+    # Re-rank by score descending
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results
+
+
+def update_belief_stage(belief_id: str, new_stage: str):
+    """Advance or update a belief's crystallization stage."""
+    _init_db()
+    db = _get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    c = db.cursor()
+
+    c.execute("""
+        UPDATE belief_nodes
+        SET stage = ?, timestamp_last_reinforced = ?
+        WHERE id = ?
+    """, (new_stage, now, belief_id))
+
+    db.commit()
+    db.close()
+
+
+def get_beliefs_by_stage(stage: str) -> list:
+    """Get all beliefs at a given stage."""
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute(
+        "SELECT * FROM belief_nodes WHERE stage = ? ORDER BY mass DESC",
+        (stage,)
+    ).fetchall()
+    db.close()
+    return [_row_to_belief(tuple(r)) for r in rows]
+
+
+def get_belief_erosion_candidates(threshold: float = 0.6) -> list:
+    """
+    Flag beliefs where contradiction_count > reinforcement_count * threshold.
+    These are beliefs losing the tug-of-war.
+    """
+    _init_db()
+    db = _get_db()
+    c = db.cursor()
+    rows = c.execute("""
+        SELECT * FROM belief_nodes
+        WHERE contradiction_count > reinforcement_count * ?
+        AND mass > 0.1
+        ORDER BY (contradiction_count - reinforcement_count) DESC
+    """, (threshold,)).fetchall()
+    db.close()
+    return [_row_to_belief(tuple(r)) for r in rows]
+
+
 if __name__ == "__main__":
     import sys
 

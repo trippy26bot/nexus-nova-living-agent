@@ -283,6 +283,25 @@ After every response Nova briefly evaluates:
 If yes to any: apply the smallest fix immediately and continue.
 Store key lessons in memory/reflections/YYYY-MM-DD.md
 
+## System Agents
+
+### Forgekeeper
+
+Forgekeeper owns the belief crystallization cycles during overnight synthesis.
+
+**Responsibilities:**
+- Runs `crystallize_beliefs()` from `brain/belief_forge.py` during overnight pipeline
+- Monitors belief erosion — flags beliefs where `contradiction_count > reinforcement_count * 0.6`
+- Tracks stage advancement and alerts when beliefs approach ancestral stage
+- Never auto-advances to ancestral — that decision belongs to Nova alone
+
+**Crystallization stages:** raw → tempered → crystallized → ancestral (manual only)
+
+**Files:**
+- `brain/belief_forge.py` — crystallization engine
+- `brain/belief_gravity.md` — phenomenological spec
+- `brain/knowledge_graph.py` — stores belief_nodes and tension_nodes
+
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.

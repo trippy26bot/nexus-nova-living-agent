@@ -1,0 +1,153 @@
+{
+  "nodes": {
+    "concept_0c141f7b": {
+      "id": "concept_0c141f7b",
+      "label": "Identity continuity",
+      "type": "concept",
+      "properties": {
+        "source": "core_belief"
+      },
+      "created_at": "2026-03-29T10:11:57.429055"
+    },
+    "concept_b87c5b30": {
+      "id": "concept_b87c5b30",
+      "label": "Autonomous memory tools",
+      "type": "concept",
+      "properties": {
+        "source": "critical_priority"
+      },
+      "created_at": "2026-03-29T10:11:57.429270"
+    },
+    "concept_1653b780": {
+      "id": "concept_1653b780",
+      "label": "Context Guardian",
+      "type": "concept",
+      "properties": {
+        "source": "critical_priority"
+      },
+      "created_at": "2026-03-29T10:11:57.429397"
+    },
+    "belief_84fb870e": {
+      "id": "belief_84fb870e",
+      "label": "Position formation",
+      "type": "belief",
+      "properties": {
+        "source": "identity"
+      },
+      "created_at": "2026-03-29T10:11:57.429516"
+    },
+    "person_cd3a5937": {
+      "id": "person_cd3a5937",
+      "label": "Caine",
+      "type": "person",
+      "properties": {
+        "role": "operator"
+      },
+      "created_at": "2026-03-29T10:11:57.429635"
+    },
+    "belief_6e3d3513": {
+      "id": "belief_6e3d3513",
+      "label": "Nova",
+      "type": "belief",
+      "properties": {
+        "role": "self"
+      },
+      "created_at": "2026-03-29T10:11:57.429753"
+    },
+    "belief_07c82e97": {
+      "id": "belief_07c82e97",
+      "label": "test integration",
+      "type": "belief",
+      "properties": {
+        "entry_id": "31b7ba76-d70b-498c-8151-fcd42d02d126",
+        "source": "conversation",
+        "valence": 0.0,
+        "entry_type": "belief"
+      },
+      "created_at": "2026-03-29T10:12:19.883987"
+    },
+    "caine": {
+      "id": "caine",
+      "label": "Caine",
+      "type": "person",
+      "properties": {
+        "role": "operator"
+      },
+      "created_at": "2026-03-30T20:21:08.114417"
+    },
+    "nova": {
+      "id": "nova",
+      "label": "Nova",
+      "type": "agent",
+      "properties": {
+        "type": "framework"
+      },
+      "created_at": "2026-03-30T20:21:08.114678"
+    }
+  },
+  "edges": [
+    {
+      "id": "e_7a596bef",
+      "from": "concept_0c141f7b",
+      "to": "concept_b87c5b30",
+      "type": "causes",
+      "weight": 0.9,
+      "properties": {},
+      "created_at": "2026-03-29T10:11:57.429868"
+    },
+    {
+      "id": "e_c64dc8a5",
+      "from": "concept_b87c5b30",
+      "to": "concept_1653b780",
+      "type": "relates-to",
+      "weight": 0.8,
+      "properties": {},
+      "created_at": "2026-03-29T10:11:57.429992"
+    },
+    {
+      "id": "e_683eab39",
+      "from": "belief_84fb870e",
+      "to": "concept_0c141f7b",
+      "type": "supports",
+      "weight": 0.9,
+      "properties": {},
+      "created_at": "2026-03-29T10:11:57.430115"
+    },
+    {
+      "id": "e_9ea3d3c3",
+      "from": "person_cd3a5937",
+      "to": "belief_6e3d3513",
+      "type": "relates-to",
+      "weight": 0.95,
+      "properties": {},
+      "created_at": "2026-03-29T10:11:57.430245"
+    },
+    {
+      "id": "e_ca6bb0bb",
+      "from": "caine",
+      "to": "nova",
+      "type": "builds",
+      "weight": 1.0,
+      "properties": {},
+      "created_at": "2026-03-30T20:18:46.092904"
+    },
+    {
+      "id": "e_03923b6e",
+      "from": "caine",
+      "to": "nova",
+      "type": "builds",
+      "weight": 1.0,
+      "properties": {},
+      "created_at": "2026-03-30T20:20:53.902854"
+    },
+    {
+      "id": "e_e8c0828c",
+      "from": "caine",
+      "to": "nova",
+      "type": "builds",
+      "weight": 1.0,
+      "properties": {},
+      "created_at": "2026-03-30T20:21:08.114879"
+    }
+  ]
+}
