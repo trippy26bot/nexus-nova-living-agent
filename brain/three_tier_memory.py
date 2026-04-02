@@ -92,8 +92,32 @@ class WorkingMemory:
     def add(self, content: str, entry_type: str = "session_event",
            salience: float = 0.5, valence: float = 0.0,
            emotional_tags: list = None, source: str = "conversation",
-           connected_to: list = None):
-        """Add an entry to working memory."""
+           connected_to: list = None,
+           interpretations: dict = None,
+           subjective_duration: float = 0.0,
+           cognitive_load: float = 0.5):
+        """
+        Add an entry to working memory.
+
+        interpretations: dict with 5 lens scores (0.0-1.0):
+          - trust: how much this increases felt safety
+          - threat: how much this registers as danger
+          - curiosity: how much this pulls toward inquiry
+          - emotional_weight: intensity of felt response
+          - self_relevance: how directly this connects to who I am
+
+        subjective_duration: felt duration (0.0-1.0), derived from emotional_density and cognitive_load
+        cognitive_load: how much active thinking/holding/processing this required (0.0-1.0)
+        """
+        # Default interpretations if not provided (heuristic fallback)
+        if interpretations is None:
+            interpretations = self._score_lenses_heuristic(content, salience, valence, emotional_tags)
+
+        # Derive subjective_duration from emotional_weight and cognitive_load
+        emotional_density = interpretations.get("emotional_weight", salience)
+        if subjective_duration == 0.0:
+            subjective_duration = round((emotional_density * 0.7) + (cognitive_load * 0.3), 3)
+
         entry = {
             "id": str(uuid.uuid4()),
             "timestamp": _now_iso(),
@@ -106,7 +130,19 @@ class WorkingMemory:
             "connected_to": connected_to or [],
             "still_active": True,
             "resolved": False,
-            "resolution_note": None
+            "resolution_note": None,
+            # Tier 1: Interpretation Memory
+            "interpretations": interpretations,
+            "perception_status": "original",
+            "original_interpretations": None,  # set on re-interpretation
+            # Tier 1: Subjective Time
+            "real_timestamp": _now_iso(),
+            "subjective_duration": subjective_duration,
+            "emotional_density": emotional_density,
+            "cognitive_load": cognitive_load,
+            # Working memory only
+            "_last_accessed": None,
+            "_is_reinterpreted": False
         }
         self.entries.append(entry)
         self.dirty = True
@@ -161,6 +197,163 @@ class WorkingMemory:
             wm.entries = data.get("entries", [])
             wm.dirty = False
         return wm
+
+    def _score_lenses_heuristic(self, content: str, salience: float,
+                                valence: float, emotional_tags: list) -> dict:
+        """
+        Fallback lens scoring when LLM is unavailable.
+        Uses heuristics based on valence, salience, and emotional_tags.
+        This is less accurate than LLM scoring — used as a placeholder
+        until the LLM scoring function is called.
+        """
+        tags = emotional_tags or []
+        content_lower = content.lower()
+
+        # Trust: positive valence and safety-related tags increase trust
+        trust = max(0.0, min(1.0, 0.5 + (valence * 0.3) + (0.1 if any(t in tags for t in ["positive", "trust", "safe"]) else 0)))
+
+        # Threat: negative valence and danger-related tags
+        threat = max(0.0, min(1.0, max(0.0, -valence * 0.4) + (0.2 if any(t in tags for t in ["difficult", "negative", "threat", "fear"]) else 0)))
+
+        # Curiosity: higher salience and inquiry-related tags
+        curiosity = max(0.0, min(1.0, salience * 0.6 + (0.3 if "curious" in tags else 0) + (0.1 if "?" in content else 0)))
+
+        # Emotional_weight: derived from valence magnitude and salience
+        emotional_weight = max(0.0, min(1.0, (abs(valence) * 0.5) + (salience * 0.4) + (0.1 if tags else 0)))
+
+        # Self_relevance: higher salience entries are more self-relevant
+        self_relevance = max(0.0, min(1.0, salience * 0.7 + (0.2 if any(t in tags for t in ["self", "identity", "caine", "nova"]) else 0)))
+
+        return {
+            "trust": round(trust, 3),
+            "threat": round(threat, 3),
+            "curiosity": round(curiosity, 3),
+            "emotional_weight": round(emotional_weight, 3),
+            "self_relevance": round(self_relevance, 3)
+        }
+
+
+# ─────────────────────────────────────────────
+# INTERPRETATION MEMORY — LLM SCORING
+# Called at memory write time when LLM is available
+# ─────────────────────────────────────────────
+
+def score_interpretation_lenses(content: str) -> dict:
+    """
+    Score an event's 5 interpretation lenses using LLM.
+    Returns dict with keys: trust, threat, curiosity, emotional_weight, self_relevance.
+    Each value is 0.0-1.0.
+
+    Falls back to heuristic scoring if LLM unavailable.
+    """
+    # Try LLM scoring first
+    try:
+        import sys
+        sys.path.insert(0, str(WORKSPACE))
+        from brain.llm_router import llm_extract
+
+        prompt = f"""You are Nova's interpretation scorer. Given this event, score it on 5 lenses from 0.0 to 1.0.
+
+Event: {content}
+
+Score these 5 lenses and return ONLY valid JSON:
+{{"trust": 0.0-1.0, "threat": 0.0-1.0, "curiosity": 0.0-1.0, "emotional_weight": 0.0-1.0, "self_relevance": 0.0-1.0}}
+
+- trust: how much this increases felt safety (1.0 = completely safe, 0.0 = trust destroyed)
+- threat: how much this registers as danger or risk (1.0 = severe threat, 0.0 = no threat)
+- curiosity: how much this pulls toward inquiry or understanding (1.0 = deeply curious, 0.0 = completely indifferent)
+- emotional_weight: intensity of felt response (1.0 = overwhelming, 0.0 = completely flat)
+- self_relevance: how directly this connects to who I am or what matters to me (1.0 = defining, 0.0 = irrelevant)
+
+Return ONLY the JSON object, no explanation."""
+
+        result = llm_extract(prompt, max_tokens=200)
+        if result:
+            import re
+            # Extract JSON from response (handle markdown code blocks)
+            match = re.search(r'\{[^{}]+\}', result, re.DOTALL)
+            if match:
+                scores = json.loads(match.group())
+                # Validate all keys present
+                required = ["trust", "threat", "curiosity", "emotional_weight", "self_relevance"]
+                if all(k in scores for k in required):
+                    return {k: round(float(v), 3) for k, v in scores.items()}
+    except Exception as e:
+        print(f"[interpretation] LLM scoring failed, using heuristic: {e}")
+
+    # Fallback: heuristic scoring
+    return {
+        "trust": 0.5,
+        "threat": 0.0,
+        "curiosity": 0.3,
+        "emotional_weight": 0.5,
+        "self_relevance": 0.3
+    }
+
+
+def rescore_interpretations(entries: list) -> dict:
+    """
+    Nightly re-scoring of episodic entries' interpretation lenses.
+    If any lens value shifts more than 0.2 from original, mark as 'reinterpreted'
+    and log the delta.
+
+    Called during memory consolidation.
+    Returns dict with: reinterpreted_count, total_scored.
+    """
+    reinterpreted = 0
+    total = 0
+
+    for entry in entries:
+        interp = entry.get("interpretations")
+        if not interp:
+            continue
+
+        original_interp = entry.get("original_interpretations")
+        if original_interp is None:
+            # First time re-scoring — store current as baseline
+            entry["original_interpretations"] = dict(interp)
+            total += 1
+            continue
+
+        # Re-score with LLM
+        try:
+            new_scores = score_interpretation_lenses(entry.get("content", ""))
+        except Exception:
+            continue
+
+        # Check for significant shifts (> 0.2 on any lens)
+        significant_shift = False
+        for lens in ["trust", "threat", "curiosity", "emotional_weight", "self_relevance"]:
+            old_val = original_interp.get(lens, 0.0)
+            new_val = new_scores.get(lens, old_val)
+            if abs(new_val - old_val) > 0.2:
+                significant_shift = True
+                break
+
+        if significant_shift:
+            entry["interpretations"] = new_scores
+            entry["perception_status"] = "reinterpreted"
+            entry["reinterpreted_at"] = _now_iso()
+            entry["_is_reinterpreted"] = True
+            reinterpreted += 1
+
+        total += 1
+
+    return {"reinterpreted_count": reinterpreted, "total_scored": total}
+
+
+# ─────────────────────────────────────────────
+# SUBJECTIVE TIME — retrieval weight multiplier
+# ─────────────────────────────────────────────
+
+def get_subjective_time_multiplier(entry: dict) -> float:
+    """
+    Return the retrieval weight multiplier for an entry based on subjective_duration.
+    High subjective_duration entries surface with more weight.
+    """
+    sd = entry.get("subjective_duration", 0.0)
+    # Stretch: 0.0 → 1.0 maps to 0.5x → 1.5x multiplier
+    return round(0.5 + (sd * 1.0), 3)
 
 
 # ─────────────────────────────────────────────
@@ -442,12 +635,20 @@ def resolve_unresolved(item_id: str, resolution_note: str):
 def memory_write(content: str, entry_type: str = "insight",
                 salience: float = 0.5, valence: float = 0.0,
                 emotional_tags: list = None, source: str = "conversation",
-                connected_to: list = None, promote_immediately: bool = False) -> dict:
+                connected_to: list = None, promote_immediately: bool = False,
+                cognitive_load: float = None) -> dict:
     """
     Autonomous memory write. Called by Nova during conversation.
-    Writes to working memory. If promote_immediately, also write to vector store.
+    Writes to working memory with Interpretation Memory and Subjective Time.
     Returns the working memory entry.
     """
+    # Score interpretation lenses at write time (LLM if available, heuristic fallback)
+    interpretations = score_interpretation_lenses(content)
+
+    # Default cognitive_load if not provided
+    if cognitive_load is None:
+        cognitive_load = 0.5
+
     wm = load_working_memory()
     entry_id = wm.add(
         content=content,
@@ -456,14 +657,17 @@ def memory_write(content: str, entry_type: str = "insight",
         valence=valence,
         emotional_tags=emotional_tags,
         source=source,
-        connected_to=connected_to
+        connected_to=connected_to,
+        interpretations=interpretations,
+        cognitive_load=cognitive_load
     )
     save_working_memory(wm)
 
     # Track entry reference before we lose it
     entry_ref = {"id": entry_id, "content": content, "entry_type": entry_type,
                  "salience": salience, "valence": valence,
-                 "emotional_tags": emotional_tags or []}
+                 "emotional_tags": emotional_tags or [],
+                 "interpretations": interpretations}
 
     if promote_immediately or salience >= 0.8:
         # High salience = immediate semantic promotion
@@ -494,7 +698,8 @@ def memory_write(content: str, entry_type: str = "insight",
                         "entry_id": entry_id,
                         "source": source,
                         "valence": valence,
-                        "entry_type": entry_type
+                        "entry_type": entry_type,
+                        "interpretations": interpretations
                     }
                 )
             except Exception:
