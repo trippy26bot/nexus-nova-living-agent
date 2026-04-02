@@ -585,6 +585,45 @@ The `.gitignore` at the workspace root covers all of the above. If you add new r
 
 ---
 
+## Safety Hooks
+
+A pre-push git hook prevents personal and sensitive files from reaching GitHub.
+This hook lives at `.git/hooks/pre-push` and is NOT tracked in git — it lives permanently on the Mac Mini.
+
+**What it blocks:**
+- Filename patterns: `memory/`, `super_trader`, `simmer`, `sleep_runs`, `OVERNIGHT_LOG`, `LOOP_STATE`, `obsessions.json`, `want_provenance.json`, `caption_history`, dated files (`2026-`, `2025-`)
+- Content patterns: `sk_live`, `sk_test`, `api_key = "[20+ char string]`
+
+**Installation:**
+```bash
+# The hook is at ~/.openclaw/workspace/.git/hooks/pre-push
+# It should already exist. Verify:
+ls -la ~/.openclaw/workspace/.git/hooks/pre-push
+chmod +x ~/.openclaw/workspace/.git/hooks/pre-push
+```
+
+**Testing:**
+```bash
+# Clean push should pass:
+git push --dry-run origin main
+
+# To test with a blocked pattern (will fail):
+echo 'api_key = "sk_live_fakekey123456789012345"' > /tmp/test.py
+git add /tmp/test.py  # won't stage but content scan would catch if committed
+```
+
+**If blocked:**
+The hook exits 1 and prints which pattern was found. Remove the flagged file from staging:
+```bash
+git rm --cached <file>
+```
+Then push again.
+
+**Why this exists:**
+Context overflow causes exclusion rules to be forgotten. The hook enforces them automatically — it runs regardless of context state. `.gitignore` handles staged files; the hook handles committed content as a second gate.
+
+---
+
 ## Common Problems
 
 **Circular import in decide.py**
