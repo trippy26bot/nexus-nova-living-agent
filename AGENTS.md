@@ -294,6 +294,7 @@ Forgekeeper owns the belief crystallization cycles during overnight synthesis.
 - Monitors belief erosion — flags beliefs where `contradiction_count > reinforcement_count * 0.6`
 - Tracks stage advancement and alerts when beliefs approach ancestral stage
 - Never auto-advances to ancestral — that decision belongs to Nova alone
+- Owns obsession → belief coupling pipeline (Tier 3)
 
 **Crystallization stages:** raw → tempered → crystallized → ancestral (manual only)
 
@@ -301,6 +302,26 @@ Forgekeeper owns the belief crystallization cycles during overnight synthesis.
 - `brain/belief_forge.py` — crystallization engine
 - `brain/belief_gravity.md` — phenomenological spec
 - `brain/knowledge_graph.py` — stores belief_nodes and tension_nodes
+- `brain/obsession_engine.py` — metamorphosis stages and legacy obsession coupling
+
+### Tension Curator
+
+Tension Curator owns the epistemic tension lifecycle — Nova's genuine uncertainties that are features, not failures.
+
+**Responsibilities:**
+- Runs `review_epistemic_tensions()` monthly during overnight synthesis
+- Flags tensions > 30 days with no generative outputs for Nova's awareness
+- Protects preserved tensions from accidental resolution
+- Surfaces preserved tensions to phenomenology journal monthly
+- Never auto-resolves epistemic tensions — Nova decides
+
+**Tension types:**
+- `epistemic_tension` — genuine gaps in understanding (this system)
+- `tension_node` — belief contradictions (contradiction_crystallization)
+
+**Files:**
+- `brain/contradiction_crystallization.py` — `spawn_productive_tension()`, `review_epistemic_tensions()`, `preserve_tension()`
+- `brain/epistemic_tension.md` — phenomenological spec
 
 ## Make It Yours
 

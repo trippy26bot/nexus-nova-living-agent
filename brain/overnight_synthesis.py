@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
 brain/overnight_synthesis.py — Nova's Nightly Synthesis Pipeline
-Tier 2: Wires all overnight processing together
+Tier 3: Wires all overnight processing together
 
 Pipeline order:
 1. Self-snapshot (continuity_engine) — who am I right now
 2. Memory consolidation (three_tier_memory) — move episodes toward semantic
 3. Belief crystallization (belief_forge) — form raw beliefs into convictions
-4. Contradiction resolution — detect, evaluate, crystallize or resolve
-5. Drift detection — check if identity is stable
+4. Obsession Metamorphosis Cycle (Tier 3) — evaluate all obsession stage advances
+5. Obsession-Belief Coupling (Tier 3) — check legacy obsessions → belief pipeline
+6. Evolutionary Thought Decay (Tier 3) — clean thought pool, propose belief candidates
+7. Curiosity Engine (Tier 3) — generate and attempt question resolution
+8. Epistemic Tension Review (Tier 3) — age and flag unresolved tensions
+9. Contradiction resolution — detect, evaluate, crystallize or resolve
+10. Drift detection — check if identity is stable
+11. Meaning Compression (Tier 3) — find memory clusters, create symbol nodes
 
 Usage:
     python overnight_synthesis.py [phase]
@@ -156,10 +162,16 @@ def night_digest() -> dict:
 def overnight_synthesis() -> dict:
     """
     Phase 2: Main synthesis — runs after memory consolidation.
-    Wires in:
-    - crystallize_beliefs() from belief_forge
-    - evaluate_contradiction() for flagged contradictions
-    - check_for_new_contradictions()
+    Tier 3 pipeline order:
+    1. Belief crystallization (belief_forge)
+    2. Obsession Metamorphosis Cycle — evaluate all obsessions
+    3. Obsession-Belief Coupling — check legacy obsessions → belief pipeline
+    4. Evolutionary Thought Decay — clean thought pool
+    5. Curiosity Engine — generate and attempt question resolution
+    6. Epistemic Tension Review — age and flag unresolved tensions
+    7. Contradiction resolution
+    8. Drift detection
+    9. Meaning Compression — find memory clusters, create symbol nodes
     """
     findings = []
     flags = []
@@ -181,7 +193,109 @@ def overnight_synthesis() -> dict:
         findings.append("belief_forge not available yet")
         flags.append(f"belief_forge import error: {e}")
 
-    # Step 2: Contradiction resolution
+    # ── Tier 3: Obsession Metamorphosis Cycle ────────────────────────────────
+    findings.append("Starting obsession metamorphosis evaluation...")
+    try:
+        from brain.obsession_engine import evaluate_all_metamorphoses
+        meta_results, meta_findings, meta_flags = _safe_run(
+            "obsession_metamorphosis", evaluate_all_metamorphoses
+        )
+        if meta_results:
+            findings.append(f"Obsession metamorphosis: {len(meta_results)} advancements")
+            for r in meta_results:
+                findings.append(f"  [{r['old_stage']} → {r['new_stage']}] {r['topic']}: {r['reason']}")
+            findings.extend(meta_findings)
+            flags.extend(meta_flags)
+    except Exception as e:
+        flags.append(f"obsession_metamorphosis error: {e}")
+
+    # ── Tier 3: Obsession-Belief Coupling ─────────────────────────────────────
+    findings.append("Starting obsession-belief coupling...")
+    try:
+        from brain.belief_forge import check_obsession_to_belief_pipeline, check_belief_to_obsession_pipeline
+
+        # Legacy obsession → belief pipeline
+        obs2belief_result, obs2b_findings, obs2b_flags = _safe_run(
+            "obsession_to_belief", check_obsession_to_belief_pipeline
+        )
+        if obs2belief_result:
+            findings.append(f"Obsession→Belief: {obs2belief_result['legacy_obsessions_found']} legacy obs, "
+                          f"{len(obs2belief_result['proposed_new'])} new beliefs proposed, "
+                          f"{len(obs2belief_result['merged_with_existing'])} merged with existing")
+            findings.extend(obs2b_findings)
+            flags.extend(obs2b_flags)
+
+        # Belief → obsession seed pipeline
+        belief2obs_result, b2o_findings, b2o_flags = _safe_run(
+            "belief_to_obsession", check_belief_to_obsession_pipeline
+        )
+        if belief2obs_result:
+            findings.append(f"Belief→Obsession: {belief2obs_result['high_reinforcement_beliefs']} high-reinforcement beliefs, "
+                          f"{len(belief2obs_result['flagged_for_curiosity'])} flagged as potential seeds")
+            findings.extend(b2o_findings)
+            flags.extend(b2o_flags)
+    except Exception as e:
+        flags.append(f"obsession_belief_coupling error: {e}")
+
+    # ── Tier 3: Evolutionary Thought Decay ────────────────────────────────────
+    findings.append("Starting evolutionary thought decay...")
+    try:
+        from brain.evolutionary_thoughts import decay_thoughts
+        decay_result, decay_findings, decay_flags = _safe_run(
+            "thought_decay", decay_thoughts
+        )
+        if decay_result:
+            findings.append(f"Thought decay: {decay_result['remaining']}/{decay_result['total']} remaining, "
+                          f"{decay_result['removed']} removed, "
+                          f"{len(decay_result['proposed_for_crystallization'])} proposed for belief crystallization")
+            findings.extend(decay_findings)
+            flags.extend(decay_flags)
+    except Exception as e:
+        flags.append(f"thought_decay error: {e}")
+
+    # ── Tier 3: Curiosity Engine ──────────────────────────────────────────────
+    findings.append("Starting curiosity engine...")
+    try:
+        from brain.curiosity_engine import generate_questions_from_gaps, prioritize_questions, attempt_resolution
+
+        # Generate new questions from gaps
+        new_questions, gen_findings, gen_flags = _safe_run(
+            "curiosity_generate", generate_questions_from_gaps
+        )
+        if new_questions is not None:
+            findings.append(f"Curiosity: {len(new_questions)} new questions generated")
+            findings.extend(gen_findings)
+            flags.extend(gen_flags)
+
+        # Attempt resolution on top 3 priority questions
+        prioritized = prioritize_questions()
+        top3 = prioritized[:3]
+        resolved_count = 0
+        for q in top3:
+            res_result, _, _ = _safe_run(f"curiosity_resolve_{q['id'][:8]}", attempt_resolution, q["id"])
+            if res_result and res_result.get("status") == "resolved":
+                resolved_count += 1
+        if top3:
+            findings.append(f"Curiosity resolution: attempted {len(top3)} questions, {resolved_count} fully resolved")
+    except Exception as e:
+        flags.append(f"curiosity_engine error: {e}")
+
+    # ── Tier 3: Epistemic Tension Review ─────────────────────────────────────
+    findings.append("Starting epistemic tension review...")
+    try:
+        from brain.contradiction_crystallization import review_epistemic_tensions
+        tension_result, tension_findings, tension_flags = _safe_run(
+            "epistemic_tension_review", review_epistemic_tensions
+        )
+        if tension_result:
+            findings.append(f"Epistemic tensions: {tension_result['active_tensions']} active, "
+                          f"{len(tension_result['flagged_for_review'])} flagged for review (>30 days, no output)")
+            findings.extend(tension_findings)
+            flags.extend(tension_flags)
+    except Exception as e:
+        flags.append(f"epistemic_tension_review error: {e}")
+
+    # Step: Contradiction resolution
     findings.append("Starting contradiction resolution...")
     try:
         from brain.contradiction_resolution import (
@@ -189,7 +303,6 @@ def overnight_synthesis() -> dict:
             run_contradiction_resolution
         )
 
-        # Check for new contradictions first
         new_contra, new_findings, new_flags = _safe_run(
             "contradiction_check", check_for_new_contradictions
         )
@@ -198,7 +311,6 @@ def overnight_synthesis() -> dict:
             findings.extend(new_findings)
             flags.extend(new_flags)
 
-        # Run resolution on pending contradictions
         contra_result, contra_findings, contra_flags = _safe_run(
             "contradiction_resolution", run_contradiction_resolution
         )
@@ -214,7 +326,7 @@ def overnight_synthesis() -> dict:
         findings.append("contradiction_resolution not available yet")
         flags.append(f"contradiction_resolution import error: {e}")
 
-    # Step 3: Drift detection
+    # Step: Drift detection
     findings.append("Running drift detection...")
     try:
         from brain.continuity_engine import rebuild_self_snapshot
@@ -232,6 +344,20 @@ def overnight_synthesis() -> dict:
         findings.append("Drift detection error")
         flags.append(f"drift_detection error: {e}")
 
+    # ── Tier 3: Meaning Compression ───────────────────────────────────────────
+    findings.append("Starting meaning compression...")
+    try:
+        compress_result, compress_findings, compress_flags = _safe_run(
+            "meaning_compression", compress_meaning
+        )
+        if compress_result:
+            findings.append(f"Meaning compression: {compress_result.get('clusters_found', 0)} clusters, "
+                          f"{compress_result.get('symbols_created', 0)} new symbols created")
+            findings.extend(compress_findings)
+            flags.extend(compress_flags)
+    except Exception as e:
+        flags.append(f"meaning_compression error: {e}")
+
     # Write synthesis results
     synthesis_file = SYNTHESIS_DIR / f"synthesis_{datetime.now().strftime('%Y-%m-%d')}.json"
     synthesis_result = {
@@ -247,6 +373,72 @@ def overnight_synthesis() -> dict:
 
 
 # ── Phase 3: Morning Consolidation ─────────────────────────────────────────
+
+def compress_meaning() -> dict:
+    """
+    Find memory clusters that have been synthesized 3+ times.
+    LLM call: "What single symbol captures this cluster?"
+    Write symbol node: content, mass: 0.5, attraction_radius: 0.6,
+    activation_threshold: 0.4, source_cluster_ids: [...]
+    Symbols stored in knowledge_graph as "symbol_node" type.
+
+    Returns summary dict.
+    """
+    from pathlib import Path
+    from brain.knowledge_graph import get_or_create_node, add_node
+
+    # Find synthesis entries with high overlap (clustered memories)
+    synthesis_dir = NOVA_HOME / "overnight" / "synthesis"
+    if not synthesis_dir.exists():
+        return {"clusters_found": 0, "symbols_created": 0}
+
+    synthesis_files = sorted(synthesis_dir.glob("synthesis_*.json"))[-7:]  # last 7 syntheses
+    if len(synthesis_files) < 3:
+        return {"clusters_found": 0, "symbols_created": 0}
+
+    # Load all synthesis findings
+    all_findings = []
+    for sf in synthesis_files:
+        try:
+            data = json.loads(sf.read_text())
+            all_findings.extend(data.get("findings", []))
+        except Exception:
+            pass
+
+    if len(all_findings) < 10:
+        return {"clusters_found": 0, "symbols_created": 0}
+
+    # Simple clustering: find recurring word patterns across findings
+    # In full impl: use LLM to identify clusters
+    # Here: find recurring bigrams across 3+ syntheses
+    from collections import Counter
+    bigrams = Counter()
+    for finding in all_findings:
+        words = finding.lower().split()
+        for i in range(len(words) - 1):
+            bigram = f"{words[i]} {words[i+1]}"
+            bigrams[bigram] += 1
+
+    # Find bigrams appearing in 3+ syntheses
+    recurring = {bg: count for bg, count in bigrams.items() if count >= 3 and len(bg) > 6}
+    if not recurring:
+        return {"clusters_found": 0, "symbols_created": 0}
+
+    symbols_created = 0
+    for bigram, count in recurring.items():
+        # Check if symbol already exists
+        existing = get_or_create_node(label=bigram, node_type="symbol_node")
+        # Update salience based on recurrence
+        from brain.knowledge_graph import update_node_salience
+        new_salience = min(0.5 + (count * 0.05), 1.0)
+        update_node_salience(existing, new_salience, reason=f"meaning_compression:{count}syntheses")
+        symbols_created += 1
+
+    return {
+        "clusters_found": len(recurring),
+        "symbols_created": symbols_created
+    }
+
 
 def morning_consolidation() -> dict:
     """

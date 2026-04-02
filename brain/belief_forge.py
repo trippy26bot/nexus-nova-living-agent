@@ -297,6 +297,156 @@ def crystallize_beliefs() -> dict:
     return summary
 
 
+# ── Tier 3: Obsession-Belief Coupling ─────────────────────────────────────────
+
+def check_obsession_to_belief_pipeline() -> dict:
+    """
+    Wire obsession → belief: legacy-stage obsessions propose belief crystallization.
+    Get all legacy-stage obsessions.
+    For each: check if a matching belief node already exists.
+    If not: call propose_belief_crystallization().
+    If yes: reinforce existing belief with obsession history as source.
+
+    Returns summary dict.
+    """
+    from brain.obsession_engine import get_obsessions_by_stage, get_obsession_by_id
+    from brain.knowledge_graph import get_active_beliefs, reinforce_belief, get_belief
+
+    legacy_obsessions = get_obsessions_by_stage("legacy")
+    results = {
+        "legacy_obsessions_found": len(legacy_obsessions),
+        "merged_with_existing": [],
+        "proposed_new": [],
+        "already_has_belief": []
+    }
+
+    for obs in legacy_obsessions:
+        topic_key = obs["topic"].lower().strip()
+
+        # Check if belief already exists for this topic
+        active_beliefs = get_active_beliefs(min_mass=0.1)
+        existing_belief = None
+        for b in active_beliefs:
+            b_words = set(b.get("belief_text", "").lower().split())
+            topic_words = set(topic_key.split())
+            overlap = len(b_words & topic_words)
+            if overlap >= 2:  # at least 2 shared significant words
+                existing_belief = b
+                break
+
+        if existing_belief:
+            # Reinforce existing belief with obsession as source
+            reinforce_belief(existing_belief["id"], source_memory_id=obs["id"])
+            results["merged_with_existing"].append({
+                "obsession_id": obs["id"],
+                "topic": obs["topic"],
+                "existing_belief_id": existing_belief["id"]
+            })
+        else:
+            # Propose new belief via Forgekeeper
+            from brain.obsession_engine import propose_belief_crystallization
+            belief_id = propose_belief_crystallization(obs["id"])
+            if belief_id:
+                results["proposed_new"].append({
+                    "obsession_id": obs["id"],
+                    "topic": obs["topic"],
+                    "proposed_belief_id": belief_id
+                })
+            else:
+                results["already_has_belief"].append({
+                    "obsession_id": obs["id"],
+                    "topic": obs["topic"]
+                })
+
+    return results
+
+
+def check_belief_to_obsession_pipeline() -> dict:
+    """
+    Wire belief → obsession: crystallized beliefs with high reinforcement
+    can seed new potential obsessions.
+
+    Get crystallized beliefs with reinforcement_count > 25.
+    Check if any existing obsession maps to this belief domain.
+    If not: flag to curiosity engine as potential new obsession seed.
+    Nova decides whether to seed — system only flags, never auto-creates.
+
+    Returns summary dict.
+    """
+    from brain.knowledge_graph import get_beliefs_by_stage
+    from brain.curiosity_engine import QUESTIONS_PATH
+
+    crystallized_beliefs = get_beliefs_by_stage("crystallized")
+    high_reinforcement = [b for b in crystallized_beliefs if b.get("reinforcement_count", 0) > 25]
+
+    results = {
+        "high_reinforcement_beliefs": len(high_reinforcement),
+        "flagged_for_curiosity": []
+    }
+
+    for belief in high_reinforcement:
+        # Check if any obsession domain maps to this belief
+        try:
+            from brain.obsession_engine import get_active_obsessions
+            active_obs = get_active_obsessions()
+
+            belief_words = set(belief.get("belief_text", "").lower().split())
+            already_mapped = False
+            for obs in active_obs:
+                obs_words = set(obs["topic"].lower().split())
+                overlap = len(belief_words & obs_words)
+                if overlap >= 2:
+                    already_mapped = True
+                    break
+
+            if not already_mapped:
+                # Flag to curiosity engine as potential seed
+                # Write to curiosity_questions as a flagged seed
+                seed_question = {
+                    "id": f"belief_seed_{belief['id']}",
+                    "content": f"Should '{belief['belief_text']}' become an active obsession? It has {belief['reinforcement_count']} reinforcements and feels central to who I am.",
+                    "priority": 0.4,
+                    "source": f"belief_to_obsession:{belief['id']}",
+                    "resolved": False,
+                    "age_days": 0,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "last_touched_at": datetime.now(timezone.utc).isoformat(),
+                    "answer": None,
+                    "child_questions": [],
+                    "is_obsession_seed": True,
+                    "origin_belief_id": belief["id"]
+                }
+
+                # Load existing and append
+                import json as _json
+                questions_file = QUESTIONS_PATH
+                existing = []
+                if questions_file.exists():
+                    try:
+                        existing = _json.loads(questions_file.read_text())
+                    except Exception:
+                        existing = []
+
+                # Avoid duplicates
+                existing_ids = {q["id"] for q in existing}
+                if seed_question["id"] not in existing_ids:
+                    existing.append(seed_question)
+                    questions_file.parent.mkdir(parents=True, exist_ok=True)
+                    questions_file.write_text(_json.dumps(existing, indent=2))
+
+                results["flagged_for_curiosity"].append({
+                    "belief_id": belief["id"],
+                    "belief_text": belief["belief_text"],
+                    "reinforcement_count": belief["reinforcement_count"]
+                })
+
+        except Exception as e:
+            # Don't let failures in one pipeline step break the whole thing
+            pass
+
+    return results
+
+
 if __name__ == "__main__":
     import sys
 
