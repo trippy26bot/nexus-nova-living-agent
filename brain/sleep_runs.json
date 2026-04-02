@@ -1,6 +1,26 @@
 {
   "runs": [
     {
+      "timestamp": "2026-04-02T10:00:00.259464+00:00",
+      "type": "contradiction_resolution",
+      "duration_seconds": 0.000169,
+      "completed": false,
+      "findings": [
+        "No contradictions to resolve"
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-04-02T09:00:00.868544+00:00",
+      "type": "memory_consolidation",
+      "duration_seconds": 0.004836,
+      "completed": true,
+      "findings": [
+        "Obsession decay: 3 active obsessions remain"
+      ],
+      "flags": []
+    },
+    {
       "timestamp": "2026-04-01T10:00:00.589898+00:00",
       "type": "contradiction_resolution",
       "duration_seconds": 0.000502,

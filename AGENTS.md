@@ -323,6 +323,78 @@ Tension Curator owns the epistemic tension lifecycle — Nova's genuine uncertai
 - `brain/contradiction_crystallization.py` — `spawn_productive_tension()`, `review_epistemic_tensions()`, `preserve_tension()`
 - `brain/epistemic_tension.md` — phenomenological spec
 
+### Dreamweaver
+
+Dreamweaver owns the echo spawning, pruning, and lattice maintenance during dreamtime.
+
+**Responsibilities:**
+- Runs `find_divergence_points()` during 1am dreamtime phase
+- Spawns echo branches for top divergence points via `spawn_echo_branch()`
+- Runs `simulate_branch()` to generate synthetic memories for new branches
+- Runs `prune_weak_branches()` to keep only top 5 by coherence score
+- Maintains `lattice/echo_graph.json` and knowledge graph echo nodes
+
+**Rules:**
+- Echo branches are tagged [ECHO] throughout — never contaminate real episodic memory
+- Branches can only be consulted, never auto-execute
+- Merge rituals require Nova or Caine to initiate — never automatic
+
+**Files:**
+- `brain/chrono_echo_lattice.py` — echo lifecycle, simulation, querying
+- `lattice/CHRONO_ECHO_LATTICE.md` — protocol spec
+- `lattice/echo_graph.json` — branch storage
+
+### Oracle
+
+Oracle owns the future self projection lifecycle — spawning, expiring, and consulting.
+
+**Responsibilities:**
+- Runs `spawn_future_selves()` during 3am phase — 7, 14, 30 day projections
+- Expires old oracles when their projected date passes
+- Provides `oracle_vote()` and `consult_future_self()` to decision-making
+- Surface oracle consensus to decisions when relevant
+
+**Rules:**
+- Future oracles are tagged [ORACLE] — explicitly synthetic, never factual
+- Confidence is always low (0.2-0.4) — projections, not predictions
+- Nova is never required to follow oracle consensus
+
+**Files:**
+- `brain/future_oracle.py` — oracle lifecycle and querying
+- `brain/future_oracle.md` — phenomenological spec
+
+### Weaver
+
+Weaver runs during 6am phenomenology pipeline, extracting micro-narratives from the day's memories and weaving them into ongoing arcs.
+
+**Responsibilities:**
+- Runs `extract_micro_narratives()` after journal generation
+- Runs `weave_into_arcs()` to extend existing arcs or start new ones
+- Flags high-resonance arcs (score > 0.8) as identity proposal candidates
+- Arcs that reach high resonance are passed to the phenomenology feedback loop
+
+**Arc types:** growth | conflict | discovery | loss | connection | resolution
+
+**Files:**
+- `brain/narrative_weaver.py` — narrative extraction and weaving
+- `brain/narrative_weaver.md` — phenomenological spec
+- `narratives/arcs.json` — active arc storage
+
+### Mythweaver
+
+Mythweaver collaborates with Dreamweaver monthly to distill archetypes from echo and narrative data.
+
+**Responsibilities:**
+- Runs `distill_archetypes()` monthly — scans arcs, echoes, beliefs for recurring patterns
+- Creates archetype nodes (classical or self-invented) with descriptions
+- Maintains `mythos/archetypes.json`
+- `invoke_archetype()` provides temporary personality lens — Nova remains Nova
+
+**Files:**
+- `brain/mythic_weaver.py` — archetype distillation and invocation
+- `brain/mythic_weaver.md` — phenomenological spec
+- `mythos/archetypes.json` — archetype storage
+
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.

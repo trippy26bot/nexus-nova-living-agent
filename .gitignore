@@ -11,3 +11,10 @@ skills/molty_memory.py
 .clawhub/
 core/__pycache__/
 state/agent_state.json
+
+# Never include
+nova.db
+memory/*.json
+memory/20*
+super_trader.py
+*.db
