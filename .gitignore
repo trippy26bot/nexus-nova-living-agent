@@ -11,3 +11,11 @@ skills/molty_memory.py
 .clawhub/
 core/__pycache__/
 state/agent_state.json
+# Sensitive files
+memory/
+.env
+setup.sh
+skills/caption_history.json
+*.png
+*.jpg
+*.json
