@@ -18,18 +18,18 @@ WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/wor
 NOVA_HOME = Path(os.getenv("NOVA_HOME", os.path.expanduser("~/.nova")))
 DB_PATH = NOVA_HOME / "nova.db"
 
-# OpenClaw state sources
-AGENT_STATE_FILE = os.path.join(WORKSPACE, "state", "agent_state.json")
-OBSESSIONS_FILE = os.path.join(WORKSPACE, "memory", "obsessions.json")
-EVALUATIONS_FILE = os.path.join(WORKSPACE, "state", "evaluations.json")
-OVERNIGHT_LOG = os.path.join(WORKSPACE, "OVERNIGHT_LOG.md")
-MEMORY_MD = os.path.join(WORKSPACE, "MEMORY.md")
+# OpenClaw state sources — in ~/.nova/
+AGENT_STATE_FILE = NOVA_HOME / "state" / "agent_state.json"
+OBSESSIONS_FILE = NOVA_HOME / "memory" / "obsessions.json"
+EVALUATIONS_FILE = NOVA_HOME / "state" / "evaluations.json"
+OVERNIGHT_LOG = NOVA_HOME / "state" / "OVERNIGHT_LOG.md"
+MEMORY_MD = WORKSPACE / "MEMORY.md"
 
 # Loop output target (OpenClaw reads this at startup)
-LOOP_STATE_MD = os.path.join(WORKSPACE, "LOOP_STATE.md")
+LOOP_STATE_MD = NOVA_HOME / "state" / "LOOP_STATE.md"
 
 # Observations from loop
-OBSERVATIONS_LOG = os.path.join(WORKSPACE, "state", "observations.log")
+OBSERVATIONS_LOG = NOVA_HOME / "state" / "observations.log"
 
 
 def get_db():

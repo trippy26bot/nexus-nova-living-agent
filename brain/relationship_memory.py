@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-RELATIONSHIPS_PATH = os.path.join(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")), "memory/")relationships.json"
+RELATIONSHIPS_PATH = os.path.expanduser("~/.nova/memory/relationships.json")
 
 
 def _load_relationships() -> dict:
