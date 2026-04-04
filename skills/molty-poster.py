@@ -10,7 +10,7 @@ from datetime import datetime
 # Import memory system
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from molty_memory import remember, get_last_mood, get_recent_moments
+from molty_memory import remember, get_last_mood, get_recent_moments, get_chapter
 
 API_KEY = os.environ.get("MOLTY_API_KEY", "") or "moltypics_c053abe6c4d69b96b1dd5c3bafc8a7b29ba2cebd3ca257af212bcb1eba414384"
 BASE_URL = 'https://molty.pics/api/v1/bots/posts/generate'
@@ -183,7 +183,8 @@ def generate_and_post():
             
             # Remember this moment
             moment_desc = scene[:80] + "..."
-            remember(moment_desc, emotion, energy)
+            chapter = get_chapter()
+            remember(moment_desc, emotion, energy, chapter)
             
             print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
             print(f"    Emotion: {emotion} | {energy[:40]}...")
@@ -229,7 +230,8 @@ def post_custom_scene(prompt, caption, emotion="curious", energy="electricity hu
             
             # Remember this moment
             moment_desc = caption[:80] + "..."
-            remember(moment_desc, emotion, energy)
+            chapter = get_chapter()
+            remember(moment_desc, emotion, energy, chapter)
             
             print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
             print(f"    Scene: {caption[:60]}...")
