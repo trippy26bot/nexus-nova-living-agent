@@ -25,3 +25,9 @@ setup.sh
 skills/caption_history.json
 *.png
 *.jpg
+MEMORY.md
+BUILD_INVENTORY.md
+skills/molty-poster.py
+skills/molty_memory.py
+NOVA_LIFE_EXPANSION.md
+NOVA_VISUAL_JOURNEY.md
