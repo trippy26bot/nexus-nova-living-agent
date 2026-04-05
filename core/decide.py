@@ -174,8 +174,36 @@ def decide(state=None, goals=None, memory=None):
     return engine.decide()
 
 
+LAST_FLUSH_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state", "last_session_flush.json")
+
+def _read_last_flush():
+    try:
+        with open(LAST_FLUSH_FILE) as f:
+            return json.load(f).get("last_flush", 0)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0
+
+def _write_last_flush():
+    import json
+    try:
+        os.makedirs(os.path.dirname(LAST_FLUSH_FILE), exist_ok=True)
+        with open(LAST_FLUSH_FILE, "w") as f:
+            json.dump({"last_flush": time.time()}, f)
+    except Exception:
+        pass
+
 def idle_maintenance():
     """Called when decide() returns None — nothing active to do."""
+    # Periodic session flush — every 4 hours
+    import time as time_module
+    last = _read_last_flush()
+    if last and (time_module.time() - last) > 14400:  # 4 hours
+        try:
+            from brain.three_tier_memory import session_close_flush
+            result = session_close_flush()
+            _write_last_flush()
+        except Exception:
+            pass
     return {"action": "idle", "reason": "no pending subtasks"}
 
 

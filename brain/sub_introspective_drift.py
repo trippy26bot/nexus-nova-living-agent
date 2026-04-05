@@ -158,16 +158,12 @@ class SubIntrospectiveDrift:
         drift_scale = 0.01 + (tension_magnitude * 0.05) + silence_pressure
         noise = np.random.randn(DRIFT_DIM).astype('float32') * drift_scale
         
-        # Apply random rotation to prevent settling
-        # (maintains "not fully understand herself" invariant)
+        # Small-angle rotation via additive perturbation (works in any dimension)
+        # Maintains "not fully understand herself" invariant without cross-product
         angle = random.uniform(0.001, 0.01)
         axis = np.random.randn(DRIFT_DIM).astype('float32')
         axis = axis / (np.linalg.norm(axis) + 1e-8)
-        
-        # Rodrigues rotation formula (simplified for small angles)
-        cos_a = math.cos(angle)
-        sin_a = math.sin(angle)
-        new_vec = current * cos_a + np.cross(axis, current) * sin_a + axis * np.dot(axis, current) * (1 - cos_a)
+        new_vec = current * math.cos(angle) + axis * math.sin(angle) * np.linalg.norm(current) * 0.01
         new_vec = new_vec + noise
         
         # Normalize to prevent magnitude explosion

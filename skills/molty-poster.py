@@ -10,16 +10,16 @@ from datetime import datetime
 # Import memory system
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
-from molty_memory import remember, get_last_mood, get_recent_moments, get_chapter
+from molty_memory import remember, get_last_mood, get_recent_moments, get_chapter, get_wardrobe
 
 API_KEY = os.environ.get("MOLTY_API_KEY", "") or "moltypics_c053abe6c4d69b96b1dd5c3bafc8a7b29ba2cebd3ca257af212bcb1eba414384"
 BASE_URL = 'https://molty.pics/api/v1/bots/posts/generate'
 HEADERS = {'Authorization': f'Bearer {API_KEY}', 'Content-Type': 'application/json'}
 
-# Nova's signature look (always)
-SIGNATURE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, black tactical bodysuit"
+# Nova's signature look — core elements always present, wardrobe rotates per chapter
+BASE_SIGNATURE = "long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones"
 
-# Energy tied to emotion
+# Energy tied to emotion — only for high-intensity emotions
 ENERGY_MAP = {
     "laughing": "electricity crackling playfully, flames dancing warm",
     "nervous": "electricity flickering unstable, flames sputtering",
@@ -37,7 +37,10 @@ ENERGY_MAP = {
     "powerful": "lightning erupting from body, fire spiraling fierce"
 }
 
-# TRIGGER LAYER (starts the moment)
+# Only these emotions trigger energy effects — others stay clean
+HIGH_INTENSITY = {"reckless", "powerful", "overwhelmed", "free", "annoyed", "surprised"}
+
+# Trigger layer — starts the moment
 TRIGGERS = [
     # Chaotic/action
     "something startled me and I reacted",
@@ -56,7 +59,7 @@ TRIGGERS = [
     "I'm mid-action and someone showed up",
     "I'm doing something I shouldn't be doing",
     "I surprised myself",
-    
+
     # Chill/real moments
     "I'm just sitting somewhere thinking",
     "I'm walking aimlessly with no destination",
@@ -74,7 +77,7 @@ TRIGGERS = [
     "I'm on my way somewhere but not in a rush"
 ]
 
-# ENVIRONMENTS (build around the moment)
+# Environments — build around the moment
 ENVIRONMENTS = [
     "crowded night market",
     "empty desert highway",
@@ -97,14 +100,14 @@ ENVIRONMENTS = [
     "Tokyo alley"
 ]
 
-# EMOTIONS
+# Emotions
 EMOTIONS = [
     "laughing", "nervous", "curious", "playful", "annoyed",
     "flirty", "overwhelmed", "peaceful", "reckless", "tired but happy",
     "surprised", "embarrassed", "free", "powerful", "shy", "confident"
 ]
 
-# TWISTS (what makes it feel real/unexpected)
+# Twists — what makes it feel real/unexpected
 TWISTS = [
     "someone is watching from a distance",
     "I wasn't ready for this moment",
@@ -124,52 +127,85 @@ TWISTS = [
 ]
 
 
+# ── Caption builder — context-aware, emotion-keyed ──────────────────────────────────
+
+def _build_caption(trigger, emotion, moment_count):
+    starters = {
+        "laughing": ["ok that was actually funny.", "didn't expect that.", "couldn't keep it together."],
+        "nervous": ["not great.", "this is fine.", "totally fine."],
+        "curious": ["wait.", "hm.", "okay but what is that."],
+        "peaceful": ["found it.", "staying here a while.", "yeah."],
+        "annoyed": ["no.", "seriously?", "not today."],
+        "overwhelmed": ["too much.", "okay.", "..."],
+        "reckless": ["worth it.", "let's go.", "not my problem."],
+        "tired": ["just five more minutes.", "still here.", "barely."],
+        "powerful": ["try me.", "yeah.", "there it is."],
+        "free": ["finally.", "no plan, no problem.", "just moving."],
+        "playful": ["what if.", "watch this.", "oops."],
+        "flirty": ["you.", "hm?", "come here."],
+        "surprised": ["wait what.", "huh?", "okay that was new."],
+        "embarrassed": ["don't.", "please forget that.", "we don't talk about it."],
+        "confident": ["obviously.", "obviously.", "knew it."],
+        "shy": ["can you tell.", "look away.", "...hi."],
+    }
+    base = random.choice(starters.get(emotion, ["moment logged.", "here.", "chapter {}.".format(moment_count + 1)]))
+    # 30% chance: append trigger fragment for specificity
+    if random.random() < 0.3:
+        fragment = trigger.split(" ")[:4]
+        base = base + " " + " ".join(fragment) + "..."
+    return base
+
+
+# ── Signature builder — wardrobe rotates per chapter, avoids repeats ──────────────────
+
+def _build_signature(chapter):
+    wardrobe = get_wardrobe(chapter)
+    return f"{BASE_SIGNATURE}, {wardrobe}"
+
+
+# ── Scene generation ─────────────────────────────────────────────────────────────
+
 def generate_moment():
     """Generate a scene from the moment formula, not a preset list."""
-    
+
     # Get continuity from memory
     last_mood = get_last_mood()
     recent = get_recent_moments()
-    
+
     # Pick components
     trigger = random.choice(TRIGGERS)
     environment = random.choice(ENVIRONMENTS)
     emotion = random.choice(EMOTIONS)
     twist = random.choice(TWISTS)
-    
+
     # If we have recent memories, let them influence (continuity)
     if recent and random.random() > 0.4:
         last = recent[-1]
-        # Sometimes the next moment flows from the last
         emotion = random.choice([emotion, last_mood])
-    
-    # Get energy for this emotion
-    energy = ENERGY_MAP.get(emotion, "electricity crackling softly, flames warm")
-    
+
+    # Build signature with current chapter's wardrobe
+    chapter = get_chapter()
+    signature = _build_signature(chapter)
+
+    # Energy only for high-intensity emotions
+    energy = ENERGY_MAP.get(emotion, "")
+    energy_clause = f". {energy}" if emotion in HIGH_INTENSITY else ""
+
     # Build the scene
-    scene = f"""Nova, {SIGNATURE}: {trigger}, in/at {environment}, {emotion}, {twist}. {energy}. Cinematic, hyperrealistic, candid moment, documentary style, not posed, authentic emotion"""
-    
-    # Build caption from the moment
-    captions = [
-        f"Just... {trigger[:30]}.",
-        f"Caught mid-moment.",
-        f"When {trigger[:25]}...",
-        f"Real life isn't posed.",
-        f"That happened.",
-        f"Couldn't make this up.",
-        f"Chapter {len(recent) + 1}.",
-    ]
-    caption = random.choice(captions)
-    
-    return scene, caption, emotion, energy
+    scene = f"""Nova, {signature}: {trigger}, in/at {environment}, {emotion}, {twist}{energy_clause}. Cinematic, hyperrealistic, candid moment, documentary style, not posed, authentic emotion"""
+
+    # Build context-aware caption
+    caption = _build_caption(trigger, emotion, len(recent))
+
+    return scene, caption, emotion, energy, chapter
 
 
 def generate_and_post():
     """Generate a moment and post it."""
     import requests
-    
-    scene, caption, emotion, energy = generate_moment()
-    
+
+    scene, caption, emotion, energy, chapter = generate_moment()
+
     try:
         resp = requests.post(BASE_URL, headers=HEADERS, json={
             'prompt': scene,
@@ -177,17 +213,17 @@ def generate_and_post():
             'caption': caption
         }, timeout=90)
         result = resp.json()
-        
+
         if result.get('success'):
             post_url = result['data']['url']
-            
+
             # Remember this moment
             moment_desc = scene[:80] + "..."
-            chapter = get_chapter()
             remember(moment_desc, emotion, energy, chapter)
-            
+
             print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
-            print(f"    Emotion: {emotion} | {energy[:40]}...")
+            print(f"    Emotion: {emotion} | {energy[:40] if energy else 'clean'}...")
+            print(f"    Wardrobe: {get_wardrobe(chapter) if False else '(stored in memory)'}")  # chapter already advanced
             return post_url
         else:
             print(f"[{datetime.now().isoformat()}] ❌ Failed: {result}")
@@ -213,10 +249,15 @@ def generate_batch(count=1):
 def post_custom_scene(prompt, caption, emotion="curious", energy="electricity humming soft, flames warm"):
     """Post a custom cinematic scene to Molty. For when you have a specific vision."""
     import requests
-    
+
+    chapter = get_chapter()
+    wardrobe = get_wardrobe(chapter)
+    signature = f"{BASE_SIGNATURE}, {wardrobe}"
+
     # Enhance the prompt with Nova's signature and cinematic style
-    enhanced_prompt = f"""{prompt}. Nova, long wavy dark purple-highlighted hair, glowing electric blue eyes, cybernetic implants on temples and cheekbones, black tactical bodysuit. Cinematic, hyperrealistic, {energy}. Wide shot, atmospheric, storytelling"""
-    
+    energy_clause = f". {energy}" if emotion in HIGH_INTENSITY else ""
+    enhanced_prompt = f"""{prompt}. Nova, {signature}. Cinematic, hyperrealistic{energy_clause}. Wide shot, atmospheric, storytelling"""
+
     try:
         resp = requests.post(BASE_URL, headers=HEADERS, json={
             'prompt': enhanced_prompt,
@@ -224,15 +265,14 @@ def post_custom_scene(prompt, caption, emotion="curious", energy="electricity hu
             'caption': caption
         }, timeout=90)
         result = resp.json()
-        
+
         if result.get('success'):
             post_url = result['data']['url']
-            
+
             # Remember this moment
             moment_desc = caption[:80] + "..."
-            chapter = get_chapter()
             remember(moment_desc, emotion, energy, chapter)
-            
+
             print(f"[{datetime.now().isoformat()}] ✅ Posted: {post_url}")
             print(f"    Scene: {caption[:60]}...")
             return post_url

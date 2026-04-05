@@ -10,6 +10,7 @@ Writes summary to OVERNIGHT_LOG.md.
 """
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path

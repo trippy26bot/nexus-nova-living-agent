@@ -1,6 +1,39 @@
 {
   "runs": [
     {
+      "timestamp": "2026-04-04T19:57:17.643711+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 1.759381,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: The stars are out in force tonight, their light cutting through the atmosphere l..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-04-04T09:01:07.912242+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 1.724073,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: [llm_synthesis error: no choices in response]..."
+      ],
+      "flags": []
+    },
+    {
+      "timestamp": "2026-04-04T08:00:01.861230+00:00",
+      "type": "overnight_synthesis",
+      "duration_seconds": 1.560235,
+      "completed": false,
+      "findings": [
+        "Queue empty \u2014 skipped",
+        "Quiet night reflection: [llm_synthesis error: no choices in response]..."
+      ],
+      "flags": []
+    },
+    {
       "timestamp": "2026-04-03T08:00:01.675789+00:00",
       "type": "overnight_synthesis",
       "duration_seconds": 1.336756,

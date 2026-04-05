@@ -19,7 +19,7 @@ Nova can use either depending on query type.
 import os
 import json
 from pathlib import Path
-from typing import Optional, list
+from typing import Optional, List
 
 WORKSPACE = Path(os.getenv("NOVA_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
 CHROMA_DIR = WORKSPACE / "memory" / "chroma"
