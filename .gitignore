@@ -11,24 +11,17 @@ skills/molty_memory.py
 .clawhub/
 core/__pycache__/
 state/agent_state.json
-# Operational files — never commit
-.nova/
-state/
-*.db
-LOOP_STATE.md
-OVERNIGHT_LOG.md
+# Sensitive files
 memory/
 .env
 setup.sh
 skills/caption_history.json
 *.png
 *.jpg
-# Telegram
-telegram*.json
-telegram_*
-.env.telegram
-skills/Simmer/
-brain/sleep_runs.json
-memory/full-build-brief.md
-memory/gap-analysis.md
-memory/home-build-plan.md
+*.json
+memory/
+.env
+setup.sh
+skills/caption_history.json
+*.png
+*.jpg

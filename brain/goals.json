@@ -22,7 +22,7 @@
         },
         {
           "id": "integrate_retrieval",
-          "status": "complete"
+          "status": "pending"
         }
       ],
       "blockers": [
