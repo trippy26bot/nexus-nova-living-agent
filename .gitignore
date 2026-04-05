@@ -27,3 +27,8 @@ skills/caption_history.json
 telegram*.json
 telegram_*
 .env.telegram
+skills/Simmer/
+brain/sleep_runs.json
+memory/full-build-brief.md
+memory/gap-analysis.md
+memory/home-build-plan.md
